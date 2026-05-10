@@ -206,6 +206,10 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <h2 id="gallery-title" style="font-size:1.55rem;color:var(--dark)">Képek</h2>
       <p style="color:var(--muted);margin-top:4px;font-size:.9rem">Koppintson egy képre a rendeléshez</p>
     </div>
+    <div id="prev-orders-section" class="hidden" style="margin-bottom:24px">
+      <div class="section-title">Korábbi rendeléseim</div>
+      <div id="prev-orders-list"></div>
+    </div>
     <div class="section-title">Összes fotó</div>
     <div style="text-align:center;color:var(--muted);font-size:.84rem;margin-bottom:18px;font-style:italic">Koppints a képre – rendelj digitálisan vagy papírban</div>
     <div id="photo-grid" class="photo-grid"></div>
@@ -523,8 +527,27 @@ function handleAdminLogin(){
 
 function logout(){cart=[];currentGallery=null;showPage("page-login")}
 
+function renderPrevOrders(){
+  const email=currentGallery.parentEmail.toLowerCase();
+  const myOrders=orders.filter(o=>o.parentEmail&&o.parentEmail.toLowerCase()===email);
+  const section=document.getElementById("prev-orders-section");
+  const list=document.getElementById("prev-orders-list");
+  if(myOrders.length===0){section.classList.add("hidden");return}
+  section.classList.remove("hidden");
+  list.innerHTML=myOrders.map(o=>`
+    <div style="background:var(--white);border-radius:13px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div style="font-size:.82rem;color:var(--muted)">${o.date}</div>
+        <div style="font-weight:700;color:var(--gold);font-size:.95rem">${o.total.toLocaleString("hu-HU")} Ft</div>
+      </div>
+      ${(o.items||[]).map(i=>`<div style="font-size:.82rem;color:var(--text);padding:3px 0;border-bottom:1px dashed var(--warm)">${i.photoName} – ${i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")"} × ${i.qty} = ${i.totalPrice.toLocaleString("hu-HU")} Ft</div>`).join("")}
+    </div>
+  `).join("");
+}
+
 function renderGallery(){
   document.getElementById("gallery-title").textContent=currentGallery.child+" k\u00e9pei";
+  renderPrevOrders();
   const grid=document.getElementById("photo-grid");
   grid.innerHTML="";
   (currentGallery.photos||[]).forEach(photo=>{
@@ -720,14 +743,17 @@ function regenCode(){
 
 async function createGallery(){
   const child=document.getElementById("new-child").value.trim();
-  const email=document.getElementById("new-email").value.trim();
+  const email=document.getElementById("new-email").value.trim().toLowerCase();
   const errDiv=document.getElementById("new-form-error");
   hide("new-form-error");
   if(!child||!email){errDiv.textContent="A gyerek neve \u00e9s az email c\u00edm k\u00f6telez\u0151.";show("new-form-error");return}
   const btn=document.getElementById("create-btn");
   btn.disabled=true;btn.textContent="Ment\u00e9s...";
   try{
-    await db.collection("galleries").add({name:child+" \u2013 Iskolai fot\u00f3k 2025",code:generatedCode||generateCode(child),child,parentEmail:email.toLowerCase(),createdAt:Date.now(),photos:uploadedPhotosNew});
+    // Ha az email már létezik, ugyanazt a kódot használjuk
+    const existingByEmail=galleries.find(g=>g.parentEmail.toLowerCase()===email);
+    const finalCode=existingByEmail?existingByEmail.code:(generatedCode||generateCode(child));
+    await db.collection("galleries").add({name:child+" \u2013 Iskolai fot\u00f3k 2025",code:finalCode,child,parentEmail:email,createdAt:Date.now(),photos:uploadedPhotosNew});
     const gs=await db.collection("galleries").orderBy("createdAt","desc").get();
     galleries=gs.docs.map(d=>({id:d.id,...d.data()}));
     document.getElementById("new-child").value="";document.getElementById("new-email").value="";
