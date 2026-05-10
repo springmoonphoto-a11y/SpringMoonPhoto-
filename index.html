@@ -257,7 +257,16 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div id="cart-success" class="order-success hidden">
       <div class="ok-icon">✅</div>
       <h2 style="margin-bottom:10px">Rendelés elküldve!</h2>
-      <p style="color:var(--muted);margin-bottom:22px">Köszönjük! A fotós felveszi Önnel a kapcsolatot.</p>
+      <p style="color:var(--muted);margin-bottom:20px">Köszönjük a rendelést! Kérjük az alábbi bankszámlára utald el a végösszeget <strong>3 munkanapon belül</strong>.</p>
+      <div style="background:var(--white);border-radius:14px;padding:20px;margin-bottom:20px;box-shadow:var(--shadow-sm);text-align:left">
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;font-weight:500">Fizetési adatok</div>
+        <div style="margin-bottom:12px"><div style="font-size:.78rem;color:var(--muted)">Kedvezményezett neve</div><div style="font-weight:600;color:var(--dark);font-size:.97rem;margin-top:2px">Bukta Anita</div></div>
+        <div style="margin-bottom:12px"><div style="font-size:.78rem;color:var(--muted)">Bank</div><div style="font-weight:600;color:var(--dark);font-size:.97rem;margin-top:2px">OTP Bank</div></div>
+        <div style="margin-bottom:12px"><div style="font-size:.78rem;color:var(--muted)">Számlaszám</div><div style="font-weight:700;color:var(--brown);font-size:1.05rem;margin-top:2px;letter-spacing:.05em">11773391-00491127</div></div>
+        <div style="margin-bottom:12px"><div style="font-size:.78rem;color:var(--muted)">Megjegyzésbe írd</div><div style="font-weight:600;color:var(--dark);font-size:.97rem;margin-top:2px" id="success-child-name"></div></div>
+        <div style="background:var(--cream);border-radius:10px;padding:14px;margin-top:14px;display:flex;justify-content:space-between;align-items:center"><span style="font-family:Playfair Display,serif;font-size:1rem;color:var(--dark)">Fizetendő összeg</span><strong style="font-size:1.3rem;color:var(--gold)" id="success-total"></strong></div>
+      </div>
+      <div style="background:#fff8ee;border:1.5px solid var(--gold);border-radius:12px;padding:14px;margin-bottom:20px;font-size:.85rem;color:var(--brown);text-align:left">💡 Az utalás beérkezése után a fotós elküldi a digitális képeket, illetve feldolgozza a papírképek rendelését.</div>
       <button class="btn" style="width:auto;padding:12px 28px" onclick="backToGallery()">Vissza a galériához</button>
     </div>
     <div id="cart-empty" class="hidden" style="text-align:center;padding:50px 20px;color:var(--muted)">
@@ -588,7 +597,7 @@ async function sendOrder(){
   const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;
   try{
     await db.collection("orders").add({child:currentGallery.child,parentEmail:currentGallery.parentEmail,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total:cart.reduce((s,i)=>s+i.totalPrice,0),items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?.label||null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
-    cart=[];updateCartUI();hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");show("cart-success");
+    const total=cart.reduce((s,i)=>s+i.totalPrice,0);cart=[];updateCartUI();hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");document.getElementById("success-child-name").textContent=currentGallery.child+" fot�i";document.getElementById("success-total").textContent=total.toLocaleString("hu-HU")+" Ft";show("cart-success");
   }catch(e){console.error(e);btn.textContent="Rendelés leadása →";btn.disabled=false}
 }
 function backToGallery(){hide("cart-success");showGallery()}
