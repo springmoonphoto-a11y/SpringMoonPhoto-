@@ -341,20 +341,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <div id="detail-meta" class="gallery-detail-meta"></div>
       <div id="detail-code" class="gallery-detail-code" onclick="copyDetailCode()"></div>
       <div class="gallery-detail-actions">
-        <button class="btn btn-blue btn-sm" onclick="toggleEditForm()">✏️ Szerkesztés</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">🗑️ Törlés</button>
-      </div>
-      <!-- SZERKESZTÉS FORM -->
-      <div id="edit-form" class="hidden" style="margin-top:16px;border-top:1px solid var(--warm);padding-top:16px">
-        <label>Gyerek neve</label>
-        <input type="text" id="edit-child" placeholder="pl. Kovács Bence">
-        <label>Szülő email</label>
-        <input type="email" id="edit-email" placeholder="szulo@email.com">
-        <div id="edit-msg"></div>
-        <div style="display:flex;gap:9px;margin-top:4px">
-          <button class="btn btn-outline btn-sm" onclick="toggleEditForm()">Mégse</button>
-          <button class="btn btn-green" style="flex:1" onclick="saveEdit()">✓ Mentés</button>
-        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">🗑️ Galéria törlése</button>
       </div>
     </div>
 
@@ -686,34 +673,6 @@ async function deleteCurrentGallery(){
 function copyDetailCode(){
   navigator.clipboard?.writeText(currentDetailGallery.code);
   alert("Kód másolva: "+currentDetailGallery.code);
-}
-
-function toggleEditForm(){
-  const form=document.getElementById("edit-form");
-  form.classList.toggle("hidden");
-  if(!form.classList.contains("hidden")){
-    document.getElementById("edit-child").value=currentDetailGallery.child;
-    document.getElementById("edit-email").value=currentDetailGallery.parentEmail;
-    document.getElementById("edit-msg").innerHTML="";
-  }
-}
-
-async function saveEdit(){
-  const child=document.getElementById("edit-child").value.trim();
-  const email=document.getElementById("edit-email").value.trim().toLowerCase();
-  const msg=document.getElementById("edit-msg");
-  if(!child||!email){msg.innerHTML='<div class="error-msg">Töltsd ki mindkét mezőt!</div>';return}
-  try{
-    await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,name:child+" – Iskolai fotók 2025"});
-    currentDetailGallery.child=child;
-    currentDetailGallery.parentEmail=email;
-    const g=galleries.find(x=>x.id===currentDetailGallery.id);
-    if(g){g.child=child;g.parentEmail=email;}
-    document.getElementById("detail-name").textContent=child+" galériája";
-    document.getElementById("detail-meta").textContent="📧 "+email;
-    msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';
-    setTimeout(()=>{document.getElementById("edit-form").classList.add("hidden");msg.innerHTML=""},1500);
-  }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt!</div>'}
 }
 
 function copyCode(code){navigator.clipboard?.writeText(code);alert("Kód másolva: "+code)}
