@@ -29,11 +29,12 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .btn:disabled{opacity:.6;cursor:not-allowed}
 .btn-gold{background:var(--gold)}
 .btn-gold:hover{background:#b8922e}
-.btn-outline{background:transparent;border:1.5px solid var(--brown);color:var(--brown);margin-top:10px}
+.btn-outline{background:transparent;border:1.5px solid var(--brown);color:var(--brown)}
 .btn-outline:hover{background:var(--warm)}
 .btn-green{background:var(--green)}
 .btn-green:hover{background:#1a5c37}
 .btn-danger{background:#c0392b;color:#fff}
+.btn-danger:hover{background:#922b21}
 .btn-blue{background:#2980b9;color:#fff}
 .btn-blue:hover{background:#1a6a9a}
 .btn-sm{padding:9px 16px;font-size:.84rem;width:auto}
@@ -49,18 +50,22 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .cart-btn:hover{background:var(--gold);color:var(--white)}
 .cart-badge{background:var(--brown);color:var(--white);border-radius:50%;width:19px;height:19px;font-size:.7rem;display:flex;align-items:center;justify-content:center;font-weight:700}
 .logout-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.83rem}
+.back-btn{background:none;border:none;color:var(--brown);cursor:pointer;font-size:.9rem;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;padding:0}
 .wrap{padding:22px 15px;max-width:600px;margin:0 auto}
-.greeting h2{font-size:1.55rem;color:var(--dark)}
-.greeting p{color:var(--muted);margin-top:4px;font-size:.9rem;margin-bottom:24px}
 .section-title{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--brown);margin-bottom:14px;display:flex;align-items:center;gap:10px}
 .section-title::after{content:'';flex:1;height:1px;background:var(--warm)}
-.hint{text-align:center;color:var(--muted);font-size:.84rem;margin-bottom:18px;font-style:italic}
 .photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:28px}
 .photo-card{position:relative;border-radius:12px;overflow:hidden;cursor:pointer;box-shadow:var(--shadow-sm);aspect-ratio:3/4;background:var(--warm);transition:transform .2s,box-shadow .2s}
 .photo-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
 .photo-card img{width:100%;height:100%;object-fit:cover;display:block}
 .photo-card.selected::after{content:'';position:absolute;inset:0;border:3px solid var(--gold);border-radius:12px;pointer-events:none}
 .photo-check{position:absolute;top:9px;right:9px;width:26px;height:26px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem}
+/* Admin foto grid – törlés gombbal */
+.admin-photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+.admin-photo-card{position:relative;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);aspect-ratio:3/4;background:var(--warm)}
+.admin-photo-card img{width:100%;height:100%;object-fit:cover;display:block}
+.admin-photo-card .delete-photo-btn{position:absolute;top:8px;right:8px;background:rgba(192,57,43,.9);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.admin-photo-card .photo-label{position:absolute;bottom:0;left:0;right:0;background:rgba(26,18,8,.5);color:#fff;font-size:.72rem;padding:5px 8px}
 .overlay{position:fixed;inset:0;background:rgba(26,18,8,.55);z-index:200;display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--white);border-radius:24px 24px 0 0;padding:26px 18px 38px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto}
 .sheet-handle{width:38px;height:4px;background:var(--warm);border-radius:4px;margin:0 auto 18px}
@@ -115,7 +120,8 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .order-item-row img{width:38px;height:48px;object-fit:cover;border-radius:5px}
 .order-item-row span{flex:1}
 .item-price{color:var(--gold);font-weight:500}
-.gallery-admin-card{background:var(--white);border-radius:13px;padding:14px;margin-bottom:11px;box-shadow:var(--shadow-sm)}
+.gallery-admin-card{background:var(--white);border-radius:13px;padding:14px;margin-bottom:11px;box-shadow:var(--shadow-sm);cursor:pointer;transition:box-shadow .2s}
+.gallery-admin-card:hover{box-shadow:var(--shadow)}
 .gallery-admin-top{display:flex;align-items:center;gap:12px}
 .gallery-admin-thumb{display:flex;gap:4px;flex-shrink:0}
 .gallery-admin-thumb img{width:42px;height:54px;object-fit:cover;border-radius:6px}
@@ -125,7 +131,6 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .gallery-admin-email{font-size:.77rem;color:var(--muted);margin-top:2px}
 .gallery-code{display:inline-flex;align-items:center;gap:7px;background:var(--cream);border:1.5px dashed var(--gold);border-radius:6px;padding:4px 11px;font-size:.8rem;color:var(--brown);font-weight:700;letter-spacing:.1em;margin-top:5px;cursor:pointer}
 .gallery-count{font-size:.75rem;color:var(--muted);margin-top:3px}
-.gallery-admin-btns{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
 .new-form{background:var(--white);border-radius:14px;padding:20px 18px;box-shadow:var(--shadow-sm);margin-bottom:18px;border:2px dashed var(--warm)}
 .new-form h3{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--dark);margin-bottom:16px}
 .code-box{background:var(--cream);border:1.5px solid var(--gold);border-radius:10px;padding:13px 15px;margin-bottom:15px;display:flex;align-items:center;justify-content:space-between}
@@ -137,7 +142,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .spinner{display:inline-block;width:28px;height:28px;border:3px solid var(--warm);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .upload-area{border:2px dashed var(--gold);border-radius:12px;padding:20px;text-align:center;cursor:pointer;margin-bottom:14px;background:#fffdf7;transition:all .2s;position:relative}
-.upload-area:hover{background:#fff8ee;border-color:var(--brown)}
+.upload-area:hover{background:#fff8ee}
 .upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .upload-icon{font-size:2rem;margin-bottom:8px}
 .upload-text{font-size:.88rem;color:var(--muted)}
@@ -145,14 +150,16 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .photo-preview-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .photo-preview-item{position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:var(--warm)}
 .photo-preview-item img{width:100%;height:100%;object-fit:cover}
-.photo-preview-item .remove-photo{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:.75rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.photo-preview-item .remove-photo{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:.75rem;cursor:pointer}
 .upload-progress{background:var(--warm);border-radius:10px;padding:12px;margin-bottom:12px;font-size:.85rem;color:var(--brown);text-align:center}
 .progress-bar{height:6px;background:#e0d5c5;border-radius:3px;margin-top:8px;overflow:hidden}
 .progress-fill{height:100%;background:var(--gold);border-radius:3px;transition:width .3s}
-
-/* KÉPHOZZÁADÁS PANEL */
-.add-photos-panel{background:var(--cream);border-radius:12px;padding:16px;margin-top:12px;border:1.5px solid var(--warm)}
-.add-photos-panel h4{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--dark);margin-bottom:12px}
+/* Galéria részletek oldal */
+.gallery-detail-header{background:var(--white);border-radius:14px;padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
+.gallery-detail-name{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--dark)}
+.gallery-detail-meta{font-size:.82rem;color:var(--muted);margin-top:4px}
+.gallery-detail-code{display:inline-flex;align-items:center;gap:7px;background:var(--cream);border:1.5px dashed var(--gold);border-radius:6px;padding:5px 13px;font-size:.88rem;color:var(--brown);font-weight:700;letter-spacing:.1em;margin-top:8px;cursor:pointer}
+.gallery-detail-actions{display:flex;gap:10px;margin-top:12px}
 </style>
 </head>
 <body>
@@ -199,12 +206,12 @@ input:focus{border-color:var(--gold);background:var(--white)}
     </div>
   </div>
   <div class="wrap">
-    <div class="greeting">
-      <h2 id="gallery-title">Képek</h2>
-      <p>Koppintson egy képre a rendeléshez</p>
+    <div style="margin-bottom:24px">
+      <h2 id="gallery-title" style="font-size:1.55rem;color:var(--dark)">Képek</h2>
+      <p style="color:var(--muted);margin-top:4px;font-size:.9rem">Koppintson egy képre a rendeléshez</p>
     </div>
     <div class="section-title">Összes fotó</div>
-    <div class="hint">Koppints a képre → rendelj digitálisan vagy papírban</div>
+    <div style="text-align:center;color:var(--muted);font-size:.84rem;margin-bottom:18px;font-style:italic">Koppints a képre → rendelj digitálisan vagy papírban</div>
     <div id="photo-grid" class="photo-grid"></div>
     <button id="cart-float-btn" class="btn btn-gold hidden" onclick="showCart()"></button>
   </div>
@@ -303,9 +310,9 @@ input:focus{border-color:var(--gold);background:var(--white)}
         </div>
         <label style="margin-bottom:10px">📷 Képek feltöltése</label>
         <div class="upload-area">
-          <input type="file" id="file-input-new" accept="image/*" multiple onchange="handleFileSelect(event,'new')">
+          <input type="file" id="file-input-new" accept="image/*" multiple onchange="handleFileSelectNew(event)">
           <div class="upload-icon">📷</div>
-          <div class="upload-text"><strong>Koppints ide a képek kiválasztásához</strong><br>Telefonról vagy gépről is feltölthetsz</div>
+          <div class="upload-text"><strong>Koppints ide a képek kiválasztásához</strong></div>
         </div>
         <div id="upload-progress-new" class="upload-progress hidden">
           <span id="upload-status-new">Feltöltés...</span>
@@ -322,43 +329,67 @@ input:focus{border-color:var(--gold);background:var(--white)}
   </div>
 </div>
 
+<!-- GALÉRIA RÉSZLETEK OLDAL -->
+<div id="page-gallery-detail" class="hidden">
+  <div class="header">
+    <div class="header-logo">foto<span>lux</span></div>
+    <button class="logout-btn" onclick="backToAdminGalleries()">← Vissza</button>
+  </div>
+  <div class="wrap">
+    <div class="gallery-detail-header">
+      <div id="detail-name" class="gallery-detail-name"></div>
+      <div id="detail-meta" class="gallery-detail-meta"></div>
+      <div id="detail-code" class="gallery-detail-code" onclick="copyDetailCode()"></div>
+      <div class="gallery-detail-actions">
+        <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">🗑️ Galéria törlése</button>
+      </div>
+    </div>
+
+    <!-- KÉPEK HOZZÁADÁSA -->
+    <div class="new-form" style="margin-bottom:20px">
+      <h3>📷 Képek hozzáadása</h3>
+      <div class="upload-area">
+        <input type="file" id="file-input-detail" accept="image/*" multiple onchange="handleFileSelectDetail(event)">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text"><strong>Koppints ide a képek kiválasztásához</strong><br>Telefonról vagy gépről is</div>
+      </div>
+      <div id="upload-progress-detail" class="upload-progress hidden">
+        <span id="upload-status-detail">Feltöltés...</span>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill-detail" style="width:0%"></div></div>
+      </div>
+      <div id="photo-previews-detail" class="photo-preview-grid"></div>
+      <div id="detail-upload-msg"></div>
+      <button id="save-photos-btn" class="btn btn-green hidden" onclick="saveDetailPhotos()">✓ Képek mentése</button>
+    </div>
+
+    <!-- MEGLÉVŐ KÉPEK -->
+    <div class="section-title">Feltöltött képek</div>
+    <div id="detail-photo-grid" class="admin-photo-grid"></div>
+    <div id="detail-empty" class="empty-msg hidden">Még nincs feltöltött kép ebben a galériában.</div>
+  </div>
+</div>
+
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyAOw4Lt6YVyIjnYKuNEGzpA7XiJgMssc9o",
-  authDomain: "springmoon-a8d86.firebaseapp.com",
-  projectId: "springmoon-a8d86",
-  storageBucket: "springmoon-a8d86.firebasestorage.app",
-  messagingSenderId: "1037425486077",
-  appId: "1:1037425486077:web:f83b87367c885002fe3694"
-};
+const firebaseConfig={apiKey:"AIzaSyAOw4Lt6YVyIjnYKuNEGzpA7XiJgMssc9o",authDomain:"springmoon-a8d86.firebaseapp.com",projectId:"springmoon-a8d86",storageBucket:"springmoon-a8d86.firebasestorage.app",messagingSenderId:"1037425486077",appId:"1:1037425486077:web:f83b87367c885002fe3694"};
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db=firebase.firestore();
 
-const CLOUD_NAME = "dpluouggw";
-const UPLOAD_PRESET = "fotolux_upload";
+const CLOUD_NAME="dpluouggw";
+const UPLOAD_PRESET="fotolux_upload";
+const PRINT_SIZES=[{id:"10x15",label:"10×15 cm",price:490},{id:"13x18",label:"13×18 cm",price:690},{id:"20x30",label:"20×30 cm",price:1290},{id:"A4",label:"A4 (21×29.7 cm)",price:1590}];
+const DIGITAL_PRICE=390;
+const ADMIN_PASSWORD="admin2025";
 
-const PRINT_SIZES = [
-  {id:"10x15",label:"10×15 cm",price:490},
-  {id:"13x18",label:"13×18 cm",price:690},
-  {id:"20x30",label:"20×30 cm",price:1290},
-  {id:"A4",label:"A4 (21×29.7 cm)",price:1590}
-];
-const DIGITAL_PRICE = 390;
-const ADMIN_PASSWORD = "admin2025";
-
-let galleries=[], orders=[], currentGallery=null, cart=[];
-let activePhoto=null, orderType="print", selectedSize=PRINT_SIZES[0], qty=1;
-let generatedCode="", uploadedPhotosNew=[];
-let expandedGalleryId=null, uploadedPhotosAdd=[];
+let galleries=[],orders=[],currentGallery=null,cart=[];
+let activePhoto=null,orderType="print",selectedSize=PRINT_SIZES[0],qty=1;
+let generatedCode="",uploadedPhotosNew=[];
+let currentDetailGallery=null,uploadedPhotosDetail=[];
 
 function fmt(n){return n.toLocaleString("hu-HU")+" Ft"}
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
-function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin"].forEach(p=>hide(p));show(id)}
-function generateCode(name){
-  const base=name.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"").slice(0,6);
-  return base+Math.floor(1000+Math.random()*9000);
-}
+function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail"].forEach(p=>hide(p));show(id)}
+function generateCode(name){const base=name.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"").slice(0,6);return base+Math.floor(1000+Math.random()*9000)}
 
 async function loadData(){
   try{
@@ -370,7 +401,7 @@ async function loadData(){
   showPage("page-login");
 }
 
-async function uploadToCloudinary(file, index, total, prefix){
+async function uploadPhoto(file,i,total,progressId,statusId){
   const formData=new FormData();
   formData.append("file",file);
   formData.append("upload_preset",UPLOAD_PRESET);
@@ -378,50 +409,80 @@ async function uploadToCloudinary(file, index, total, prefix){
   const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:"POST",body:formData});
   const data=await res.json();
   if(data.secure_url){
-    const pct=Math.round(((index+1)/total)*100);
-    document.getElementById("progress-fill-"+prefix).style.width=pct+"%";
-    document.getElementById("upload-status-"+prefix).textContent=`Feltöltés: ${index+1}/${total} kép...`;
+    document.getElementById(progressId).style.width=Math.round(((i+1)/total)*100)+"%";
+    document.getElementById(statusId).textContent=`Feltöltés: ${i+1}/${total} kép...`;
     return data.secure_url;
   }
-  throw new Error("Feltöltési hiba");
+  throw new Error("Hiba");
 }
 
-async function handleFileSelect(event, prefix){
+// ÚJ GALÉRIA FELTÖLTÉS
+async function handleFileSelectNew(event){
   const files=Array.from(event.target.files);
   if(!files.length)return;
-  show("upload-progress-"+prefix);
-  document.getElementById("progress-fill-"+prefix).style.width="0%";
-  document.getElementById("upload-status-"+prefix).textContent="Feltöltés előkészítése...";
-  const uploadedArr = prefix==="new" ? uploadedPhotosNew : uploadedPhotosAdd;
+  show("upload-progress-new");
+  document.getElementById("progress-fill-new").style.width="0%";
+  document.getElementById("upload-status-new").textContent="Előkészítés...";
   try{
     for(let i=0;i<files.length;i++){
-      const url=await uploadToCloudinary(files[i],i,files.length,prefix);
-      uploadedArr.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedArr.length+1)});
+      const url=await uploadPhoto(files[i],i,files.length,"progress-fill-new","upload-status-new");
+      uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1)});
     }
-    document.getElementById("upload-status-"+prefix).textContent=`✓ ${files.length} kép sikeresen feltöltve!`;
-    renderPhotoPreviews(prefix);
-  }catch(e){
-    document.getElementById("upload-status-"+prefix).textContent="⚠️ Hiba a feltöltés során. Próbáld újra!";
-  }
+    document.getElementById("upload-status-new").textContent=`✓ ${files.length} kép feltöltve!`;
+    renderPreviewsNew();
+  }catch(e){document.getElementById("upload-status-new").textContent="⚠️ Hiba. Próbáld újra!"}
 }
 
-function renderPhotoPreviews(prefix){
-  const arr = prefix==="new" ? uploadedPhotosNew : uploadedPhotosAdd;
-  const grid=document.getElementById("photo-previews-"+prefix);
-  if(!grid)return;
-  grid.innerHTML=arr.map((p,i)=>`
-    <div class="photo-preview-item">
-      <img src="${p.url}" alt="">
-      <button class="remove-photo" onclick="removeUploadedPhoto(${i},'${prefix}')">✕</button>
-    </div>
+function renderPreviewsNew(){
+  document.getElementById("photo-previews-new").innerHTML=uploadedPhotosNew.map((p,i)=>`
+    <div class="photo-preview-item"><img src="${p.url}" alt=""><button class="remove-photo" onclick="uploadedPhotosNew.splice(${i},1);uploadedPhotosNew.forEach((x,j)=>x.name='Portré '+(j+1));renderPreviewsNew()">✕</button></div>
   `).join("");
 }
 
-function removeUploadedPhoto(i, prefix){
-  const arr = prefix==="new" ? uploadedPhotosNew : uploadedPhotosAdd;
-  arr.splice(i,1);
-  arr.forEach((p,idx)=>p.name="Portré "+(idx+1));
-  renderPhotoPreviews(prefix);
+// GALÉRIA RÉSZLET FELTÖLTÉS
+async function handleFileSelectDetail(event){
+  const files=Array.from(event.target.files);
+  if(!files.length)return;
+  show("upload-progress-detail");
+  document.getElementById("progress-fill-detail").style.width="0%";
+  document.getElementById("upload-status-detail").textContent="Előkészítés...";
+  try{
+    for(let i=0;i<files.length;i++){
+      const url=await uploadPhoto(files[i],i,files.length,"progress-fill-detail","upload-status-detail");
+      uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:"Portré "+((currentDetailGallery.photos||[]).length+uploadedPhotosDetail.length+1)});
+    }
+    document.getElementById("upload-status-detail").textContent=`✓ ${files.length} kép feltöltve!`;
+    renderPreviewsDetail();
+    show("save-photos-btn");
+  }catch(e){document.getElementById("upload-status-detail").textContent="⚠️ Hiba. Próbáld újra!"}
+}
+
+function renderPreviewsDetail(){
+  document.getElementById("photo-previews-detail").innerHTML=uploadedPhotosDetail.map((p,i)=>`
+    <div class="photo-preview-item"><img src="${p.url}" alt=""><button class="remove-photo" onclick="uploadedPhotosDetail.splice(${i},1);renderPreviewsDetail()">✕</button></div>
+  `).join("");
+}
+
+async function saveDetailPhotos(){
+  if(!uploadedPhotosDetail.length)return;
+  const btn=document.getElementById("save-photos-btn");
+  btn.textContent="Mentés...";btn.disabled=true;
+  const allPhotos=[...(currentDetailGallery.photos||[]),...uploadedPhotosDetail];
+  try{
+    await db.collection("galleries").doc(currentDetailGallery.id).update({photos:allPhotos});
+    currentDetailGallery.photos=allPhotos;
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);
+    if(g)g.photos=allPhotos;
+    uploadedPhotosDetail=[];
+    hide("upload-progress-detail");
+    hide("save-photos-btn");
+    document.getElementById("photo-previews-detail").innerHTML="";
+    document.getElementById("detail-upload-msg").innerHTML='<div class="success-msg">✓ Képek mentve!</div>';
+    setTimeout(()=>document.getElementById("detail-upload-msg").innerHTML="",2000);
+    renderDetailPhotos();
+  }catch(e){
+    document.getElementById("detail-upload-msg").innerHTML='<div class="error-msg">Hiba történt!</div>';
+  }finally{btn.textContent="✓ Képek mentése";btn.disabled=false}
 }
 
 // LOGIN
@@ -443,14 +504,13 @@ function handleLogin(){
 
 function handleAdminLogin(){
   const pass=document.getElementById("inp-admin-pass").value;
-  const err=document.getElementById("admin-error");
   if(pass===ADMIN_PASSWORD){showPage("page-admin");renderAdmin();}
-  else{err.textContent="Helytelen jelszó.";show("admin-error")}
+  else{document.getElementById("admin-error").textContent="Helytelen jelszó.";show("admin-error")}
 }
 
 function logout(){cart=[];currentGallery=null;showPage("page-login")}
 
-// GALÉRIA
+// SZÜLŐI GALÉRIA
 function renderGallery(){
   document.getElementById("gallery-title").textContent=currentGallery.child+" képei";
   const grid=document.getElementById("photo-grid");
@@ -471,98 +531,48 @@ function openSheet(photo){
   document.getElementById("sheet-name").textContent=photo.name;
   renderSizes();updateSheetType();updateSheetTotal();show("overlay");
 }
-
 function closeOverlay(e){if(e.target===document.getElementById("overlay"))closeSheet()}
 function closeSheet(){hide("overlay")}
-
-function setType(t){
-  orderType=t;
-  document.getElementById("tab-print").classList.toggle("active",t==="print");
-  document.getElementById("tab-digital").classList.toggle("active",t==="digital");
-  updateSheetType();updateSheetTotal();
-}
-
-function updateSheetType(){
-  if(orderType==="print"){show("size-section");hide("digital-section")}
-  else{hide("size-section");show("digital-section")}
-}
-
+function setType(t){orderType=t;document.getElementById("tab-print").classList.toggle("active",t==="print");document.getElementById("tab-digital").classList.toggle("active",t==="digital");updateSheetType();updateSheetTotal()}
+function updateSheetType(){if(orderType==="print"){show("size-section");hide("digital-section")}else{hide("size-section");show("digital-section")}}
 function renderSizes(){
-  const list=document.getElementById("size-list");
-  list.innerHTML="";
-  PRINT_SIZES.forEach(s=>{
-    const div=document.createElement("div");
-    div.className="size-row"+(s.id===selectedSize.id?" active":"");
-    div.innerHTML=`<span style="font-weight:500;color:var(--dark)">${s.label}</span><span style="color:var(--gold);font-weight:600">${fmt(s.price)}</span>`;
-    div.onclick=()=>{selectedSize=s;renderSizes();updateSheetTotal()};
-    list.appendChild(div);
-  });
+  const list=document.getElementById("size-list");list.innerHTML="";
+  PRINT_SIZES.forEach(s=>{const div=document.createElement("div");div.className="size-row"+(s.id===selectedSize.id?" active":"");div.innerHTML=`<span style="font-weight:500;color:var(--dark)">${s.label}</span><span style="color:var(--gold);font-weight:600">${fmt(s.price)}</span>`;div.onclick=()=>{selectedSize=s;renderSizes();updateSheetTotal()};list.appendChild(div)});
 }
-
 function changeQty(d){qty=Math.max(1,qty+d);document.getElementById("qty-num").textContent=qty;updateSheetTotal()}
-function updateSheetTotal(){
-  const p=(orderType==="digital"?DIGITAL_PRICE:selectedSize.price)*qty;
-  document.getElementById("sheet-total").textContent="Összesen: "+fmt(p);
-}
-
+function updateSheetTotal(){document.getElementById("sheet-total").textContent="Összesen: "+fmt((orderType==="digital"?DIGITAL_PRICE:selectedSize.price)*qty)}
 function addToCart(){
   const unitPrice=orderType==="digital"?DIGITAL_PRICE:selectedSize.price;
   cart.push({id:Date.now()+Math.random(),photo:activePhoto,type:orderType,size:orderType==="print"?selectedSize:null,qty,unitPrice,totalPrice:unitPrice*qty});
   closeSheet();updateCartUI();
 }
-
 function updateCartUI(){
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-  const badge=document.getElementById("cart-badge");
-  const floatBtn=document.getElementById("cart-float-btn");
-  if(cart.length>0){badge.textContent=cart.length;show("cart-badge");floatBtn.textContent=`🛒 Kosár (${cart.length} tétel · ${fmt(total)})`;show("cart-float-btn")}
+  if(cart.length>0){document.getElementById("cart-badge").textContent=cart.length;show("cart-badge");document.getElementById("cart-float-btn").textContent=`🛒 Kosár (${cart.length} tétel · ${fmt(total)})`;show("cart-float-btn")}
   else{hide("cart-badge");hide("cart-float-btn")}
 }
-
 function showGallery(){showPage("page-gallery");renderGallery()}
 
 // KOSÁR
 function showCart(){showPage("page-cart");hide("cart-success");renderCartItems()}
-
 function renderCartItems(){
   const itemsDiv=document.getElementById("cart-items");
   if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
   hide("cart-empty");
-  itemsDiv.innerHTML=cart.map(item=>`
-    <div class="cart-item">
-      <img src="${item.photo.url}" alt="">
-      <div class="cart-item-info">
-        <div class="cart-item-name">${item.photo.name}</div>
-        <div class="cart-item-detail">${item.type==="digital"?"💾 Digitális fájl":`🖼️ Papírkép – ${item.size.label}`}${item.qty>1?` · ${item.qty} db`:""}</div>
-        <div class="cart-item-price">${fmt(item.totalPrice)}</div>
-      </div>
-      <button class="cart-item-remove" onclick="removeFromCart('${item.id}')">✕</button>
-    </div>
-  `).join("");
+  itemsDiv.innerHTML=cart.map(item=>`<div class="cart-item"><img src="${item.photo.url}" alt=""><div class="cart-item-info"><div class="cart-item-name">${item.photo.name}</div><div class="cart-item-detail">${item.type==="digital"?"💾 Digitális fájl":`🖼️ Papírkép – ${item.size.label}`}${item.qty>1?` · ${item.qty} db`:""}</div><div class="cart-item-price">${fmt(item.totalPrice)}</div></div><button class="cart-item-remove" onclick="removeFromCart('${item.id}')">✕</button></div>`).join("");
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
   document.getElementById("cart-total-rows").innerHTML=cart.map(i=>`<div class="cart-total-row"><span>${i.photo.name} (${i.type==="digital"?"Digitális":i.size.label}) × ${i.qty}</span><span>${fmt(i.totalPrice)}</span></div>`).join("");
   document.getElementById("cart-grand-total").textContent=fmt(total);
   show("cart-total-box");show("order-btn");show("back-btn");
 }
-
 function removeFromCart(id){cart=cart.filter(i=>i.id!=id);renderCartItems();updateCartUI()}
-
 async function sendOrder(){
-  const btn=document.getElementById("order-btn");
-  btn.textContent="Küldés...";btn.disabled=true;
+  const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;
   try{
-    await db.collection("orders").add({
-      child:currentGallery.child,parentEmail:currentGallery.parentEmail,
-      galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),
-      createdAt:Date.now(),total:cart.reduce((s,i)=>s+i.totalPrice,0),
-      items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?.label||null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))
-    });
-    cart=[];updateCartUI();
-    hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");
-    show("cart-success");
+    await db.collection("orders").add({child:currentGallery.child,parentEmail:currentGallery.parentEmail,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total:cart.reduce((s,i)=>s+i.totalPrice,0),items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?.label||null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
+    cart=[];updateCartUI();hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");show("cart-success");
   }catch(e){console.error(e);btn.textContent="Rendelés leadása →";btn.disabled=false}
 }
-
 function backToGallery(){hide("cart-success");showGallery()}
 
 // ADMIN
@@ -570,8 +580,7 @@ function renderAdmin(){
   document.getElementById("stat-galleries").textContent=galleries.length;
   document.getElementById("stat-orders").textContent=orders.length;
   document.getElementById("stat-revenue").textContent=fmt(orders.reduce((s,o)=>s+o.total,0));
-  renderAdminOrders();
-  renderAdminGalleries();
+  renderAdminOrders();renderAdminGalleries();
 }
 
 function setAdminTab(tab){
@@ -580,159 +589,98 @@ function setAdminTab(tab){
     const el=document.getElementById("admin-"+t);
     if(el)el.classList.toggle("hidden",t!==tab);
   });
-  if(tab==="new"){uploadedPhotosNew=[];renderPhotoPreviews("new");hide("upload-progress-new")}
+  if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new")}
 }
 
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
   if(orders.length===0){div.innerHTML='<div class="empty-msg">Még nincs rendelés.</div>';return}
-  div.innerHTML=orders.map(o=>`
-    <div class="order-card">
-      <div class="order-card-head">
-        <div><div class="order-card-name">🧒 ${o.child}</div><div class="order-card-meta">📧 ${o.parentEmail}</div><div class="order-card-meta">🕐 ${o.date}</div></div>
-        <div class="order-card-total">${fmt(o.total)}</div>
-      </div>
-      <div class="order-items-list">${(o.items||[]).map(i=>`
-        <div class="order-item-row"><img src="${i.photoUrl}" alt=""><span>${i.photoName} – ${i.type==="digital"?"Digitális":`Papír (${i.sizeLabel})`} × ${i.qty}</span><span class="item-price">${fmt(i.totalPrice)}</span></div>
-      `).join("")}</div>
-    </div>
-  `).join("");
+  div.innerHTML=orders.map(o=>`<div class="order-card"><div class="order-card-head"><div><div class="order-card-name">🧒 ${o.child}</div><div class="order-card-meta">📧 ${o.parentEmail}</div><div class="order-card-meta">🕐 ${o.date}</div></div><div class="order-card-total">${fmt(o.total)}</div></div><div class="order-items-list">${(o.items||[]).map(i=>`<div class="order-item-row"><img src="${i.photoUrl}" alt=""><span>${i.photoName} – ${i.type==="digital"?"Digitális":`Papír (${i.sizeLabel})`} × ${i.qty}</span><span class="item-price">${fmt(i.totalPrice)}</span></div>`).join("")}</div></div>`).join("");
 }
 
 function renderAdminGalleries(){
   const div=document.getElementById("admin-galleries");
   if(galleries.length===0){div.innerHTML='<div class="empty-msg">Még nincs galéria.</div>';return}
   div.innerHTML=galleries.map(g=>`
-    <div class="gallery-admin-card" id="gcard-${g.id}">
+    <div class="gallery-admin-card" onclick="openGalleryDetail('${g.id}')">
       <div class="gallery-admin-top">
         <div class="gallery-admin-thumb">${g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>`<img src="${p.url}" alt="">`).join(""):'<div class="no-photo">📷</div>'}</div>
         <div class="gallery-admin-info">
           <div class="gallery-admin-name">${g.child}</div>
           <div class="gallery-admin-email">📧 ${g.parentEmail}</div>
-          <div class="gallery-code" onclick="copyCode('${g.code}')">${g.code} 📋</div>
-          <div class="gallery-count">${(g.photos||[]).length} fotó</div>
-        </div>
-        <div class="gallery-admin-btns">
-          <button class="btn btn-blue btn-sm" onclick="toggleAddPhotos('${g.id}')">+ Képek</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteGallery('${g.id}')">Törlés</button>
-        </div>
-      </div>
-      <div id="add-photos-${g.id}" class="add-photos-panel hidden">
-        <h4>📷 Képek hozzáadása</h4>
-        <div class="upload-area">
-          <input type="file" accept="image/*" multiple onchange="handleFileSelectAdd(event,'${g.id}')">
-          <div class="upload-icon">📷</div>
-          <div class="upload-text"><strong>Koppints ide</strong><br>Válaszd ki a hozzáadni kívánt képeket</div>
-        </div>
-        <div id="upload-progress-add-${g.id}" class="upload-progress hidden">
-          <span id="upload-status-add-${g.id}">Feltöltés...</span>
-          <div class="progress-bar"><div class="progress-fill" id="progress-fill-add-${g.id}" style="width:0%"></div></div>
-        </div>
-        <div id="photo-previews-add-${g.id}" class="photo-preview-grid"></div>
-        <div id="add-msg-${g.id}"></div>
-        <div style="display:flex;gap:9px;margin-top:10px">
-          <button class="btn btn-outline btn-sm" onclick="toggleAddPhotos('${g.id}')">Mégse</button>
-          <button class="btn btn-green" style="flex:1" onclick="saveAddedPhotos('${g.id}')">✓ Képek mentése</button>
+          <div class="gallery-code" onclick="event.stopPropagation();copyCode('${g.code}')">${g.code} 📋</div>
+          <div class="gallery-count">${(g.photos||[]).length} fotó · Kattints a részletekhez →</div>
         </div>
       </div>
     </div>
   `).join("");
 }
 
-// Képek hozzáadása meglévő galériához
-let addPhotosMap = {}; // galleryId -> uploadedPhotos[]
-
-function toggleAddPhotos(galleryId){
-  const panel=document.getElementById("add-photos-"+galleryId);
-  if(!addPhotosMap[galleryId]) addPhotosMap[galleryId]=[];
-  panel.classList.toggle("hidden");
+// GALÉRIA RÉSZLET
+function openGalleryDetail(galleryId){
+  currentDetailGallery=galleries.find(g=>g.id===galleryId);
+  if(!currentDetailGallery)return;
+  uploadedPhotosDetail=[];
+  document.getElementById("photo-previews-detail").innerHTML="";
+  hide("upload-progress-detail");
+  hide("save-photos-btn");
+  document.getElementById("detail-upload-msg").innerHTML="";
+  document.getElementById("detail-name").textContent=currentDetailGallery.child+" galériája";
+  document.getElementById("detail-meta").textContent="📧 "+currentDetailGallery.parentEmail;
+  document.getElementById("detail-code").textContent=currentDetailGallery.code+" 📋";
+  renderDetailPhotos();
+  showPage("page-gallery-detail");
 }
 
-async function handleFileSelectAdd(event, galleryId){
-  const files=Array.from(event.target.files);
-  if(!files.length)return;
-  if(!addPhotosMap[galleryId]) addPhotosMap[galleryId]=[];
-  const progressDiv=document.getElementById("upload-progress-add-"+galleryId);
-  const statusEl=document.getElementById("upload-status-add-"+galleryId);
-  const fillEl=document.getElementById("progress-fill-add-"+galleryId);
-  progressDiv.classList.remove("hidden");
-  fillEl.style.width="0%";
-  statusEl.textContent="Feltöltés előkészítése...";
-  try{
-    for(let i=0;i<files.length;i++){
-      const formData=new FormData();
-      formData.append("file",files[i]);
-      formData.append("upload_preset",UPLOAD_PRESET);
-      formData.append("folder","fotolux");
-      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:"POST",body:formData});
-      const data=await res.json();
-      if(data.secure_url){
-        const pct=Math.round(((i+1)/files.length)*100);
-        fillEl.style.width=pct+"%";
-        statusEl.textContent=`Feltöltés: ${i+1}/${files.length} kép...`;
-        addPhotosMap[galleryId].push({id:"p"+Date.now()+i,url:data.secure_url,name:"Portré "+(addPhotosMap[galleryId].length+1)});
-      }
-    }
-    statusEl.textContent=`✓ ${files.length} kép feltöltve!`;
-    renderAddPreviews(galleryId);
-  }catch(e){
-    statusEl.textContent="⚠️ Hiba a feltöltés során.";
-  }
-}
-
-function renderAddPreviews(galleryId){
-  const grid=document.getElementById("photo-previews-add-"+galleryId);
-  if(!grid||!addPhotosMap[galleryId])return;
-  grid.innerHTML=addPhotosMap[galleryId].map((p,i)=>`
-    <div class="photo-preview-item">
-      <img src="${p.url}" alt="">
-      <button class="remove-photo" onclick="removeAddPhoto('${galleryId}',${i})">✕</button>
+function renderDetailPhotos(){
+  const grid=document.getElementById("detail-photo-grid");
+  const photos=currentDetailGallery.photos||[];
+  if(photos.length===0){grid.innerHTML="";show("detail-empty");return}
+  hide("detail-empty");
+  grid.innerHTML=photos.map((p,i)=>`
+    <div class="admin-photo-card">
+      <img src="${p.url}" alt="${p.name}" loading="lazy">
+      <button class="delete-photo-btn" onclick="deletePhoto(${i})" title="Törlés">🗑️</button>
+      <div class="photo-label">${p.name}</div>
     </div>
   `).join("");
 }
 
-function removeAddPhoto(galleryId, i){
-  addPhotosMap[galleryId].splice(i,1);
-  addPhotosMap[galleryId].forEach((p,idx)=>p.name="Portré "+(idx+1));
-  renderAddPreviews(galleryId);
+async function deletePhoto(index){
+  if(!confirm("Biztosan törli ezt a képet?"))return;
+  const photos=[...(currentDetailGallery.photos||[])];
+  photos.splice(index,1);
+  photos.forEach((p,i)=>p.name="Portré "+(i+1));
+  try{
+    await db.collection("galleries").doc(currentDetailGallery.id).update({photos});
+    currentDetailGallery.photos=photos;
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);
+    if(g)g.photos=photos;
+    renderDetailPhotos();
+  }catch(e){alert("Hiba történt a törlés során!")}
 }
 
-async function saveAddedPhotos(galleryId){
-  const newPhotos=addPhotosMap[galleryId]||[];
-  if(!newPhotos.length){
-    const msg=document.getElementById("add-msg-"+galleryId);
-    msg.innerHTML='<div class="error-msg">Nincs feltöltött kép!</div>';
-    return;
-  }
-  const gallery=galleries.find(g=>g.id===galleryId);
-  const existingPhotos=gallery.photos||[];
-  // Átnevezzük a folytatáshoz
-  const renamed=newPhotos.map((p,i)=>({...p,name:"Portré "+(existingPhotos.length+i+1)}));
-  const allPhotos=[...existingPhotos,...renamed];
+async function deleteCurrentGallery(){
+  if(!confirm("Biztosan törli az egész galériát?"))return;
   try{
-    await db.collection("galleries").doc(galleryId).update({photos:allPhotos});
-    gallery.photos=allPhotos;
-    addPhotosMap[galleryId]=[];
-    const msg=document.getElementById("add-msg-"+galleryId);
-    msg.innerHTML=`<div class="success-msg">✓ ${renamed.length} kép hozzáadva!</div>`;
-    setTimeout(()=>{
-      document.getElementById("add-photos-"+galleryId).classList.add("hidden");
-      renderAdminGalleries();
-    },1500);
-  }catch(e){
-    const msg=document.getElementById("add-msg-"+galleryId);
-    msg.innerHTML='<div class="error-msg">Hiba történt. Próbáld újra!</div>';
-  }
+    await db.collection("galleries").doc(currentDetailGallery.id).delete();
+    galleries=galleries.filter(g=>g.id!==currentDetailGallery.id);
+    currentDetailGallery=null;
+    backToAdminGalleries();
+  }catch(e){alert("Hiba történt!")}
+}
+
+function copyDetailCode(){
+  navigator.clipboard?.writeText(currentDetailGallery.code);
+  alert("Kód másolva: "+currentDetailGallery.code);
 }
 
 function copyCode(code){navigator.clipboard?.writeText(code);alert("Kód másolva: "+code)}
 
-async function deleteGallery(id){
-  if(!confirm("Biztosan törli?"))return;
-  await db.collection("galleries").doc(id).delete();
-  galleries=galleries.filter(g=>g.id!==id);
-  renderAdminGalleries();
-  document.getElementById("stat-galleries").textContent=galleries.length;
+function backToAdminGalleries(){
+  renderAdmin();
+  showPage("page-admin");
+  setAdminTab("galleries");
 }
 
 function updateCode(){
@@ -755,19 +703,11 @@ async function createGallery(){
   const btn=document.getElementById("create-btn");
   btn.disabled=true;btn.textContent="Mentés...";
   try{
-    const data={
-      name:child+" – Iskolai fotók 2025",
-      code:generatedCode||generateCode(child),
-      child,parentEmail:email.toLowerCase(),
-      createdAt:Date.now(),
-      photos:uploadedPhotosNew
-    };
-    await db.collection("galleries").add(data);
+    await db.collection("galleries").add({name:child+" – Iskolai fotók 2025",code:generatedCode||generateCode(child),child,parentEmail:email.toLowerCase(),createdAt:Date.now(),photos:uploadedPhotosNew});
     const gs=await db.collection("galleries").orderBy("createdAt","desc").get();
     galleries=gs.docs.map(d=>({id:d.id,...d.data()}));
-    document.getElementById("new-child").value="";
-    document.getElementById("new-email").value="";
-    uploadedPhotosNew=[];renderPhotoPreviews("new");hide("upload-progress-new");hide("code-box");
+    document.getElementById("new-child").value="";document.getElementById("new-email").value="";
+    uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");hide("code-box");
     renderAdmin();setAdminTab("galleries");
   }catch(e){errDiv.textContent="Hiba történt. Próbáld újra.";show("new-form-error")}
   finally{btn.disabled=false;btn.textContent="✓ Galéria létrehozása"}
