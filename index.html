@@ -156,6 +156,24 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .gallery-detail-meta{font-size:.82rem;color:var(--muted);margin-top:4px}
 .gallery-detail-code{display:inline-flex;align-items:center;gap:7px;background:var(--cream);border:1.5px dashed var(--gold);border-radius:6px;padding:5px 13px;font-size:.88rem;color:var(--brown);font-weight:700;letter-spacing:.1em;margin-top:8px;cursor:pointer}
 .gallery-detail-actions{display:flex;gap:10px;margin-top:12px}
+/* Státusz badge-ek */
+.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600}
+.status-digital{background:#e8f4fd;color:#2980b9}
+.status-printing{background:#fff3cd;color:#856404}
+.status-delivered{background:#d4edda;color:#155724}
+.status-pending{background:var(--warm);color:var(--muted)}
+/* Rendelések fül gomb */
+.orders-tab-btn{background:var(--warm);border:none;border-radius:50px;padding:9px 16px;cursor:pointer;font-family:"DM Sans",sans-serif;font-size:.88rem;color:var(--brown);font-weight:500;transition:background .2s}
+.orders-tab-btn:hover{background:var(--gold);color:var(--white)}
+/* Tömeges kijelölés */
+.bulk-bar{background:var(--brown);color:var(--white);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bulk-bar select{padding:7px 12px;border-radius:8px;border:none;font-family:"DM Sans",sans-serif;font-size:.85rem;cursor:pointer}
+.order-checkbox{width:18px;height:18px;cursor:pointer;accent-color:var(--gold)}
+.order-card-select{display:flex;align-items:flex-start;gap:10px}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,18,8,.55);z-index:300;display:flex;align-items:flex-end;justify-content:center}
+.modal-sheet{background:var(--white);border-radius:24px 24px 0 0;padding:26px 18px 40px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
+
 </style>
 </head>
 <body>
@@ -197,6 +215,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
   <div class="header">
     <div class="header-logo">foto<span>lux</span></div>
     <div class="header-right">
+      <button class="orders-tab-btn" onclick="showMyOrders()">📋 Rendeléseim</button>
       <button class="cart-btn" onclick="showCart()">🛒 <span id="cart-badge" class="cart-badge hidden">0</span></button>
       <button class="logout-btn" onclick="logout()">Kilépés</button>
     </div>
@@ -205,10 +224,6 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div style="margin-bottom:24px">
       <h2 id="gallery-title" style="font-size:1.55rem;color:var(--dark)">Képek</h2>
       <p style="color:var(--muted);margin-top:4px;font-size:.9rem">Koppintson egy képre a rendeléshez</p>
-    </div>
-    <div id="prev-orders-section" class="hidden" style="margin-bottom:24px">
-      <div class="section-title">Korábbi rendeléseim</div>
-      <div id="prev-orders-list"></div>
     </div>
     <div class="section-title">Összes fotó</div>
     <div style="text-align:center;color:var(--muted);font-size:.84rem;margin-bottom:18px;font-style:italic">Koppints a képre – rendelj digitálisan vagy papírban</div>
@@ -311,7 +326,25 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <button id="atab-galleries" class="admin-tab" onclick="setAdminTab('galleries')">Galériák</button>
       <button id="atab-new" class="admin-tab" onclick="setAdminTab('new')">+ Új galéria</button>
     </div>
-    <div id="admin-orders"></div>
+    <div id="admin-orders-wrap">
+      <div id="bulk-bar" class="bulk-bar hidden">
+        <span id="bulk-count" style="font-size:.88rem">0 kijelölve</span>
+        <select id="bulk-status">
+          <option value="">– Státusz kiválasztása –</option>
+          <option value="pending">⏳ Függőben</option>
+          <option value="digital">📧 Digitális elküldve</option>
+          <option value="printing">🖨️ Nyomtatás alatt</option>
+          <option value="delivered">✅ Papírkép átadva</option>
+        </select>
+        <button class="btn btn-gold btn-sm" onclick="applyBulkStatus()">Alkalmaz</button>
+        <button class="btn btn-outline btn-sm" onclick="clearSelection()" style="border-color:rgba(255,255,255,.4);color:var(--white)">Törlés</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <input type="checkbox" id="select-all-orders" class="order-checkbox" onchange="toggleSelectAll(this.checked)">
+        <label for="select-all-orders" style="font-size:.85rem;color:var(--muted);cursor:pointer">Összes kijelölése</label>
+      </div>
+      <div id="admin-orders"></div>
+    </div>
     <div id="admin-galleries" class="hidden"></div>
     <div id="admin-new" class="hidden">
       <div class="new-form">
@@ -633,8 +666,28 @@ function setAdminTab(tab){
 
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
-  if(orders.length===0){div.innerHTML='<div class="empty-msg">M\u00e9g nincs rendel\u00e9s.</div>';return}
-  div.innerHTML=orders.map(o=>'<div class="order-card"><div class="order-card-head"><div><div class="order-card-name">\ud83e\uddd2 '+o.child+'</div><div class="order-card-meta">\ud83d\udce7 '+o.parentEmail+'</div><div class="order-card-meta">\ud83d\udd50 '+o.date+'</div></div><div class="order-card-total">'+fmt(o.total)+'</div></div><div class="order-items-list">'+(o.items||[]).map(i=>'<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' \u2013 '+(i.type==="digital"?"Digit\u00e1lis":"Pap\u00edrkép ("+i.sizeLabel+")")+' \u00d7 '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>').join("")+'</div></div>').join("");
+  if(orders.length===0){div.innerHTML='<div class="empty-msg">Még nincs rendelés.</div>';return}
+  div.innerHTML=orders.map(o=>`
+    <div class="order-card">
+      <div class="order-card-select">
+        <input type="checkbox" class="order-checkbox order-checkbox-item" data-id="${o.id}" onchange="toggleOrderSelect('${o.id}',this.checked)" style="margin-top:4px;flex-shrink:0">
+        <div style="flex:1">
+          <div class="order-card-head">
+            <div>
+              <div class="order-card-name">🧒 ${o.child}</div>
+              <div class="order-card-meta">📧 ${o.parentEmail}</div>
+              <div class="order-card-meta">🕐 ${o.date}</div>
+              <div style="margin-top:6px">${getStatusBadge(o.status)}</div>
+            </div>
+            <div class="order-card-total">${fmt(o.total)}</div>
+          </div>
+          <div class="order-items-list">
+            ${(o.items||[]).map(i=>`<div class="order-item-row"><img src="${i.photoUrl}" alt=""><span>${i.photoName} – ${i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")"} × ${i.qty}</span><span class="item-price">${fmt(i.totalPrice)}</span></div>`).join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join("");
 }
 
 function renderAdminGalleries(){
@@ -763,7 +816,128 @@ async function createGallery(){
   finally{btn.disabled=false;btn.textContent="\u2713 Gal\u00e9ria l\u00e9trehoz\u00e1sa"}
 }
 
+
+// ---- STÁTUSZ KEZELÉS ----
+const STATUS_LABELS = {
+  pending: '⏳ Függőben',
+  digital: '📧 Digitális elküldve',
+  printing: '🖨️ Nyomtatás alatt',
+  delivered: '✅ Papírkép átadva'
+};
+const STATUS_CLASSES = {
+  pending: 'status-pending',
+  digital: 'status-digital',
+  printing: 'status-printing',
+  delivered: 'status-delivered'
+};
+
+let selectedOrderIds = new Set();
+
+function getStatusBadge(status) {
+  const s = status || 'pending';
+  return `<span class="status-badge ${STATUS_CLASSES[s]}">${STATUS_LABELS[s]}</span>`;
+}
+
+// ---- RENDELÉSEIM MODAL ----
+function showMyOrders() {
+  const email = currentGallery.parentEmail.toLowerCase();
+  const myOrders = orders.filter(o => o.parentEmail && o.parentEmail.toLowerCase() === email);
+  const list = document.getElementById('my-orders-list');
+  if (myOrders.length === 0) {
+    list.innerHTML = '<div class="empty-msg">Még nincs rendelésed.</div>';
+  } else {
+    list.innerHTML = myOrders.map(o => `
+      <div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:.82rem;color:var(--muted)">${o.date}</div>
+            <div style="margin-top:4px">${getStatusBadge(o.status)}</div>
+          </div>
+          <div style="font-weight:700;color:var(--gold);font-size:1rem">${o.total.toLocaleString('hu-HU')} Ft</div>
+        </div>
+        <div style="border-top:1px solid var(--warm);padding-top:8px;margin-top:8px">
+          ${(o.items||[]).map(i=>`<div style="font-size:.82rem;color:var(--text);padding:3px 0">${i.photoName} – ${i.type==='digital'?'Digitális':'Papírkép ('+i.sizeLabel+')'} × ${i.qty} = ${i.totalPrice.toLocaleString('hu-HU')} Ft</div>`).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('my-orders-modal').classList.remove('hidden');
+}
+
+function closeMyOrdersModal(e) {
+  if (e.target === document.getElementById('my-orders-modal')) {
+    document.getElementById('my-orders-modal').classList.add('hidden');
+  }
+}
+
+// ---- TÖMEGES KIJELÖLÉS ----
+function toggleSelectAll(checked) {
+  const checkboxes = document.querySelectorAll('.order-checkbox-item');
+  checkboxes.forEach(cb => {
+    cb.checked = checked;
+    const orderId = cb.dataset.id;
+    if (checked) selectedOrderIds.add(orderId);
+    else selectedOrderIds.delete(orderId);
+  });
+  updateBulkBar();
+}
+
+function toggleOrderSelect(id, checked) {
+  if (checked) selectedOrderIds.add(id);
+  else selectedOrderIds.delete(id);
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  const count = document.getElementById('bulk-count');
+  count.textContent = selectedOrderIds.size + ' kijelölve';
+  if (selectedOrderIds.size > 0) bar.classList.remove('hidden');
+  else bar.classList.add('hidden');
+}
+
+function clearSelection() {
+  selectedOrderIds.clear();
+  document.querySelectorAll('.order-checkbox-item').forEach(cb => cb.checked = false);
+  const selectAll = document.getElementById('select-all-orders');
+  if (selectAll) selectAll.checked = false;
+  updateBulkBar();
+}
+
+async function applyBulkStatus() {
+  const status = document.getElementById('bulk-status').value;
+  if (!status) { alert('Kérjük válassz státuszt!'); return; }
+  if (selectedOrderIds.size === 0) return;
+  try {
+    const batch = db.batch();
+    selectedOrderIds.forEach(id => {
+      const ref = db.collection('orders').doc(id);
+      batch.update(ref, { status });
+    });
+    await batch.commit();
+    // Update local orders
+    orders.forEach(o => {
+      if (selectedOrderIds.has(o.id)) o.status = status;
+    });
+    clearSelection();
+    renderAdminOrders();
+    document.getElementById('bulk-status').value = '';
+  } catch(e) { alert('Hiba történt!'); console.error(e); }
+}
+
 loadData();
 </script>
+
+<!-- RENDELÉSEIM MODAL -->
+<div id="my-orders-modal" class="modal-overlay hidden" onclick="closeMyOrdersModal(event)">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <h2 style="font-size:1.3rem;color:var(--dark);margin-bottom:6px">📋 Rendeléseim</h2>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:20px">Az email címedhez tartozó összes rendelés</p>
+    <div id="my-orders-list"></div>
+    <button class="btn btn-outline" style="margin-top:10px" onclick="document.getElementById('my-orders-modal').classList.add('hidden')">Bezárás</button>
+  </div>
+</div>
+
 </body>
 </html>
