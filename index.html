@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FotoLux – Iskolai fotók</title>
+<title>FotoLux - Iskolai fotok</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -27,11 +27,16 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .btn{width:100%;padding:14px;background:var(--brown);color:var(--white);border:none;border-radius:10px;font-size:.97rem;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .2s}
 .btn:hover{background:var(--dark)}
 .btn:disabled{opacity:.6;cursor:not-allowed}
-.btn-gold{background:var(--gold)}.btn-gold:hover{background:#b8922e}
-.btn-outline{background:transparent;border:1.5px solid var(--brown);color:var(--brown)}.btn-outline:hover{background:var(--warm)}
-.btn-green{background:var(--green)}.btn-green:hover{background:#1a5c37}
-.btn-danger{background:#c0392b;color:#fff}.btn-danger:hover{background:#922b21}
-.btn-blue{background:#2980b9;color:#fff}.btn-blue:hover{background:#1a6a9a}
+.btn-gold{background:var(--gold)}
+.btn-gold:hover{background:#b8922e}
+.btn-outline{background:transparent;border:1.5px solid var(--brown);color:var(--brown)}
+.btn-outline:hover{background:var(--warm)}
+.btn-green{background:var(--green)}
+.btn-green:hover{background:#1a5c37}
+.btn-danger{background:#c0392b;color:#fff}
+.btn-danger:hover{background:#922b21}
+.btn-blue{background:#2980b9;color:#fff}
+.btn-blue:hover{background:#1a6a9a}
 .btn-sm{padding:9px 16px;font-size:.84rem;width:auto}
 .error-msg{color:#c0392b;font-size:.84rem;margin-top:10px;background:#fdf2f2;padding:10px;border-radius:8px;text-align:center}
 .success-msg{color:#2e7d50;font-size:.84rem;margin-top:10px;background:#f0fdf4;padding:10px;border-radius:8px;text-align:center}
@@ -52,6 +57,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .photo-card{position:relative;border-radius:12px;overflow:hidden;cursor:pointer;box-shadow:var(--shadow-sm);aspect-ratio:3/4;background:var(--warm);transition:transform .2s,box-shadow .2s}
 .photo-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
 .photo-card img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-card.selected::after{content:'';position:absolute;inset:0;border:3px solid var(--gold);border-radius:12px;pointer-events:none}
 .admin-photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
 .admin-photo-card{position:relative;border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);aspect-ratio:3/4;background:var(--warm)}
 .admin-photo-card img{width:100%;height:100%;object-fit:cover;display:block}
@@ -156,24 +162,6 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .gallery-detail-meta{font-size:.82rem;color:var(--muted);margin-top:4px}
 .gallery-detail-code{display:inline-flex;align-items:center;gap:7px;background:var(--cream);border:1.5px dashed var(--gold);border-radius:6px;padding:5px 13px;font-size:.88rem;color:var(--brown);font-weight:700;letter-spacing:.1em;margin-top:8px;cursor:pointer}
 .gallery-detail-actions{display:flex;gap:10px;margin-top:12px}
-/* Státusz badge-ek */
-.status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600}
-.status-digital{background:#e8f4fd;color:#2980b9}
-.status-printing{background:#fff3cd;color:#856404}
-.status-delivered{background:#d4edda;color:#155724}
-.status-pending{background:var(--warm);color:var(--muted)}
-/* Rendelések fül gomb */
-.orders-tab-btn{background:var(--warm);border:none;border-radius:50px;padding:9px 16px;cursor:pointer;font-family:"DM Sans",sans-serif;font-size:.88rem;color:var(--brown);font-weight:500;transition:background .2s}
-.orders-tab-btn:hover{background:var(--gold);color:var(--white)}
-/* Tömeges kijelölés */
-.bulk-bar{background:var(--brown);color:var(--white);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.bulk-bar select{padding:7px 12px;border-radius:8px;border:none;font-family:"DM Sans",sans-serif;font-size:.85rem;cursor:pointer}
-.order-checkbox{width:18px;height:18px;cursor:pointer;accent-color:var(--gold)}
-.order-card-select{display:flex;align-items:flex-start;gap:10px}
-/* Modal */
-.modal-overlay{position:fixed;inset:0;background:rgba(26,18,8,.55);z-index:300;display:flex;align-items:flex-end;justify-content:center}
-.modal-sheet{background:var(--white);border-radius:24px 24px 0 0;padding:26px 18px 40px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
-
 </style>
 </head>
 <body>
@@ -181,33 +169,33 @@ input:focus{border-color:var(--gold);background:var(--white)}
 <div id="page-loading" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#FAF7F2,#F0E8DC)">
   <div style="font-family:'Playfair Display',serif;font-size:2rem;color:#5C3D2E;margin-bottom:20px">foto<span style="color:#C9A84C;font-style:italic">lux</span></div>
   <div class="spinner"></div>
-  <p style="color:#8A7060;font-size:.9rem">Betöltés...</p>
+  <p style="color:#8A7060;font-size:.9rem">Betoltes...</p>
 </div>
 
 <div id="page-login" class="login-wrap hidden">
   <div class="logo">foto<span>lux</span></div>
-  <div class="login-sub">Iskolai fotók – biztonságos galéria</div>
+  <div class="login-sub">Iskolai fotok - biztonságos galeria</div>
   <div id="parent-login-card" class="card">
-    <h2>Belépés a galériába</h2>
-    <p>Adja meg a fotóstól kapott kódot, email címét és gyermeke nevét</p>
-    <label>Belépési kód</label>
+    <h2>Belepes a galeriaba</h2>
+    <p>Adja meg a fotostol kapott kodot, email cimet es gyermeke nevet</p>
+    <label>Belepes kod</label>
     <input id="inp-code" type="text" class="code-input" placeholder="pl. BENCE2025" oninput="this.value=this.value.toUpperCase()">
-    <label>Az Ön email címe</label>
+    <label>Az On email cime</label>
     <input id="inp-email" type="email" placeholder="pelda@email.com">
     <label>Gyermeke neve</label>
-    <input id="inp-child" type="text" placeholder="pl. Kovács Bence">
-    <button class="btn" onclick="handleLogin()">Belépés →</button>
+    <input id="inp-child" type="text" placeholder="pl. Kovacs Bence">
+    <button class="btn" onclick="handleLogin()">Belepes</button>
     <div id="login-error" class="error-msg hidden"></div>
-    <div class="admin-link">Ön fotós? <button onclick="showAdminLogin()">Admin belépés</button></div>
+    <div class="admin-link">On fotos? <button onclick="showAdminLogin()">Admin belepes</button></div>
   </div>
   <div id="admin-login-card" class="card hidden">
-    <h2>Admin belépés</h2>
-    <p>Csak a fotós számára</p>
-    <label>Jelszó</label>
+    <h2>Admin belepes</h2>
+    <p>Csak a fotos szamara</p>
+    <label>Jelszo</label>
     <input id="inp-admin-pass" type="password" placeholder="••••••••">
-    <button class="btn" onclick="handleAdminLogin()">Belépés →</button>
+    <button class="btn" onclick="handleAdminLogin()">Belepes</button>
     <div id="admin-error" class="error-msg hidden"></div>
-    <div class="admin-link"><button onclick="showParentLogin()">← Vissza</button></div>
+    <div class="admin-link"><button onclick="showParentLogin()">Vissza</button></div>
   </div>
 </div>
 
@@ -215,18 +203,17 @@ input:focus{border-color:var(--gold);background:var(--white)}
   <div class="header">
     <div class="header-logo">foto<span>lux</span></div>
     <div class="header-right">
-      <button class="orders-tab-btn" onclick="showMyOrders()">📋 Rendeléseim</button>
       <button class="cart-btn" onclick="showCart()">🛒 <span id="cart-badge" class="cart-badge hidden">0</span></button>
-      <button class="logout-btn" onclick="logout()">Kilépés</button>
+      <button class="logout-btn" onclick="logout()">Kilepes</button>
     </div>
   </div>
   <div class="wrap">
     <div style="margin-bottom:24px">
-      <h2 id="gallery-title" style="font-size:1.55rem;color:var(--dark)">Képek</h2>
-      <p style="color:var(--muted);margin-top:4px;font-size:.9rem">Koppintson egy képre a rendeléshez</p>
+      <h2 id="gallery-title" style="font-size:1.55rem;color:var(--dark)">Kepek</h2>
+      <p style="color:var(--muted);margin-top:4px;font-size:.9rem">Koppintson egy kepre a rendelesshez</p>
     </div>
-    <div class="section-title">Összes fotó</div>
-    <div style="text-align:center;color:var(--muted);font-size:.84rem;margin-bottom:18px;font-style:italic">Koppints a képre – rendelj digitálisan vagy papírban</div>
+    <div class="section-title">Osszes foto</div>
+    <div style="text-align:center;color:var(--muted);font-size:.84rem;margin-bottom:18px;font-style:italic">Koppints a kepre - rendelj digitalisan vagy papirban</div>
     <div id="photo-grid" class="photo-grid"></div>
     <button id="cart-float-btn" class="btn btn-gold hidden" onclick="showCart()"></button>
   </div>
@@ -238,26 +225,26 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <img id="sheet-img" class="sheet-photo" src="" alt="">
     <div id="sheet-name" class="sheet-name"></div>
     <div class="type-tabs">
-      <div id="tab-print" class="type-tab active" onclick="setType('print')"><span class="tab-icon">🖼️</span>Papírkép</div>
-      <div id="tab-digital" class="type-tab" onclick="setType('digital')"><span class="tab-icon">💾</span>Digitális</div>
+      <div id="tab-print" class="type-tab active" onclick="setType('print')"><span class="tab-icon">🖼️</span>Papirkep</div>
+      <div id="tab-digital" class="type-tab" onclick="setType('digital')"><span class="tab-icon">💾</span>Digitalis</div>
     </div>
     <div id="size-section"><div class="size-list" id="size-list"></div></div>
     <div id="digital-section" class="digital-info hidden">
       <span style="font-size:2rem">💾</span>
-      <div><strong>Digitális fájl – 390 Ft</strong><p style="font-size:.85rem;color:var(--muted);margin-top:3px">Nagy felbontású JPG, emailben küldve</p></div>
+      <div><strong>Digitalis fajl - 390 Ft</strong><p style="font-size:.85rem;color:var(--muted);margin-top:3px">Nagy felbontasu JPG, emailben kuldve</p></div>
     </div>
     <div class="qty-row">
-      <span style="font-size:.9rem;flex:1">Darabszám</span>
+      <span style="font-size:.9rem;flex:1">Darabszam</span>
       <div class="qty-ctrl">
-        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+        <button class="qty-btn" onclick="changeQty(-1)">-</button>
         <span id="qty-num" class="qty-num">1</span>
         <button class="qty-btn" onclick="changeQty(1)">+</button>
       </div>
     </div>
     <div id="sheet-total" class="sheet-total"></div>
     <div class="add-btn-row">
-      <button class="btn btn-outline btn-sm" onclick="closeSheet()">Mégsem</button>
-      <button class="btn btn-gold" style="flex:1" onclick="addToCart()">Kosárba →</button>
+      <button class="btn btn-outline btn-sm" onclick="closeSheet()">Megse</button>
+      <button class="btn btn-gold" style="flex:1" onclick="addToCart()">Kosarba</button>
     </div>
   </div>
 </div>
@@ -265,113 +252,95 @@ input:focus{border-color:var(--gold);background:var(--white)}
 <div id="page-cart" class="hidden">
   <div class="header">
     <div class="header-logo">foto<span>lux</span></div>
-    <button class="logout-btn" onclick="showGallery()">← Vissza</button>
+    <button class="logout-btn" onclick="showGallery()">Vissza</button>
   </div>
   <div class="wrap">
-    <h2 style="margin-bottom:18px;font-size:1.45rem">🛒 Kosár</h2>
+    <h2 style="margin-bottom:18px;font-size:1.45rem">🛒 Kosar</h2>
     <div id="cart-success" class="order-success hidden">
       <div class="ok-icon">✅</div>
-      <h2 style="margin-bottom:10px">Rendelés elküldve!</h2>
-      <p style="color:var(--muted);margin-bottom:20px">Köszönjük a rendelést! Kérjük az alábbi bankszámlára utald el a végösszeget <strong>3 munkanapon belül</strong>.</p>
+      <h2 style="margin-bottom:10px">Rendeles elkuldve!</h2>
+      <p style="color:var(--muted);margin-bottom:20px">Koszonjuk a rendelest! Keruk az alabbi bankszamlara utald el a vegosszeget <strong>3 munkanapon belul</strong>.</p>
       <div class="payment-box">
-        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;font-weight:500">Fizetési adatok</div>
-        <div class="payment-label">Kedvezményezett neve</div>
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;font-weight:500">Fizetesi adatok</div>
+        <div class="payment-label">Kedvezmenyezett neve</div>
         <div class="payment-value">Bukta Anita</div>
         <div class="payment-label">Bank</div>
         <div class="payment-value">OTP Bank</div>
-        <div class="payment-label">Számlaszám</div>
+        <div class="payment-label">Szamlaszam</div>
         <div class="payment-account">11773391-00491127</div>
-        <div class="payment-label">Megjegyzésbe írd</div>
+        <div class="payment-label">Megjegyzesbe ird</div>
         <div class="payment-value" id="success-child-name"></div>
         <div class="payment-total-row">
-          <span style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--dark)">Fizetendő összeg</span>
+          <span style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--dark)">Fizete&#x151;sseg</span>
           <strong style="font-size:1.3rem;color:var(--gold)" id="success-total"></strong>
         </div>
       </div>
-      <div class="payment-hint">💡 Az utalás beérkezése után a fotós elküldi a digitális képeket, illetve feldolgozza a papírképek rendelését.</div>
-      <button class="btn" style="width:auto;padding:12px 28px" onclick="backToGallery()">Vissza a galériához</button>
+      <div class="payment-hint">💡 Az utatas beerkezi utan a fotos elküldi a digitalis kepeket, illetve feldolgozza a papirkepek rendeleset.</div>
+      <button class="btn" style="width:auto;padding:12px 28px" onclick="backToGallery()">Vissza a galeriaba</button>
     </div>
     <div id="cart-empty" class="hidden" style="text-align:center;padding:50px 20px;color:var(--muted)">
       <div style="font-size:2.8rem;margin-bottom:12px">🛒</div>
-      <p style="margin-bottom:18px">A kosár üres.</p>
-      <button class="btn btn-outline" style="width:auto;padding:12px 26px" onclick="showGallery()">← Galéria</button>
+      <p style="margin-bottom:18px">A kosar ures.</p>
+      <button class="btn btn-outline" style="width:auto;padding:12px 26px" onclick="showGallery()">Galeria</button>
     </div>
     <div id="cart-items"></div>
     <div id="cart-total-box" class="cart-total-box hidden">
       <div id="cart-total-rows"></div>
-      <div class="cart-total-big"><span>Összesen</span><strong id="cart-grand-total"></strong></div>
+      <div class="cart-total-big"><span>Osszesen</span><strong id="cart-grand-total"></strong></div>
     </div>
-    <button id="order-btn" class="btn btn-gold hidden" style="margin-top:14px" onclick="sendOrder()">Rendelés leadása →</button>
-    <button id="back-btn" class="btn btn-outline hidden" style="margin-top:9px" onclick="showGallery()">← Még válogatnék</button>
+    <button id="order-btn" class="btn btn-gold hidden" style="margin-top:14px" onclick="sendOrder()">Rendeles leadasa</button>
+    <button id="back-btn" class="btn btn-outline hidden" style="margin-top:9px" onclick="showGallery()">Meg valogatnek</button>
   </div>
 </div>
 
 <div id="page-admin" class="hidden">
   <div class="header">
     <div class="header-logo">foto<span>lux</span> <span style="font-size:.7rem;color:var(--muted);font-family:DM Sans;font-style:normal">Admin</span></div>
-    <button class="logout-btn" onclick="logout()">Kilépés</button>
+    <button class="logout-btn" onclick="logout()">Kilepes</button>
   </div>
   <div class="wrap">
     <div class="admin-header-box">
-      <div><h2>Fotós vezérlőpult</h2><p>🔥 Firebase + ☁️ Cloudinary</p></div>
+      <div><h2>Fotos vezerlopult</h2><p>🔥 Firebase + ☁️ Cloudinary</p></div>
       <span style="font-size:2rem">📸</span>
     </div>
     <div class="stat-row">
-      <div class="stat-card"><div id="stat-galleries" class="stat-num">0</div><div class="stat-label">Galéria</div></div>
-      <div class="stat-card"><div id="stat-orders" class="stat-num">0</div><div class="stat-label">Rendelés</div></div>
-      <div class="stat-card"><div id="stat-revenue" class="stat-num">0 Ft</div><div class="stat-label">Bevétel</div></div>
+      <div class="stat-card"><div id="stat-galleries" class="stat-num">0</div><div class="stat-label">Galeria</div></div>
+      <div class="stat-card"><div id="stat-orders" class="stat-num">0</div><div class="stat-label">Rendeles</div></div>
+      <div class="stat-card"><div id="stat-revenue" class="stat-num">0 Ft</div><div class="stat-label">Bevel</div></div>
     </div>
     <div class="admin-tabs">
-      <button id="atab-orders" class="admin-tab active" onclick="setAdminTab('orders')">Rendelések</button>
-      <button id="atab-galleries" class="admin-tab" onclick="setAdminTab('galleries')">Galériák</button>
-      <button id="atab-new" class="admin-tab" onclick="setAdminTab('new')">+ Új galéria</button>
+      <button id="atab-orders" class="admin-tab active" onclick="setAdminTab('orders')">Rendelesek</button>
+      <button id="atab-galleries" class="admin-tab" onclick="setAdminTab('galleries')">Galeriák</button>
+      <button id="atab-new" class="admin-tab" onclick="setAdminTab('new')">+ Uj galeria</button>
     </div>
-    <div id="admin-orders-wrap">
-      <div id="bulk-bar" class="bulk-bar hidden">
-        <span id="bulk-count" style="font-size:.88rem">0 kijelölve</span>
-        <select id="bulk-status">
-          <option value="">– Státusz kiválasztása –</option>
-          <option value="pending">⏳ Függőben</option>
-          <option value="digital">📧 Digitális elküldve</option>
-          <option value="printing">🖨️ Nyomtatás alatt</option>
-          <option value="delivered">✅ Papírkép átadva</option>
-        </select>
-        <button class="btn btn-gold btn-sm" onclick="applyBulkStatus()">Alkalmaz</button>
-        <button class="btn btn-outline btn-sm" onclick="clearSelection()" style="border-color:rgba(255,255,255,.4);color:var(--white)">Törlés</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <input type="checkbox" id="select-all-orders" class="order-checkbox" onchange="toggleSelectAll(this.checked)">
-        <label for="select-all-orders" style="font-size:.85rem;color:var(--muted);cursor:pointer">Összes kijelölése</label>
-      </div>
-      <div id="admin-orders"></div>
-    </div>
+    <div id="admin-orders"></div>
     <div id="admin-galleries" class="hidden"></div>
     <div id="admin-new" class="hidden">
       <div class="new-form">
-        <h3>📁 Új galéria létrehozása</h3>
+        <h3>Uj galeria letrehozasa</h3>
         <label>Gyerek teljes neve *</label>
-        <input id="new-child" type="text" placeholder="pl. Kiss Péter" oninput="updateCode()">
-        <label>Szülő email címe *</label>
+        <input id="new-child" type="text" placeholder="pl. Kiss Peter" oninput="updateCode()">
+        <label>Szulo email cime *</label>
         <input id="new-email" type="email" placeholder="szulo@email.com">
         <div id="code-box" class="code-box hidden">
-          <div><div style="font-size:.72rem;color:var(--muted);margin-bottom:3px">AUTOMATIKUSAN GENERÁLT KÓD</div><div id="new-code" class="code-val"></div><div class="code-hint">Ezt küldd el a szülőnek</div></div>
+          <div><div style="font-size:.72rem;color:var(--muted);margin-bottom:3px">AUTOMATIKUSAN GENERALT KOD</div><div id="new-code" class="code-val"></div><div class="code-hint">Ezt kuldd el a szulonek</div></div>
           <button class="regen-btn" onclick="regenCode()">🔄</button>
         </div>
-        <label style="margin-bottom:10px">📷 Képek feltöltése</label>
+        <label style="margin-bottom:10px">Kepek feltoltese</label>
         <div class="upload-area">
           <input type="file" id="file-input-new" accept="image/*" multiple onchange="handleFileSelectNew(event)">
           <div class="upload-icon">📷</div>
-          <div class="upload-text"><strong>Koppints ide a képek kiválasztásához</strong></div>
+          <div class="upload-text"><strong>Koppints ide a kepek kivalasztasahoz</strong></div>
         </div>
         <div id="upload-progress-new" class="upload-progress hidden">
-          <span id="upload-status-new">Feltöltés...</span>
+          <span id="upload-status-new">Feltoltes...</span>
           <div class="progress-bar"><div class="progress-fill" id="progress-fill-new" style="width:0%"></div></div>
         </div>
         <div id="photo-previews-new" class="photo-preview-grid"></div>
         <div id="new-form-error" class="error-msg hidden"></div>
         <div class="form-btns">
-          <button class="btn btn-outline btn-sm" onclick="setAdminTab('galleries')">Mégsem</button>
-          <button id="create-btn" class="btn btn-green" style="flex:1" onclick="createGallery()">✓ Galéria létrehozása</button>
+          <button class="btn btn-outline btn-sm" onclick="setAdminTab('galleries')">Megse</button>
+          <button id="create-btn" class="btn btn-green" style="flex:1" onclick="createGallery()">Galeria letrehozasa</button>
         </div>
       </div>
     </div>
@@ -381,7 +350,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 <div id="page-gallery-detail" class="hidden">
   <div class="header">
     <div class="header-logo">foto<span>lux</span></div>
-    <button class="logout-btn" onclick="backToAdminGalleries()">← Vissza</button>
+    <button class="logout-btn" onclick="backToAdminGalleries()">Vissza</button>
   </div>
   <div class="wrap">
     <div class="gallery-detail-header">
@@ -389,44 +358,44 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <div id="detail-meta" class="gallery-detail-meta"></div>
       <div id="detail-code" class="gallery-detail-code" onclick="copyDetailCode()"></div>
       <div class="gallery-detail-actions">
-        <button class="btn btn-blue btn-sm" onclick="toggleEditForm()">✏️ Szerkesztés</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">🗑️ Törlés</button>
+        <button class="btn btn-blue btn-sm" onclick="toggleEditForm()">Szerkesztes</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">Torles</button>
       </div>
       <div id="edit-form" class="hidden" style="margin-top:16px;border-top:1px solid var(--warm);padding-top:16px">
         <label>Gyerek neve</label>
-        <input type="text" id="edit-child" placeholder="pl. Kovács Bence" oninput="updateEditCode()">
-        <label>Szülő email</label>
+        <input type="text" id="edit-child" placeholder="pl. Kovacs Bence" oninput="updateEditCode()">
+        <label>Szulo email</label>
         <input type="email" id="edit-email" placeholder="szulo@email.com">
-        <label>Belépési kód</label>
+        <label>Belepes kod</label>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
           <input type="text" id="edit-code" style="margin-bottom:0;letter-spacing:.1em;font-weight:600;flex:1" readonly>
-          <button class="btn btn-outline btn-sm" style="margin-top:0;white-space:nowrap" onclick="regenEditCode()">🔄 Új kód</button>
+          <button class="btn btn-outline btn-sm" style="margin-top:0;white-space:nowrap" onclick="regenEditCode()">Uj kod</button>
         </div>
         <div id="edit-msg"></div>
         <div style="display:flex;gap:9px;margin-top:4px">
-          <button class="btn btn-outline btn-sm" onclick="toggleEditForm()">Mégsem</button>
-          <button class="btn btn-green" style="flex:1" onclick="saveEdit()">✓ Mentés</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleEditForm()">Megse</button>
+          <button class="btn btn-green" style="flex:1" onclick="saveEdit()">Mentes</button>
         </div>
       </div>
     </div>
     <div class="new-form" style="margin-bottom:20px">
-      <h3>📷 Képek hozzáadása</h3>
+      <h3>Kepek hozzaadasa</h3>
       <div class="upload-area">
         <input type="file" id="file-input-detail" accept="image/*" multiple onchange="handleFileSelectDetail(event)">
         <div class="upload-icon">📷</div>
-        <div class="upload-text"><strong>Koppints ide a képek kiválasztásához</strong><br>Telefonról vagy gépről is</div>
+        <div class="upload-text"><strong>Koppints ide a kepek kivalasztasahoz</strong><br>Telefonrol vagy geprol is</div>
       </div>
       <div id="upload-progress-detail" class="upload-progress hidden">
-        <span id="upload-status-detail">Feltöltés...</span>
+        <span id="upload-status-detail">Feltoltes...</span>
         <div class="progress-bar"><div class="progress-fill" id="progress-fill-detail" style="width:0%"></div></div>
       </div>
       <div id="photo-previews-detail" class="photo-preview-grid"></div>
       <div id="detail-upload-msg"></div>
-      <button id="save-photos-btn" class="btn btn-green hidden" onclick="saveDetailPhotos()">✓ Képek mentése</button>
+      <button id="save-photos-btn" class="btn btn-green hidden" onclick="saveDetailPhotos()">Kepek mentese</button>
     </div>
-    <div class="section-title">Feltöltött képek</div>
+    <div class="section-title">Feltoltott kepek</div>
     <div id="detail-photo-grid" class="admin-photo-grid"></div>
-    <div id="detail-empty" class="empty-msg hidden">Még nincs feltöltött kép ebben a galériában.</div>
+    <div id="detail-empty" class="empty-msg hidden">Meg nincs feltoltott kep ebben a galeriaban.</div>
   </div>
 </div>
 
@@ -436,7 +405,7 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 const CLOUD_NAME="dpluouggw";
 const UPLOAD_PRESET="fotolux_upload";
-const PRINT_SIZES=[{id:"10x15",label:"10\u00d715 cm",price:490},{id:"13x18",label:"13\u00d718 cm",price:690},{id:"20x30",label:"20\u00d730 cm",price:1290},{id:"A4",label:"A4 (21\u00d729.7 cm)",price:1590}];
+const PRINT_SIZES=[{id:"10x15",label:"10x15 cm",price:490},{id:"13x18",label:"13x18 cm",price:690},{id:"20x30",label:"20x30 cm",price:1290},{id:"A4",label:"A4 (21x29.7 cm)",price:1590}];
 const DIGITAL_PRICE=390;
 const ADMIN_PASSWORD="admin2025";
 let galleries=[],orders=[],currentGallery=null,cart=[];
@@ -469,7 +438,7 @@ async function uploadPhoto(file,i,total,progressId,statusId){
   const data=await res.json();
   if(data.secure_url){
     document.getElementById(progressId).style.width=Math.round(((i+1)/total)*100)+"%";
-    document.getElementById(statusId).textContent="Felt\u00f6lt\u00e9s: "+(i+1)+"/"+total+" k\u00e9p...";
+    document.getElementById(statusId).textContent="Feltoltes: "+(i+1)+"/"+total+" kep...";
     return data.secure_url;
   }
   throw new Error("Hiba");
@@ -480,19 +449,19 @@ async function handleFileSelectNew(event){
   if(!files.length)return;
   show("upload-progress-new");
   document.getElementById("progress-fill-new").style.width="0%";
-  document.getElementById("upload-status-new").textContent="El\u0151k\u00e9sz\u00edt\u00e9s...";
+  document.getElementById("upload-status-new").textContent="Elokeszites...";
   try{
     for(let i=0;i<files.length;i++){
       const url=await uploadPhoto(files[i],i,files.length,"progress-fill-new","upload-status-new");
-      uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portr\u00e9 "+(uploadedPhotosNew.length+1)});
+      uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portre "+(uploadedPhotosNew.length+1)});
     }
-    document.getElementById("upload-status-new").textContent=files.length+" k\u00e9p felt\u00f6ltve!";
+    document.getElementById("upload-status-new").textContent=files.length+" kep feltoltve!";
     renderPreviewsNew();
-  }catch(e){document.getElementById("upload-status-new").textContent="Hiba. Pr\u00f3b\u00e1ld \u00fajra!"}
+  }catch(e){document.getElementById("upload-status-new").textContent="Hiba. Probalj ujra!"}
 }
 
 function renderPreviewsNew(){
-  document.getElementById("photo-previews-new").innerHTML=uploadedPhotosNew.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosNew.splice('+i+',1);uploadedPhotosNew.forEach((x,j)=>x.name=\'Portr\u00e9 \'+(j+1));renderPreviewsNew()">\u00d7</button></div>').join("");
+  document.getElementById("photo-previews-new").innerHTML=uploadedPhotosNew.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosNew.splice('+i+',1);uploadedPhotosNew.forEach((x,j)=>x.name="Portre "+(j+1));renderPreviewsNew()">X</button></div>').join("");
 }
 
 async function handleFileSelectDetail(event){
@@ -500,26 +469,26 @@ async function handleFileSelectDetail(event){
   if(!files.length)return;
   show("upload-progress-detail");
   document.getElementById("progress-fill-detail").style.width="0%";
-  document.getElementById("upload-status-detail").textContent="El\u0151k\u00e9sz\u00edt\u00e9s...";
+  document.getElementById("upload-status-detail").textContent="Elokeszites...";
   try{
     for(let i=0;i<files.length;i++){
       const url=await uploadPhoto(files[i],i,files.length,"progress-fill-detail","upload-status-detail");
-      uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:"Portr\u00e9 "+((currentDetailGallery.photos||[]).length+uploadedPhotosDetail.length+1)});
+      uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:"Portre "+((currentDetailGallery.photos||[]).length+uploadedPhotosDetail.length+1)});
     }
-    document.getElementById("upload-status-detail").textContent=files.length+" k\u00e9p felt\u00f6ltve!";
+    document.getElementById("upload-status-detail").textContent=files.length+" kep feltoltve!";
     renderPreviewsDetail();
     show("save-photos-btn");
-  }catch(e){document.getElementById("upload-status-detail").textContent="Hiba. Pr\u00f3b\u00e1ld \u00fajra!"}
+  }catch(e){document.getElementById("upload-status-detail").textContent="Hiba. Probalj ujra!"}
 }
 
 function renderPreviewsDetail(){
-  document.getElementById("photo-previews-detail").innerHTML=uploadedPhotosDetail.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosDetail.splice('+i+',1);renderPreviewsDetail()">\u00d7</button></div>').join("");
+  document.getElementById("photo-previews-detail").innerHTML=uploadedPhotosDetail.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosDetail.splice('+i+',1);renderPreviewsDetail()">X</button></div>').join("");
 }
 
 async function saveDetailPhotos(){
   if(!uploadedPhotosDetail.length)return;
   const btn=document.getElementById("save-photos-btn");
-  btn.textContent="Ment\u00e9s...";btn.disabled=true;
+  btn.textContent="Mentes...";btn.disabled=true;
   const allPhotos=[...(currentDetailGallery.photos||[]),...uploadedPhotosDetail];
   try{
     await db.collection("galleries").doc(currentDetailGallery.id).update({photos:allPhotos});
@@ -529,11 +498,11 @@ async function saveDetailPhotos(){
     uploadedPhotosDetail=[];
     hide("upload-progress-detail");hide("save-photos-btn");
     document.getElementById("photo-previews-detail").innerHTML="";
-    document.getElementById("detail-upload-msg").innerHTML='<div class="success-msg">\u2713 K\u00e9pek mentve!</div>';
+    document.getElementById("detail-upload-msg").innerHTML='<div class="success-msg">Kepek mentve!</div>';
     setTimeout(()=>document.getElementById("detail-upload-msg").innerHTML="",2000);
     renderDetailPhotos();
-  }catch(e){document.getElementById("detail-upload-msg").innerHTML='<div class="error-msg">Hiba t\u00f6rt\u00e9nt!</div>';}
-  finally{btn.textContent="\u2713 K\u00e9pek ment\u00e9se";btn.disabled=false}
+  }catch(e){document.getElementById("detail-upload-msg").innerHTML='<div class="error-msg">Hiba tortent!</div>';}
+  finally{btn.textContent="Kepek mentese";btn.disabled=false}
 }
 
 function showAdminLogin(){hide("parent-login-card");show("admin-login-card")}
@@ -545,42 +514,23 @@ function handleLogin(){
   const child=document.getElementById("inp-child").value.trim().toLowerCase();
   const err=document.getElementById("login-error");
   hide("login-error");
-  if(!code||!email||!child){err.textContent="K\u00e9rj\u00fck t\u00f6ltse ki az \u00f6sszes mez\u0151t.";show("login-error");return}
+  if(!code||!email||!child){err.textContent="Kerem toltse ki az osszes mezot.";show("login-error");return}
   const found=galleries.find(g=>g.code===code);
-  if(!found){err.textContent="\u00c9rv\u00e9nytelen bel\u00e9p\u00e9si k\u00f3d.";show("login-error");return}
-  if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email c\u00edm vagy a gyerek neve nem egyezik.";show("login-error");return}
+  if(!found){err.textContent="Ervenytelen belep si kod.";show("login-error");return}
+  if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email cim vagy a gyerek neve nem egyezik.";show("login-error");return}
   currentGallery=found;cart=[];renderGallery();showPage("page-gallery");
 }
 
 function handleAdminLogin(){
   const pass=document.getElementById("inp-admin-pass").value;
   if(pass===ADMIN_PASSWORD){showPage("page-admin");renderAdmin();}
-  else{document.getElementById("admin-error").textContent="Helytelen jelsz\u00f3.";show("admin-error")}
+  else{document.getElementById("admin-error").textContent="Helytelen jelszo.";show("admin-error")}
 }
 
 function logout(){cart=[];currentGallery=null;showPage("page-login")}
 
-function renderPrevOrders(){
-  const email=currentGallery.parentEmail.toLowerCase();
-  const myOrders=orders.filter(o=>o.parentEmail&&o.parentEmail.toLowerCase()===email);
-  const section=document.getElementById("prev-orders-section");
-  const list=document.getElementById("prev-orders-list");
-  if(myOrders.length===0){section.classList.add("hidden");return}
-  section.classList.remove("hidden");
-  list.innerHTML=myOrders.map(o=>`
-    <div style="background:var(--white);border-radius:13px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow-sm)">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div style="font-size:.82rem;color:var(--muted)">${o.date}</div>
-        <div style="font-weight:700;color:var(--gold);font-size:.95rem">${o.total.toLocaleString("hu-HU")} Ft</div>
-      </div>
-      ${(o.items||[]).map(i=>`<div style="font-size:.82rem;color:var(--text);padding:3px 0;border-bottom:1px dashed var(--warm)">${i.photoName} – ${i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")"} × ${i.qty} = ${i.totalPrice.toLocaleString("hu-HU")} Ft</div>`).join("")}
-    </div>
-  `).join("");
-}
-
 function renderGallery(){
-  document.getElementById("gallery-title").textContent=currentGallery.child+" k\u00e9pei";
-  renderPrevOrders();
+  document.getElementById("gallery-title").textContent=currentGallery.child+" kepei";
   const grid=document.getElementById("photo-grid");
   grid.innerHTML="";
   (currentGallery.photos||[]).forEach(photo=>{
@@ -608,7 +558,7 @@ function renderSizes(){
   PRINT_SIZES.forEach(s=>{const div=document.createElement("div");div.className="size-row"+(s.id===selectedSize.id?" active":"");div.innerHTML='<span style="font-weight:500;color:var(--dark)">'+s.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(s.price)+'</span>';div.onclick=()=>{selectedSize=s;renderSizes();updateSheetTotal()};list.appendChild(div)});
 }
 function changeQty(d){qty=Math.max(1,qty+d);document.getElementById("qty-num").textContent=qty;updateSheetTotal()}
-function updateSheetTotal(){document.getElementById("sheet-total").textContent="\u00d6sszesen: "+fmt((orderType==="digital"?DIGITAL_PRICE:selectedSize.price)*qty)}
+function updateSheetTotal(){document.getElementById("sheet-total").textContent="Osszesen: "+fmt((orderType==="digital"?DIGITAL_PRICE:selectedSize.price)*qty)}
 function addToCart(){
   const unitPrice=orderType==="digital"?DIGITAL_PRICE:selectedSize.price;
   cart.push({id:Date.now()+Math.random(),photo:activePhoto,type:orderType,size:orderType==="print"?selectedSize:null,qty,unitPrice,totalPrice:unitPrice*qty});
@@ -616,7 +566,7 @@ function addToCart(){
 }
 function updateCartUI(){
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-  if(cart.length>0){document.getElementById("cart-badge").textContent=cart.length;show("cart-badge");document.getElementById("cart-float-btn").textContent="\ud83d\uded2 Kos\u00e1r ("+cart.length+" t\u00e9tel \u2013 "+fmt(total)+")";show("cart-float-btn")}
+  if(cart.length>0){document.getElementById("cart-badge").textContent=cart.length;show("cart-badge");document.getElementById("cart-float-btn").textContent="🛒 Kosar ("+cart.length+" tetel - "+fmt(total)+")";show("cart-float-btn")}
   else{hide("cart-badge");hide("cart-float-btn")}
 }
 function showGallery(){showPage("page-gallery");renderGallery()}
@@ -626,25 +576,25 @@ function renderCartItems(){
   const itemsDiv=document.getElementById("cart-items");
   if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
   hide("cart-empty");
-  itemsDiv.innerHTML=cart.map(item=>'<div class="cart-item"><img src="'+item.photo.url+'" alt=""><div class="cart-item-info"><div class="cart-item-name">'+item.photo.name+'</div><div class="cart-item-detail">'+(item.type==="digital"?"\ud83d\udcbe Digit\u00e1lis f\u00e1jl":"\ud83d\uddbc\ufe0f Pap\u00edrkép – "+item.size.label)+(item.qty>1?" \u00b7 "+item.qty+" db":"")+'</div><div class="cart-item-price">'+fmt(item.totalPrice)+'</div></div><button class="cart-item-remove" onclick="removeFromCart(\''+item.id+'\')">\u00d7</button></div>').join("");
+  itemsDiv.innerHTML=cart.map(item=>'<div class="cart-item"><img src="'+item.photo.url+'" alt=""><div class="cart-item-info"><div class="cart-item-name">'+item.photo.name+'</div><div class="cart-item-detail">'+(item.type==="digital"?"Digitalis fajl":"Papirkep - "+item.size.label)+(item.qty>1?" - "+item.qty+" db":"")+'</div><div class="cart-item-price">'+fmt(item.totalPrice)+'</div></div><button class="cart-item-remove" onclick="removeFromCart(\''+item.id+'\')">X</button></div>').join("");
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-  document.getElementById("cart-total-rows").innerHTML=cart.map(i=>'<div class="cart-total-row"><span>'+i.photo.name+' ('+(i.type==="digital"?"Digit\u00e1lis":i.size.label)+') \u00d7 '+i.qty+'</span><span>'+fmt(i.totalPrice)+'</span></div>').join("");
+  document.getElementById("cart-total-rows").innerHTML=cart.map(i=>'<div class="cart-total-row"><span>'+i.photo.name+' ('+(i.type==="digital"?"Digitalis":i.size.label)+') x '+i.qty+'</span><span>'+fmt(i.totalPrice)+'</span></div>').join("");
   document.getElementById("cart-grand-total").textContent=fmt(total);
   show("cart-total-box");show("order-btn");show("back-btn");
 }
 function removeFromCart(id){cart=cart.filter(i=>i.id!=id);renderCartItems();updateCartUI()}
 
 async function sendOrder(){
-  const btn=document.getElementById("order-btn");btn.textContent="K\u00fcld\u00e9s...";btn.disabled=true;
+  const btn=document.getElementById("order-btn");btn.textContent="Kuldes...";btn.disabled=true;
   try{
     const total=cart.reduce((s,i)=>s+i.totalPrice,0);
     await db.collection("orders").add({child:currentGallery.child,parentEmail:currentGallery.parentEmail,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total:total,items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
-    document.getElementById("success-child-name").textContent=currentGallery.child+" k\u00e9pei";
+    document.getElementById("success-child-name").textContent=currentGallery.child+" kepei";
     document.getElementById("success-total").textContent=fmt(total);
     cart=[];updateCartUI();
     hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");
     show("cart-success");
-  }catch(e){console.error(e);btn.textContent="Rendel\u00e9s lead\u00e1sa \u2192";btn.disabled=false}
+  }catch(e){console.error(e);btn.textContent="Rendeles leadasa";btn.disabled=false}
 }
 function backToGallery(){hide("cart-success");showGallery()}
 
@@ -666,34 +616,14 @@ function setAdminTab(tab){
 
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
-  if(orders.length===0){div.innerHTML='<div class="empty-msg">Még nincs rendelés.</div>';return}
-  div.innerHTML=orders.map(o=>`
-    <div class="order-card">
-      <div class="order-card-select">
-        <input type="checkbox" class="order-checkbox order-checkbox-item" data-id="${o.id}" onchange="toggleOrderSelect('${o.id}',this.checked)" style="margin-top:4px;flex-shrink:0">
-        <div style="flex:1">
-          <div class="order-card-head">
-            <div>
-              <div class="order-card-name">🧒 ${o.child}</div>
-              <div class="order-card-meta">📧 ${o.parentEmail}</div>
-              <div class="order-card-meta">🕐 ${o.date}</div>
-              <div style="margin-top:6px">${getStatusBadge(o.status)}</div>
-            </div>
-            <div class="order-card-total">${fmt(o.total)}</div>
-          </div>
-          <div class="order-items-list">
-            ${(o.items||[]).map(i=>`<div class="order-item-row"><img src="${i.photoUrl}" alt=""><span>${i.photoName} – ${i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")"} × ${i.qty}</span><span class="item-price">${fmt(i.totalPrice)}</span></div>`).join("")}
-          </div>
-        </div>
-      </div>
-    </div>
-  `).join("");
+  if(orders.length===0){div.innerHTML='<div class="empty-msg">Meg nincs rendeles.</div>';return}
+  div.innerHTML=orders.map(o=>'<div class="order-card"><div class="order-card-head"><div><div class="order-card-name">'+o.child+'</div><div class="order-card-meta">'+o.parentEmail+'</div><div class="order-card-meta">'+o.date+'</div></div><div class="order-card-total">'+fmt(o.total)+'</div></div><div class="order-items-list">'+(o.items||[]).map(i=>'<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' - '+(i.type==="digital"?"Digitalis":"Papirkep ("+i.sizeLabel+")")+' x '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>').join("")+'</div></div>').join("");
 }
 
 function renderAdminGalleries(){
   const div=document.getElementById("admin-galleries");
-  if(galleries.length===0){div.innerHTML='<div class="empty-msg">M\u00e9g nincs gal\u00e9ria.</div>';return}
-  div.innerHTML=galleries.map(g=>'<div class="gallery-admin-card" onclick="openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+(g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+p.url+'" alt="">').join(''):'<div class="no-photo">\ud83d\udcf7</div>')+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">\ud83d\udce7 '+g.parentEmail+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' \ud83d\udccb</div><div class="gallery-count">'+(g.photos||[]).length+' fot\u00f3 \u2013 Kattints a r\u00e9szletekhez \u2192</div></div></div></div>').join("");
+  if(galleries.length===0){div.innerHTML='<div class="empty-msg">Meg nincs galeria.</div>';return}
+  div.innerHTML=galleries.map(g=>'<div class="gallery-admin-card" onclick="openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+(g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+p.url+'" alt="">').join(''):'<div class="no-photo">📷</div>')+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">'+g.parentEmail+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' 📋</div><div class="gallery-count">'+(g.photos||[]).length+' foto - Kattints a reszletekhez</div></div></div></div>').join("");
 }
 
 function openGalleryDetail(galleryId){
@@ -703,9 +633,9 @@ function openGalleryDetail(galleryId){
   document.getElementById("photo-previews-detail").innerHTML="";
   hide("upload-progress-detail");hide("save-photos-btn");
   document.getElementById("detail-upload-msg").innerHTML="";
-  document.getElementById("detail-name").textContent=currentDetailGallery.child+" gal\u00e9ri\u00e1ja";
+  document.getElementById("detail-name").textContent=currentDetailGallery.child+" galeriaja";
   document.getElementById("detail-meta").textContent=currentDetailGallery.parentEmail;
-  document.getElementById("detail-code").textContent=currentDetailGallery.code+" \ud83d\udccb";
+  document.getElementById("detail-code").textContent=currentDetailGallery.code+" 📋";
   hide("edit-form");
   renderDetailPhotos();
   showPage("page-gallery-detail");
@@ -716,31 +646,31 @@ function renderDetailPhotos(){
   const photos=currentDetailGallery.photos||[];
   if(photos.length===0){grid.innerHTML="";show("detail-empty");return}
   hide("detail-empty");
-  grid.innerHTML=photos.map((p,i)=>'<div class="admin-photo-card"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy"><button class="delete-photo-btn" onclick="deletePhoto('+i+')" title="T\u00f6rl\u00e9s">\ud83d\uddd1\ufe0f</button><div class="photo-label">'+p.name+'</div></div>').join("");
+  grid.innerHTML=photos.map((p,i)=>'<div class="admin-photo-card"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy"><button class="delete-photo-btn" onclick="deletePhoto('+i+')" title="Torles">🗑️</button><div class="photo-label">'+p.name+'</div></div>').join("");
 }
 
 async function deletePhoto(index){
-  if(!confirm("Biztosan t\u00f6rli ezt a k\u00e9pet?"))return;
+  if(!confirm("Biztosan torli ezt a kepet?"))return;
   const photos=[...(currentDetailGallery.photos||[])];
   photos.splice(index,1);
-  photos.forEach((p,i)=>p.name="Portr\u00e9 "+(i+1));
+  photos.forEach((p,i)=>p.name="Portre "+(i+1));
   try{
     await db.collection("galleries").doc(currentDetailGallery.id).update({photos});
     currentDetailGallery.photos=photos;
     const g=galleries.find(x=>x.id===currentDetailGallery.id);
     if(g)g.photos=photos;
     renderDetailPhotos();
-  }catch(e){alert("Hiba t\u00f6rt\u00e9nt a t\u00f6rl\u00e9s sor\u00e1n!")}
+  }catch(e){alert("Hiba tortent a torles soran!")}
 }
 
 async function deleteCurrentGallery(){
-  if(!confirm("Biztosan t\u00f6rli az eg\u00e9sz gal\u00e9ri\u00e1t?"))return;
+  if(!confirm("Biztosan torli az egesz galeriát?"))return;
   try{
     await db.collection("galleries").doc(currentDetailGallery.id).delete();
     galleries=galleries.filter(g=>g.id!==currentDetailGallery.id);
     currentDetailGallery=null;
     backToAdminGalleries();
-  }catch(e){alert("Hiba t\u00f6rt\u00e9nt!")}
+  }catch(e){alert("Hiba tortent!")}
 }
 
 function toggleEditForm(){
@@ -753,35 +683,39 @@ function toggleEditForm(){
     document.getElementById("edit-msg").innerHTML="";
   }
 }
+
 function updateEditCode(){
   const name=document.getElementById("edit-child").value.trim();
   if(name)document.getElementById("edit-code").value=generateCode(name);
 }
+
 function regenEditCode(){
   const name=document.getElementById("edit-child").value.trim();
   document.getElementById("edit-code").value=generateCode(name||"X");
 }
+
 async function saveEdit(){
   const child=document.getElementById("edit-child").value.trim();
   const email=document.getElementById("edit-email").value.trim().toLowerCase();
   const code=document.getElementById("edit-code").value.trim().toUpperCase();
   const msg=document.getElementById("edit-msg");
-  if(!child||!email){msg.innerHTML='<div class="error-msg">T\u00f6ltsd ki mindk\u00e9t mez\u0151t!</div>';return}
+  if(!child||!email){msg.innerHTML='<div class="error-msg">Toltsd ki mindket mezot!</div>';return}
   try{
-    await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,code,name:child+" \u2013 Iskolai fot\u00f3k 2025"});
+    await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,code,name:child+" - Iskolai fotok 2025"});
     currentDetailGallery.child=child;currentDetailGallery.parentEmail=email;currentDetailGallery.code=code;
     const g=galleries.find(x=>x.id===currentDetailGallery.id);
     if(g){g.child=child;g.parentEmail=email;g.code=code;}
-    document.getElementById("detail-name").textContent=child+" gal\u00e9ri\u00e1ja";
+    document.getElementById("detail-name").textContent=child+" galeriaja";
     document.getElementById("detail-meta").textContent=email;
-    document.getElementById("detail-code").textContent=code+" \ud83d\udccb";
-    msg.innerHTML='<div class="success-msg">\u2713 Mentve!</div>';
+    document.getElementById("detail-code").textContent=code+" 📋";
+    msg.innerHTML='<div class="success-msg">Mentve!</div>';
     setTimeout(()=>{document.getElementById("edit-form").classList.add("hidden");msg.innerHTML=""},1500);
-  }catch(e){msg.innerHTML='<div class="error-msg">Hiba t\u00f6rt\u00e9nt!</div>'}
+  }catch(e){msg.innerHTML='<div class="error-msg">Hiba tortent!</div>'}
 }
 
-function copyDetailCode(){navigator.clipboard?.writeText(currentDetailGallery.code);alert("K\u00f3d m\u00e1solva: "+currentDetailGallery.code)}
-function copyCode(code){navigator.clipboard?.writeText(code);alert("K\u00f3d m\u00e1solva: "+code)}
+function copyDetailCode(){navigator.clipboard?.writeText(currentDetailGallery.code);alert("Kod masolva: "+currentDetailGallery.code)}
+function copyCode(code){navigator.clipboard?.writeText(code);alert("Kod masolva: "+code)}
+
 function backToAdminGalleries(){renderAdmin();showPage("page-admin");setAdminTab("galleries")}
 
 function updateCode(){
@@ -789,6 +723,7 @@ function updateCode(){
   if(name){generatedCode=generateCode(name);document.getElementById("new-code").textContent=generatedCode;show("code-box")}
   else hide("code-box");
 }
+
 function regenCode(){
   const name=document.getElementById("new-child").value.trim();
   if(name){generatedCode=generateCode(name);document.getElementById("new-code").textContent=generatedCode}
@@ -796,148 +731,24 @@ function regenCode(){
 
 async function createGallery(){
   const child=document.getElementById("new-child").value.trim();
-  const email=document.getElementById("new-email").value.trim().toLowerCase();
+  const email=document.getElementById("new-email").value.trim();
   const errDiv=document.getElementById("new-form-error");
   hide("new-form-error");
-  if(!child||!email){errDiv.textContent="A gyerek neve \u00e9s az email c\u00edm k\u00f6telez\u0151.";show("new-form-error");return}
+  if(!child||!email){errDiv.textContent="A gyerek neve es az email cim kotelezo.";show("new-form-error");return}
   const btn=document.getElementById("create-btn");
-  btn.disabled=true;btn.textContent="Ment\u00e9s...";
+  btn.disabled=true;btn.textContent="Mentes...";
   try{
-    // Ha az email már létezik, ugyanazt a kódot használjuk
-    const existingByEmail=galleries.find(g=>g.parentEmail.toLowerCase()===email);
-    const finalCode=existingByEmail?existingByEmail.code:(generatedCode||generateCode(child));
-    await db.collection("galleries").add({name:child+" \u2013 Iskolai fot\u00f3k 2025",code:finalCode,child,parentEmail:email,createdAt:Date.now(),photos:uploadedPhotosNew});
+    await db.collection("galleries").add({name:child+" - Iskolai fotok 2025",code:generatedCode||generateCode(child),child,parentEmail:email.toLowerCase(),createdAt:Date.now(),photos:uploadedPhotosNew});
     const gs=await db.collection("galleries").orderBy("createdAt","desc").get();
     galleries=gs.docs.map(d=>({id:d.id,...d.data()}));
     document.getElementById("new-child").value="";document.getElementById("new-email").value="";
     uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");hide("code-box");
     renderAdmin();setAdminTab("galleries");
-  }catch(e){errDiv.textContent="Hiba t\u00f6rt\u00e9nt. Pr\u00f3b\u00e1ld \u00fajra.";show("new-form-error")}
-  finally{btn.disabled=false;btn.textContent="\u2713 Gal\u00e9ria l\u00e9trehoz\u00e1sa"}
-}
-
-
-// ---- STÁTUSZ KEZELÉS ----
-const STATUS_LABELS = {
-  pending: '⏳ Függőben',
-  digital: '📧 Digitális elküldve',
-  printing: '🖨️ Nyomtatás alatt',
-  delivered: '✅ Papírkép átadva'
-};
-const STATUS_CLASSES = {
-  pending: 'status-pending',
-  digital: 'status-digital',
-  printing: 'status-printing',
-  delivered: 'status-delivered'
-};
-
-let selectedOrderIds = new Set();
-
-function getStatusBadge(status) {
-  const s = status || 'pending';
-  return `<span class="status-badge ${STATUS_CLASSES[s]}">${STATUS_LABELS[s]}</span>`;
-}
-
-// ---- RENDELÉSEIM MODAL ----
-function showMyOrders() {
-  const email = currentGallery.parentEmail.toLowerCase();
-  const myOrders = orders.filter(o => o.parentEmail && o.parentEmail.toLowerCase() === email);
-  const list = document.getElementById('my-orders-list');
-  if (myOrders.length === 0) {
-    list.innerHTML = '<div class="empty-msg">Még nincs rendelésed.</div>';
-  } else {
-    list.innerHTML = myOrders.map(o => `
-      <div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-          <div>
-            <div style="font-size:.82rem;color:var(--muted)">${o.date}</div>
-            <div style="margin-top:4px">${getStatusBadge(o.status)}</div>
-          </div>
-          <div style="font-weight:700;color:var(--gold);font-size:1rem">${o.total.toLocaleString('hu-HU')} Ft</div>
-        </div>
-        <div style="border-top:1px solid var(--warm);padding-top:8px;margin-top:8px">
-          ${(o.items||[]).map(i=>`<div style="font-size:.82rem;color:var(--text);padding:3px 0">${i.photoName} – ${i.type==='digital'?'Digitális':'Papírkép ('+i.sizeLabel+')'} × ${i.qty} = ${i.totalPrice.toLocaleString('hu-HU')} Ft</div>`).join('')}
-        </div>
-      </div>
-    `).join('');
-  }
-  document.getElementById('my-orders-modal').classList.remove('hidden');
-}
-
-function closeMyOrdersModal(e) {
-  if (e.target === document.getElementById('my-orders-modal')) {
-    document.getElementById('my-orders-modal').classList.add('hidden');
-  }
-}
-
-// ---- TÖMEGES KIJELÖLÉS ----
-function toggleSelectAll(checked) {
-  const checkboxes = document.querySelectorAll('.order-checkbox-item');
-  checkboxes.forEach(cb => {
-    cb.checked = checked;
-    const orderId = cb.dataset.id;
-    if (checked) selectedOrderIds.add(orderId);
-    else selectedOrderIds.delete(orderId);
-  });
-  updateBulkBar();
-}
-
-function toggleOrderSelect(id, checked) {
-  if (checked) selectedOrderIds.add(id);
-  else selectedOrderIds.delete(id);
-  updateBulkBar();
-}
-
-function updateBulkBar() {
-  const bar = document.getElementById('bulk-bar');
-  const count = document.getElementById('bulk-count');
-  count.textContent = selectedOrderIds.size + ' kijelölve';
-  if (selectedOrderIds.size > 0) bar.classList.remove('hidden');
-  else bar.classList.add('hidden');
-}
-
-function clearSelection() {
-  selectedOrderIds.clear();
-  document.querySelectorAll('.order-checkbox-item').forEach(cb => cb.checked = false);
-  const selectAll = document.getElementById('select-all-orders');
-  if (selectAll) selectAll.checked = false;
-  updateBulkBar();
-}
-
-async function applyBulkStatus() {
-  const status = document.getElementById('bulk-status').value;
-  if (!status) { alert('Kérjük válassz státuszt!'); return; }
-  if (selectedOrderIds.size === 0) return;
-  try {
-    const batch = db.batch();
-    selectedOrderIds.forEach(id => {
-      const ref = db.collection('orders').doc(id);
-      batch.update(ref, { status });
-    });
-    await batch.commit();
-    // Update local orders
-    orders.forEach(o => {
-      if (selectedOrderIds.has(o.id)) o.status = status;
-    });
-    clearSelection();
-    renderAdminOrders();
-    document.getElementById('bulk-status').value = '';
-  } catch(e) { alert('Hiba történt!'); console.error(e); }
+  }catch(e){errDiv.textContent="Hiba tortent. Probalj ujra.";show("new-form-error")}
+  finally{btn.disabled=false;btn.textContent="Galeria letrehozasa"}
 }
 
 loadData();
 </script>
-
-<!-- RENDELÉSEIM MODAL -->
-<div id="my-orders-modal" class="modal-overlay hidden" onclick="closeMyOrdersModal(event)">
-  <div class="modal-sheet">
-    <div class="sheet-handle"></div>
-    <h2 style="font-size:1.3rem;color:var(--dark);margin-bottom:6px">📋 Rendeléseim</h2>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:20px">Az email címedhez tartozó összes rendelés</p>
-    <div id="my-orders-list"></div>
-    <button class="btn btn-outline" style="margin-top:10px" onclick="document.getElementById('my-orders-modal').classList.add('hidden')">Bezárás</button>
-  </div>
-</div>
-
 </body>
 </html>
