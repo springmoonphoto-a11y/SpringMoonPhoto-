@@ -284,7 +284,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
         <div class="payment-label">Megjegyzésbe írd</div>
         <div class="payment-value" id="success-child-name"></div>
         <div class="payment-total-row">
-          <span style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--dark)">Fizet endő összeg</span>
+          <span style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--dark)">Fizetendő összeg</span>
           <strong style="font-size:1.3rem;color:var(--gold)" id="success-total"></strong>
         </div>
       </div>
@@ -337,6 +337,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
           <option value="printing">🖨️ Nyomtatás alatt</option>
           <option value="delivered">✅ Papírkép átadva</option>
         </select>
+        <span id="bulk-type-hint" style="font-size:.78rem;opacity:.7"></span>
         <button class="btn btn-gold btn-sm" onclick="applyBulkStatus()">Alkalmaz</button>
         <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:var(--white);border:1px solid rgba(255,255,255,.3)" onclick="clearSelection()">Törlés</button>
       </div>
@@ -461,6 +462,72 @@ let activePhoto=null,orderType="print",selectedSize=PRINT_SIZES[0],qty=1;
 let generatedCode="",uploadedPhotosNew=[];
 let currentDetailGallery=null,uploadedPhotosDetail=[];
 let selectedOrderIds=new Set();
+
+
+function getOrderType(order) {
+  const items = order.items || [];
+  const hasDigital = items.some(i => i.type === 'digital');
+  const hasPrint = items.some(i => i.type === 'print');
+  if (hasDigital && !hasPrint) return 'digital';
+  if (hasPrint && !hasDigital) return 'print';
+  return 'mixed';
+}
+
+function getStatusOptions(order) {
+  const current = order.status || 'pending';
+  const type = getOrderType(order);
+  let options = [
+    {value: 'pending', label: '⏳ Függőben'},
+  ];
+  if (type === 'digital') {
+    options.push({value: 'digital', label: '📧 Digitális elküldve'});
+  } else if (type === 'print') {
+    options.push({value: 'printing', label: '🖨️ Nyomtatás alatt'});
+    options.push({value: 'delivered', label: '✅ Papírkép átadva'});
+  } else {
+    options.push({value: 'digital', label: '📧 Digitális elküldve'});
+    options.push({value: 'printing', label: '🖨️ Nyomtatás alatt'});
+    options.push({value: 'delivered', label: '✅ Papírkép átadva'});
+  }
+  return options.map(o => `<option value="${o.value}" ${o.value === current ? 'selected' : ''}>${o.label}</option>`).join('');
+}
+
+async function updateSingleStatus(orderId, status) {
+  try {
+    await db.collection('orders').doc(orderId).update({status});
+    const order = orders.find(o => o.id === orderId);
+    if (order) order.status = status;
+    renderAdminOrders();
+  } catch(e) { alert('Hiba történt!'); console.error(e); }
+}
+
+function updateBulkStatusOptions() {
+  const selectedIds = Array.from(selectedOrderIds);
+  if (!selectedIds.length) return;
+  const selectedOrders = orders.filter(o => selectedIds.includes(o.id));
+  const types = [...new Set(selectedOrders.map(o => getOrderType(o)))];
+  const select = document.getElementById('bulk-status');
+  const hint = document.getElementById('bulk-type-hint');
+  
+  // Reset options
+  let opts = '<option value="">– Státusz kiválasztása –</option>';
+  opts += '<option value="pending">⏳ Függőben</option>';
+  
+  if (types.length === 1 && types[0] === 'digital') {
+    opts += '<option value="digital">📧 Digitális elküldve</option>';
+    hint.textContent = '(digitális rendelések)';
+  } else if (types.length === 1 && types[0] === 'print') {
+    opts += '<option value="printing">🖨️ Nyomtatás alatt</option>';
+    opts += '<option value="delivered">✅ Papírkép átadva</option>';
+    hint.textContent = '(papírkép rendelések)';
+  } else {
+    opts += '<option value="digital">📧 Digitális elküldve</option>';
+    opts += '<option value="printing">🖨️ Nyomtatás alatt</option>';
+    opts += '<option value="delivered">✅ Papírkép átadva</option>';
+    hint.textContent = '(vegyes rendelések)';
+  }
+  select.innerHTML = opts;
+}
 
 function fmt(n){return n.toLocaleString("hu-HU")+" Ft"}
 function show(id){document.getElementById(id).classList.remove("hidden")}
@@ -699,7 +766,12 @@ function renderAdminOrders(){
               <div class="order-card-name">🧒 ${o.child}</div>
               <div class="order-card-meta">📧 ${o.parentEmail}</div>
               <div class="order-card-meta">🕐 ${o.date}</div>
-              <div style="margin-top:6px">${getStatusBadge(o.status)}</div>
+              <div style="margin-top:6px;display:flex;align-items:center;gap:8px">
+                ${getStatusBadge(o.status)}
+                <select class="order-status-select" data-orderid="${o.id}" onchange="updateSingleStatus('${o.id}',this.value)" style="padding:4px 8px;border-radius:8px;border:1px solid var(--warm);font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--brown);background:var(--cream);cursor:pointer">
+                  ${getStatusOptions(o)}
+                </select>
+              </div>
             </div>
             <div class="order-card-total">${fmt(o.total)}</div>
           </div>
@@ -744,6 +816,7 @@ function toggleOrderSelect(id,checked){
 function updateBulkBar(){
   document.getElementById("bulk-count").textContent=selectedOrderIds.size+" kijelölve";
   selectedOrderIds.size>0?show("bulk-bar"):hide("bulk-bar");
+  if(selectedOrderIds.size>0)updateBulkStatusOptions();
 }
 function clearSelection(){
   selectedOrderIds.clear();
