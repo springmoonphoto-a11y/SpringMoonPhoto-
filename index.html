@@ -529,6 +529,22 @@ function updateBulkStatusOptions() {
   select.innerHTML = opts;
 }
 
+
+function saveCart(){
+  try{
+    const key="fotolux_cart_"+(currentGallery?currentGallery.id:"");
+    localStorage.setItem(key,JSON.stringify(cart));
+  }catch(e){console.error("Kosár mentési hiba:",e)}
+}
+
+function loadCart(){
+  try{
+    const key="fotolux_cart_"+(currentGallery?currentGallery.id:"");
+    const saved=localStorage.getItem(key);
+    cart=saved?JSON.parse(saved):[];
+  }catch(e){cart=[];console.error("Kosár betöltési hiba:",e)}
+}
+
 function fmt(n){return n.toLocaleString("hu-HU")+" Ft"}
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
@@ -632,7 +648,9 @@ function handleLogin(){
   const found=galleries.find(g=>g.code===code);
   if(!found){err.textContent="Érvénytelen belépési kód.";show("login-error");return}
   if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email cím vagy a gyerek neve nem egyezik.";show("login-error");return}
-  currentGallery=found;cart=[];renderGallery();showPage("page-gallery");
+  currentGallery=found;
+  loadCart();
+  renderGallery();showPage("page-gallery");
 }
 function handleAdminLogin(){
   const pass=document.getElementById("inp-admin-pass").value;
@@ -682,6 +700,7 @@ function updateSheetTotal(){document.getElementById("sheet-total").textContent="
 function addToCart(){
   const unitPrice=orderType==="digital"?DIGITAL_PRICE:selectedSize.price;
   cart.push({id:Date.now()+Math.random(),photo:activePhoto,type:orderType,size:orderType==="print"?selectedSize:null,qty,unitPrice,totalPrice:unitPrice*qty});
+  saveCart();
   closeSheet();updateCartUI();
 }
 function updateCartUI(){
@@ -702,7 +721,7 @@ function renderCartItems(){
   document.getElementById("cart-grand-total").textContent=fmt(total);
   show("cart-total-box");show("order-btn");show("back-btn");
 }
-function removeFromCart(id){cart=cart.filter(i=>i.id!=id);renderCartItems();updateCartUI()}
+function removeFromCart(id){cart=cart.filter(i=>i.id!=id);saveCart();renderCartItems();updateCartUI()}
 
 async function sendOrder(){
   const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;
@@ -711,7 +730,7 @@ async function sendOrder(){
     await db.collection("orders").add({child:currentGallery.child,parentEmail:currentGallery.parentEmail,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
     document.getElementById("success-child-name").textContent=currentGallery.child+" képei";
     document.getElementById("success-total").textContent=fmt(total);
-    cart=[];updateCartUI();
+    cart=[];saveCart();updateCartUI();
     hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");
     show("cart-success");
     const os=await db.collection("orders").orderBy("createdAt","desc").get();
