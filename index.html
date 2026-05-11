@@ -574,9 +574,16 @@ function renderCartItems(){
   const itemsDiv=document.getElementById("cart-items");
   if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
   hide("cart-empty");
-  itemsDiv.innerHTML=cart.map(item=>'<div class="cart-item"><img src="'+item.photo.url+'" alt=""><div class="cart-item-info"><div class="cart-item-name">'+item.photo.name+'</div><div class="cart-item-detail">'+(item.type==="digital"?"&#128190; Digitális fájl":"&#128444;&#65039; Papírkép – "+item.size.label)+(item.qty>1?" · "+item.qty+" db":"")+'</div><div class="cart-item-price">'+fmt(item.totalPrice)+'</div></div><button class="cart-item-remove" onclick="removeFromCart(''+item.id+'')">×</button></div>').join("");
+  itemsDiv.innerHTML=cart.map(item=>{
+    const detail=item.type==="digital"?"&#128190; Digitális fájl":"&#128444;&#65039; Papírkép – "+item.size.label;
+    const qtySuffix=item.qty>1?" · "+item.qty+" db":"";
+    return '<div class="cart-item"><img src="'+item.photo.url+'" alt=""><div class="cart-item-info"><div class="cart-item-name">'+item.photo.name+'</div><div class="cart-item-detail">'+detail+qtySuffix+'</div><div class="cart-item-price">'+fmt(item.totalPrice)+'</div></div><button class="cart-item-remove" onclick="removeFromCart(\''+item.id+'\')">×</button></div>';
+  }).join("");
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-  document.getElementById("cart-total-rows").innerHTML=cart.map(i=>'<div class="cart-total-row"><span>'+i.photo.name+' ('+(i.type==="digital"?"Digitális":i.size.label)+') × '+i.qty+'</span><span>'+fmt(i.totalPrice)+'</span></div>').join("");
+  document.getElementById("cart-total-rows").innerHTML=cart.map(i=>{
+    const lbl=i.type==="digital"?"Digitális":i.size.label;
+    return '<div class="cart-total-row"><span>'+i.photo.name+' ('+lbl+') × '+i.qty+'</span><span>'+fmt(i.totalPrice)+'</span></div>';
+  }).join("");
   document.getElementById("cart-grand-total").textContent=fmt(total);
   show("cart-total-box");show("order-btn");show("back-btn");
 }
@@ -600,8 +607,17 @@ function showMyOrders(){
   const email=currentGallery.parentEmail.toLowerCase();
   const myOrders=orders.filter(o=>o.parentEmail&&o.parentEmail.toLowerCase()===email);
   const list=document.getElementById("my-orders-list");
-  if(myOrders.length===0){list.innerHTML='<div class="empty-msg">Még nincs rendelésed.</div>'}
-  else{list.innerHTML=myOrders.map(o=>'<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="margin-top:6px">'+getStatusBadge(o.status)+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div><div style="border-top:1px solid var(--warm);padding-top:8px">'+(o.items||[]).map(i=>'<div style="font-size:.82rem;color:var(--text);padding:3px 0">'+i.photoName+' – '+(i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")")+' × '+i.qty+' = '+fmt(i.totalPrice)+'</div>').join("")+'</div></div>').join("")}
+  if(myOrders.length===0){
+    list.innerHTML='<div class="empty-msg">Még nincs rendelésed.</div>';
+  }else{
+    list.innerHTML=myOrders.map(o=>{
+      const itemsHtml=(o.items||[]).map(i=>{
+        const typeLabel=i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")";
+        return '<div style="font-size:.82rem;color:var(--text);padding:3px 0">'+i.photoName+' – '+typeLabel+' × '+i.qty+' = '+fmt(i.totalPrice)+'</div>';
+      }).join("");
+      return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="margin-top:6px">'+getStatusBadge(o.status)+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div><div style="border-top:1px solid var(--warm);padding-top:8px">'+itemsHtml+'</div></div>';
+    }).join("");
+  }
   document.getElementById("my-orders-modal").classList.remove("hidden");
 }
 function closeMyOrdersModal(e){if(e.target===document.getElementById("my-orders-modal"))document.getElementById("my-orders-modal").classList.add("hidden")}
@@ -649,12 +665,21 @@ function setAdminTab(tab){
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
   if(orders.length===0){div.innerHTML='<div class="empty-msg">Még nincs rendelés.</div>';return}
-  div.innerHTML=orders.map(o=>'<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(''+o.id+'',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div><div style="margin-top:6px;display:flex;align-items:center;gap:8px">'+getStatusBadge(o.status)+'<select class="order-status-select" onchange="updateSingleStatus(''+o.id+'',this.value)">'+getStatusOptions(o)+'</select></div></div><div class="order-card-total">'+fmt(o.total)+'</div></div><div class="order-items-list">'+(o.items||[]).map(i=>'<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+(i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")")+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>').join("")+'</div></div></div></div>').join("");
+  div.innerHTML=orders.map(o=>{
+    const itemsHtml=(o.items||[]).map(i=>{
+      const typeLabel=i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")";
+      return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>';
+    }).join("");
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div><div style="margin-top:6px;display:flex;align-items:center;gap:8px">'+getStatusBadge(o.status)+'<select class="order-status-select" onchange="updateSingleStatus(\''+o.id+'\',this.value)">'+getStatusOptions(o)+'</select></div></div><div class="order-card-total">'+fmt(o.total)+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div>';
+  }).join("");
 }
 function renderAdminGalleries(){
   const div=document.getElementById("admin-galleries");
   if(galleries.length===0){div.innerHTML='<div class="empty-msg">Még nincs galéria.</div>';return}
-  div.innerHTML=galleries.map(g=>'<div class="gallery-admin-card" onclick="openGalleryDetail(''+g.id+'')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+(g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+p.url+'" alt="">').join(""):'<div class="no-photo">&#128247;</div>')+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+g.parentEmail+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(''+g.code+'')">'+g.code+' &#128203;</div><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div></div></div></div>').join("");
+  div.innerHTML=galleries.map(g=>{
+    const thumbs=g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+p.url+'" alt="">').join(""):'<div class="no-photo">&#128247;</div>';
+    return '<div class="gallery-admin-card" onclick="openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+g.parentEmail+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div></div></div></div>';
+  }).join("");
 }
 
 function toggleSelectAll(checked){document.querySelectorAll("[data-id]").forEach(cb=>{cb.checked=checked;checked?selectedOrderIds.add(cb.dataset.id):selectedOrderIds.delete(cb.dataset.id)});updateBulkBar()}
@@ -678,7 +703,8 @@ function openGalleryDetail(galleryId){
   hide("edit-form");renderDetailPhotos();showPage("page-gallery-detail");
 }
 function renderDetailPhotos(){
-  const grid=document.getElementById("detail-photo-grid");const photos=currentDetailGallery.photos||[];
+  const grid=document.getElementById("detail-photo-grid");
+  const photos=currentDetailGallery.photos||[];
   if(photos.length===0){grid.innerHTML="";show("detail-empty");return}
   hide("detail-empty");
   grid.innerHTML=photos.map((p,i)=>'<div class="admin-photo-card"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy"><button class="delete-photo-btn" onclick="deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div></div>').join("");
