@@ -655,10 +655,19 @@ function renderGallery(){
   updateCartUI();
 }
 function openSheet(photo){
-  activePhoto=photo;orderType="print";selectedSize=PRINT_SIZES[0];qty=1;
+  activePhoto=photo;
+  orderType="print";
+  selectedSize=PRINT_SIZES[0];
+  qty=1;
   document.getElementById("sheet-img").src=photo.url;
   document.getElementById("sheet-name").textContent=photo.name;
-  renderSizes();updateSheetType();updateSheetTotal();show("overlay");
+  document.getElementById("qty-num").textContent=1;
+  document.getElementById("tab-print").classList.add("active");
+  document.getElementById("tab-digital").classList.remove("active");
+  renderSizes();
+  updateSheetType();
+  updateSheetTotal();
+  show("overlay");
 }
 function closeOverlay(e){if(e.target===document.getElementById("overlay"))closeSheet()}
 function closeSheet(){hide("overlay")}
