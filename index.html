@@ -674,10 +674,10 @@ async function sendPasswordReset(){
 async function loadPhotographerData(){
   if(!currentUser)return;
   try{
-    const gs=await db.collection("galleries").where("photographerId","==",currentUser.uid).orderBy("createdAt","desc").get();
-    galleries=gs.docs.map(d=>({id:d.id,...d.data()}));
-    const os=await db.collection("orders").where("photographerId","==",currentUser.uid).orderBy("createdAt","desc").get();
-    orders=os.docs.map(d=>({id:d.id,...d.data()}));
+    const gs=await db.collection("galleries").where("photographerId","==",currentUser.uid).get();
+    galleries=gs.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    const os=await db.collection("orders").where("photographerId","==",currentUser.uid).get();
+    orders=os.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   }catch(e){console.error("Adatbetöltési hiba:",e);galleries=[];orders=[]}
 }
 function logout(){
