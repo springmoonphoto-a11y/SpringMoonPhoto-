@@ -285,11 +285,20 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div class="type-tabs">
       <div id="tab-print" class="type-tab active" onclick="setType('print')"><span class="tab-icon">&#128444;&#65039;</span>Papírkép</div>
       <div id="tab-digital" class="type-tab" onclick="setType('digital')"><span class="tab-icon">&#128190;</span>Digitális</div>
+      <div id="tab-gift" class="type-tab" onclick="setType('gift')"><span class="tab-icon">&#127873;</span>Ajándék</div>
     </div>
     <div id="size-section"><div class="size-list" id="size-list"></div></div>
     <div id="digital-section" class="digital-info hidden">
       <span style="font-size:2rem">&#128190;</span>
       <div><strong>Digitális fájl – 390 Ft</strong><p style="font-size:.85rem;color:var(--muted);margin-top:3px">Nagy felbontású JPG, emailben küldve</p></div>
+    </div>
+    <div id="gift-section" class="hidden">
+      <div class="size-list" id="gift-list"></div>
+      <div id="mug-text-wrap" class="hidden" style="background:var(--cream);border-radius:12px;padding:14px;margin-bottom:18px">
+        <label style="margin-bottom:8px">✏️ Felirat a bögrére (opcionális)</label>
+        <input type="text" id="mug-text" placeholder="pl. A világ legjobb anyukája" maxlength="50" style="margin-bottom:0">
+        <p style="font-size:.78rem;color:var(--muted);margin-top:6px">Hagyd üresen, ha nem kérsz feliratot</p>
+      </div>
     </div>
     <div class="qty-row">
       <span style="font-size:.9rem;flex:1">Darabszám</span>
@@ -345,6 +354,21 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div id="cart-total-box" class="cart-total-box hidden">
       <div id="cart-total-rows"></div>
       <div class="cart-total-big"><span>Összesen</span><strong id="cart-grand-total"></strong></div>
+    </div>
+    <div id="social-consent-box" class="hidden" style="background:var(--white);border:2px solid var(--gold);border-radius:14px;padding:18px;margin-top:18px;box-shadow:var(--shadow-sm)">
+      <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">📸 Hozzájárulás a képek közzétételéhez</h3>
+      <p style="font-size:.88rem;color:var(--text);line-height:1.5;margin-bottom:14px">Hozzájárul ahhoz, hogy gyermeke fotói megjelenjenek a <strong>SpringMoonPhoto – Bukta Anita</strong> közösségi média felületein (Facebook, Instagram, weboldal)?</p>
+      <div style="display:flex;gap:10px;margin-bottom:8px">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);font-size:.95rem;font-weight:500" id="consent-yes-label">
+          <input type="radio" name="social-consent" value="yes" onchange="updateConsent('yes')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px">
+          <span>✅ Igen, hozzájárulok</span>
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);font-size:.95rem;font-weight:500" id="consent-no-label">
+          <input type="radio" name="social-consent" value="no" onchange="updateConsent('no')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px">
+          <span>❌ Nem járulok hozzá</span>
+        </label>
+      </div>
+      <p id="consent-warning" style="font-size:.78rem;color:#c0392b;margin-top:8px;font-style:italic">A rendelés leadásához kérjük válaszoljon a fenti kérdésre.</p>
     </div>
     <button id="order-btn" class="btn btn-gold hidden" style="margin-top:14px" onclick="sendOrder()">Rendelés leadása →</button>
     <button id="back-btn" class="btn btn-outline hidden" style="margin-top:9px" onclick="showGallery()">← Még válogatnék</button>
@@ -498,6 +522,15 @@ const CLOUD_NAME="dpluouggw";
 const UPLOAD_PRESET="fotolux_upload";
 const PRINT_SIZES=[{id:"10x15",label:"10×15 cm",price:490},{id:"13x18",label:"13×18 cm",price:690},{id:"20x30",label:"20×30 cm",price:1290},{id:"A4",label:"A4 (21×29.7 cm)",price:1590}];
 const DIGITAL_PRICE=390;
+const GIFT_ITEMS=[
+  {id:"magnet",label:"🧲 Hűtőmágnes",price:2000},
+  {id:"keychain",label:"🔑 Kulcstartó",price:1500},
+  {id:"mug",label:"☕ Bögre (felirattal is)",price:5500},
+  {id:"photo-magnet",label:"🖼️ Hűtőmágneses képkeret (10×15)",price:2000},
+  {id:"folder",label:"📁 Átadómappa",price:1500}
+];
+let selectedGift=null;
+let socialConsent=null;
 const ADMIN_PASSWORD="admin2025";
 const STATUS_LABELS={pending:"⏳ Függőben",digital:"&#128231; Digitális elküldve",printing:"&#128424;&#65039; Nyomtatás alatt",delivered:"&#9989; Papírkép átadva",paid:"&#128176; Fizetve",completed:"&#11088; Teljesítve"};
 const STATUS_CLASSES={pending:"status-pending",digital:"status-digital",printing:"status-printing",delivered:"status-delivered",paid:"status-paid",completed:"status-completed"};
@@ -700,26 +733,84 @@ function renderGallery(){
 }
 function openSheet(photo){
   activePhoto=photo;orderType="print";selectedSize=PRINT_SIZES[0];qty=1;
+  selectedGift=GIFT_ITEMS[0];
   document.getElementById("sheet-img").src=photo.url;
   document.getElementById("sheet-name").textContent=photo.name;
   document.getElementById("qty-num").textContent=1;
   document.getElementById("tab-print").classList.add("active");
   document.getElementById("tab-digital").classList.remove("active");
-  renderSizes();updateSheetType();updateSheetTotal();show("overlay");
+  document.getElementById("tab-gift").classList.remove("active");
+  document.getElementById("mug-text").value="";
+  renderSizes();renderGifts();updateSheetType();updateSheetTotal();show("overlay");
 }
 function closeOverlay(e){if(e.target===document.getElementById("overlay"))closeSheet()}
 function closeSheet(){hide("overlay")}
-function setType(t){orderType=t;document.getElementById("tab-print").classList.toggle("active",t==="print");document.getElementById("tab-digital").classList.toggle("active",t==="digital");updateSheetType();updateSheetTotal()}
-function updateSheetType(){if(orderType==="print"){show("size-section");hide("digital-section")}else{hide("size-section");show("digital-section")}}
+function setType(t){
+  orderType=t;
+  document.getElementById("tab-print").classList.toggle("active",t==="print");
+  document.getElementById("tab-digital").classList.toggle("active",t==="digital");
+  document.getElementById("tab-gift").classList.toggle("active",t==="gift");
+  updateSheetType();updateSheetTotal();
+}
+function updateSheetType(){
+  hide("size-section");hide("digital-section");hide("gift-section");hide("mug-text-wrap");
+  if(orderType==="print"){show("size-section")}
+  else if(orderType==="digital"){show("digital-section")}
+  else if(orderType==="gift"){
+    show("gift-section");
+    if(selectedGift&&selectedGift.id==="mug")show("mug-text-wrap");
+  }
+}
 function renderSizes(){
   const list=document.getElementById("size-list");list.innerHTML="";
   PRINT_SIZES.forEach(s=>{const div=document.createElement("div");div.className="size-row"+(s.id===selectedSize.id?" active":"");div.innerHTML='<span style="font-weight:500;color:var(--dark)">'+s.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(s.price)+'</span>';div.onclick=()=>{selectedSize=s;renderSizes();updateSheetTotal()};list.appendChild(div)});
 }
+
+function renderGifts(){
+  const list=document.getElementById("gift-list");list.innerHTML="";
+  GIFT_ITEMS.forEach(g=>{
+    const div=document.createElement("div");
+    div.className="size-row"+(selectedGift&&g.id===selectedGift.id?" active":"");
+    div.innerHTML='<span style="font-weight:500;color:var(--dark)">'+g.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(g.price)+'</span>';
+    div.onclick=()=>{
+      selectedGift=g;
+      renderGifts();
+      if(g.id==="mug")show("mug-text-wrap");else hide("mug-text-wrap");
+      updateSheetTotal();
+    };
+    list.appendChild(div);
+  });
+}
 function changeQty(d){qty=Math.max(1,qty+d);document.getElementById("qty-num").textContent=qty;updateSheetTotal()}
-function updateSheetTotal(){document.getElementById("sheet-total").textContent="Összesen: "+fmt((orderType==="digital"?DIGITAL_PRICE:selectedSize.price)*qty)}
+function updateSheetTotal(){
+  let price=0;
+  if(orderType==="digital")price=DIGITAL_PRICE;
+  else if(orderType==="gift"&&selectedGift)price=selectedGift.price;
+  else price=selectedSize.price;
+  document.getElementById("sheet-total").textContent="Összesen: "+fmt(price*qty);
+}
 function addToCart(){
-  const unitPrice=orderType==="digital"?DIGITAL_PRICE:selectedSize.price;
-  cart.push({id:Date.now()+Math.random(),photo:activePhoto,type:orderType,size:orderType==="print"?selectedSize:null,qty,unitPrice,totalPrice:unitPrice*qty});
+  let unitPrice=0;
+  let itemData={id:Date.now()+Math.random(),photo:activePhoto,type:orderType,qty};
+  if(orderType==="digital"){
+    unitPrice=DIGITAL_PRICE;
+    itemData.size=null;
+  }else if(orderType==="gift"){
+    unitPrice=selectedGift.price;
+    itemData.giftId=selectedGift.id;
+    itemData.giftLabel=selectedGift.label;
+    if(selectedGift.id==="mug"){
+      const text=document.getElementById("mug-text").value.trim();
+      if(text)itemData.mugText=text;
+    }
+    itemData.size=null;
+  }else{
+    unitPrice=selectedSize.price;
+    itemData.size=selectedSize;
+  }
+  itemData.unitPrice=unitPrice;
+  itemData.totalPrice=unitPrice*qty;
+  cart.push(itemData);
   saveCart();closeSheet();updateCartUI();
 }
 function updateCartUI(){
@@ -731,7 +822,7 @@ function showGallery(){showPage("page-gallery");renderGallery()}
 function showCart(){showPage("page-cart");hide("cart-success");renderCartItems()}
 function renderCartItems(){
   const itemsDiv=document.getElementById("cart-items");
-  if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
+  if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("social-consent-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
   hide("cart-empty");
   itemsDiv.innerHTML=cart.map(item=>{
     const detail=item.type==="digital"?"&#128190; Digitális fájl":"&#128444;&#65039; Papírkép – "+item.size.label;
@@ -740,18 +831,47 @@ function renderCartItems(){
   }).join("");
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
   document.getElementById("cart-total-rows").innerHTML=cart.map(i=>{
-    const lbl=i.type==="digital"?"Digitális":i.size.label;
+    let lbl;
+    if(i.type==="digital")lbl="Digitális";
+    else if(i.type==="gift")lbl=i.giftLabel;
+    else lbl=i.size.label;
     return '<div class="cart-total-row"><span>'+i.photo.name+' ('+lbl+') × '+i.qty+'</span><span>'+fmt(i.totalPrice)+'</span></div>';
   }).join("");
   document.getElementById("cart-grand-total").textContent=fmt(total);
-  show("cart-total-box");show("order-btn");show("back-btn");
+  show("cart-total-box");show("social-consent-box");show("order-btn");show("back-btn");
+  updateConsentUI();
 }
 function removeFromCart(id){cart=cart.filter(i=>i.id!=id);saveCart();renderCartItems();updateCartUI()}
+function updateConsent(value){
+  socialConsent=value;
+  document.getElementById("consent-yes-label").style.borderColor=value==="yes"?"var(--green)":"var(--warm)";
+  document.getElementById("consent-yes-label").style.background=value==="yes"?"#f0fdf4":"var(--cream)";
+  document.getElementById("consent-no-label").style.borderColor=value==="no"?"var(--brown)":"var(--warm)";
+  document.getElementById("consent-no-label").style.background=value==="no"?"var(--warm)":"var(--cream)";
+  document.getElementById("consent-warning").style.display=value?"none":"block";
+}
+
+function updateConsentUI(){
+  socialConsent=null;
+  document.querySelectorAll('input[name="social-consent"]').forEach(r=>r.checked=false);
+  document.getElementById("consent-yes-label").style.borderColor="var(--warm)";
+  document.getElementById("consent-yes-label").style.background="var(--cream)";
+  document.getElementById("consent-no-label").style.borderColor="var(--warm)";
+  document.getElementById("consent-no-label").style.background="var(--cream)";
+  document.getElementById("consent-warning").style.display="block";
+}
+
 async function sendOrder(){
+  if(!socialConsent){
+    alert("Kérjük válaszoljon a képek közzétételére vonatkozó kérdésre!");
+    document.getElementById("consent-warning").style.color="#c0392b";
+    document.getElementById("social-consent-box").scrollIntoView({behavior:"smooth"});
+    return;
+  }
   const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;
   try{
     const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-    await db.collection("orders").add({child:currentGallery.child,parentEmail:currentGallery.parentEmail,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",photographerId:currentGallery.photographerId||null,photographerName:currentGallery.photographerName||null,items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
+    await db.collection("orders").add({child:currentGallery.child,parentEmail:currentGallery.parentEmail,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",socialConsent,photographerId:currentGallery.photographerId||null,photographerName:currentGallery.photographerName||null,items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,giftId:i.giftId||null,giftLabel:i.giftLabel||null,mugText:i.mugText||null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
     document.getElementById("success-child-name").textContent=currentGallery.child+" képei";
     document.getElementById("success-total").textContent=fmt(total);
     cart=[];saveCart();updateCartUI();
@@ -776,7 +896,10 @@ async function showMyOrders(){
     }
     list.innerHTML=myOrders.map(o=>{
       const itemsHtml=(o.items||[]).map(i=>{
-        const typeLabel=i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")";
+        let typeLabel;
+        if(i.type==="digital")typeLabel="Digitális";
+        else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText;}
+        else typeLabel="Papírkép ("+i.sizeLabel+")";
         return '<div style="font-size:.82rem;color:var(--text);padding:3px 0">'+i.photoName+' – '+typeLabel+' × '+i.qty+' = '+fmt(i.totalPrice)+'</div>';
       }).join("");
       return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="margin-top:6px">'+getStatusBadge(o.status)+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div><div style="border-top:1px solid var(--warm);padding-top:8px">'+itemsHtml+'</div></div>';
