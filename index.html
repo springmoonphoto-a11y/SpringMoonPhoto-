@@ -522,9 +522,8 @@ async function loadData(){
   try{
     const gs=await db.collection("galleries").orderBy("createdAt","desc").get();
     galleries=gs.docs.map(d=>({id:d.id,...d.data()}));
-    const os=await db.collection("orders").orderBy("createdAt","desc").get();
-    orders=os.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){console.error(e)}
+  orders=[];
   showPage("page-login");
 }
 
@@ -763,13 +762,18 @@ async function sendOrder(){
 }
 function backToGallery(){hide("cart-success");showGallery()}
 
-function showMyOrders(){
+async function showMyOrders(){
   const email=currentGallery.parentEmail.toLowerCase();
-  const myOrders=orders.filter(o=>o.parentEmail&&o.parentEmail.toLowerCase()===email);
   const list=document.getElementById("my-orders-list");
-  if(myOrders.length===0){
-    list.innerHTML='<div class="empty-msg">Még nincs rendelésed.</div>';
-  }else{
+  list.innerHTML='<div class="empty-msg">Betöltés...</div>';
+  document.getElementById("my-orders-modal").classList.remove("hidden");
+  try{
+    const os=await db.collection("orders").where("parentEmail","==",email).get();
+    const myOrders=os.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if(myOrders.length===0){
+      list.innerHTML='<div class="empty-msg">Még nincs rendelésed.</div>';
+      return;
+    }
     list.innerHTML=myOrders.map(o=>{
       const itemsHtml=(o.items||[]).map(i=>{
         const typeLabel=i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")";
@@ -777,9 +781,12 @@ function showMyOrders(){
       }).join("");
       return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="margin-top:6px">'+getStatusBadge(o.status)+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div><div style="border-top:1px solid var(--warm);padding-top:8px">'+itemsHtml+'</div></div>';
     }).join("");
+  }catch(e){
+    console.error("Rendelések betöltési hiba:",e);
+    list.innerHTML='<div class="empty-msg">Nem sikerült betölteni a rendeléseket.</div>';
   }
-  document.getElementById("my-orders-modal").classList.remove("hidden");
 }
+
 function closeMyOrdersModal(e){if(e.target===document.getElementById("my-orders-modal"))document.getElementById("my-orders-modal").classList.add("hidden")}
 
 function getOrderType(order){const items=order.items||[];const hD=items.some(i=>i.type==="digital");const hP=items.some(i=>i.type==="print");if(hD&&!hP)return"digital";if(hP&&!hD)return"print";return"mixed"}
