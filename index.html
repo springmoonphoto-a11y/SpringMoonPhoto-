@@ -200,23 +200,52 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div class="admin-link">Ön fotós? <button onclick="showAdminLogin()">Admin belépés</button></div>
   </div>
   <div id="admin-login-card" class="card hidden">
-    <h2 id="auth-title">Fotós bejelentkezés</h2>
-    <p id="auth-sub">Üdvözöljük a FotoLux fotós felületén</p>
-    <div style="display:flex;gap:8px;margin-bottom:20px">
-      <button id="auth-tab-login" class="type-tab active" style="flex:1;padding:10px" onclick="switchAuthMode('login')">Bejelentkezés</button>
-      <button id="auth-tab-register" class="type-tab" style="flex:1;padding:10px" onclick="switchAuthMode('register')">Regisztráció</button>
+    <div id="auth-main">
+      <h2 id="auth-title">Fotós bejelentkezés</h2>
+      <p id="auth-sub">Üdvözöljük a FotoLux fotós felületén</p>
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <button id="auth-tab-login" class="type-tab active" style="flex:1;padding:10px" onclick="switchAuthMode('login')">Bejelentkezés</button>
+        <button id="auth-tab-register" class="type-tab" style="flex:1;padding:10px" onclick="switchAuthMode('register')">Regisztráció</button>
+      </div>
+      <div id="auth-name-wrap" class="hidden">
+        <label>Fotós/cég neve</label>
+        <input id="inp-auth-name" type="text" placeholder="pl. Bukta Anita Photo">
+      </div>
+      <label>Email cím</label>
+      <input id="inp-auth-email" type="email" placeholder="pelda@email.com">
+      <label>Jelszó</label>
+      <input id="inp-auth-pass" type="password" placeholder="••••••••" minlength="6">
+      <button id="auth-submit-btn" class="btn" onclick="handleAuth()">Bejelentkezés →</button>
+      <div id="auth-error" class="error-msg hidden"></div>
+      <div id="forgot-link" class="admin-link"><button onclick="showForgotPassword()">Elfelejtett jelszó?</button></div>
+      <div class="admin-link"><button onclick="showParentLogin()">← Vissza a szülői bejelentkezéshez</button></div>
     </div>
-    <div id="auth-name-wrap" class="hidden">
-      <label>Fotós/cég neve</label>
-      <input id="inp-auth-name" type="text" placeholder="pl. Bukta Anita Photo">
+    <div id="auth-success" class="hidden" style="text-align:center;padding:20px 0">
+      <div style="font-size:3.5rem;margin-bottom:14px">🎉</div>
+      <h2 style="color:var(--dark);margin-bottom:8px">Sikeres regisztráció!</h2>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:20px">Üdvözöljük a FotoLux fotósai között!</p>
+      <div style="background:var(--cream);border-radius:12px;padding:18px;text-align:left;margin-bottom:18px">
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Bejelentkezési adatok</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Email cím</div>
+        <div id="success-email" style="font-weight:600;color:var(--dark);margin-bottom:10px"></div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Fotós/cég neve</div>
+        <div id="success-name" style="font-weight:600;color:var(--dark)"></div>
+      </div>
+      <div style="background:#fff8ee;border:1.5px solid var(--gold);border-radius:12px;padding:14px;margin-bottom:18px;font-size:.85rem;color:var(--brown);text-align:left">
+        🔒 <strong>Fontos:</strong> A jelszavát biztos helyen tárolja! Ha elfelejti, a bejelentkezési oldalon az „Elfelejtett jelszó?" linkre kattintva kérhet újat email címére.
+      </div>
+      <button class="btn" onclick="goToAdminAfterRegister()">Tovább a fotós felületre →</button>
     </div>
-    <label>Email cím</label>
-    <input id="inp-auth-email" type="email" placeholder="pelda@email.com">
-    <label>Jelszó</label>
-    <input id="inp-auth-pass" type="password" placeholder="••••••••" minlength="6">
-    <button id="auth-submit-btn" class="btn" onclick="handleAuth()">Bejelentkezés →</button>
-    <div id="auth-error" class="error-msg hidden"></div>
-    <div class="admin-link"><button onclick="showParentLogin()">← Vissza a szülői bejelentkezéshez</button></div>
+    <div id="auth-forgot" class="hidden">
+      <h2 style="color:var(--dark);margin-bottom:6px">Elfelejtett jelszó</h2>
+      <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px">Adja meg az email címét, és küldünk egy linket az új jelszó beállításához.</p>
+      <label>Email cím</label>
+      <input id="inp-forgot-email" type="email" placeholder="pelda@email.com">
+      <button class="btn" onclick="sendPasswordReset()">Új jelszó kérése →</button>
+      <div id="forgot-error" class="error-msg hidden"></div>
+      <div id="forgot-success" class="success-msg hidden"></div>
+      <div class="admin-link"><button onclick="showAuthMain()">← Vissza a bejelentkezéshez</button></div>
+    </div>
   </div>
 </div>
 
@@ -535,8 +564,8 @@ async function saveDetailPhotos(){
   finally{btn.textContent="✓ Képek mentése";btn.disabled=false}
 }
 
-function showAdminLogin(){hide("parent-login-card");show("admin-login-card")}
-function showParentLogin(){show("parent-login-card");hide("admin-login-card")}
+function showAdminLogin(){hide("parent-login-card");show("admin-login-card");showAuthMain()}
+function showParentLogin(){show("parent-login-card");hide("admin-login-card");showAuthMain()}
 function handleLogin(){
   const code=document.getElementById("inp-code").value.trim().toUpperCase();
   const email=document.getElementById("inp-email").value.trim().toLowerCase();
@@ -578,15 +607,19 @@ async function handleAuth(){
       const cred=await firebase.auth().createUserWithEmailAndPassword(email,pass);
       await db.collection("photographers").doc(cred.user.uid).set({name,email,createdAt:Date.now()});
       currentUser={uid:cred.user.uid,email,name};
+      await loadPhotographerData();
+      document.getElementById("success-email").textContent=email;
+      document.getElementById("success-name").textContent=name;
+      hide("auth-main");show("auth-success");
     }else{
       const cred=await firebase.auth().signInWithEmailAndPassword(email,pass);
       const doc=await db.collection("photographers").doc(cred.user.uid).get();
       const data=doc.exists?doc.data():{name:email,email};
       currentUser={uid:cred.user.uid,email:data.email,name:data.name};
+      await loadPhotographerData();
+      showPage("page-admin");
+      renderAdmin();
     }
-    await loadPhotographerData();
-    showPage("page-admin");
-    renderAdmin();
   }catch(e){
     let msg="Hiba történt a bejelentkezés során.";
     if(e.code==="auth/wrong-password"||e.code==="auth/invalid-credential")msg="Helytelen email cím vagy jelszó.";
@@ -597,6 +630,45 @@ async function handleAuth(){
     err.textContent=msg;show("auth-error");
   }
   btn.disabled=false;
+}
+
+function goToAdminAfterRegister(){
+  hide("auth-success");
+  show("auth-main");
+  showPage("page-admin");
+  renderAdmin();
+}
+
+function showForgotPassword(){
+  hide("auth-main");
+  show("auth-forgot");
+  hide("forgot-error");
+  hide("forgot-success");
+  document.getElementById("inp-forgot-email").value=document.getElementById("inp-auth-email").value||"";
+}
+
+function showAuthMain(){
+  show("auth-main");
+  hide("auth-forgot");
+  hide("auth-success");
+}
+
+async function sendPasswordReset(){
+  const email=document.getElementById("inp-forgot-email").value.trim().toLowerCase();
+  const err=document.getElementById("forgot-error");
+  const succ=document.getElementById("forgot-success");
+  hide("forgot-error");hide("forgot-success");
+  if(!email){err.textContent="Kérjük adja meg az email címét.";show("forgot-error");return}
+  try{
+    await firebase.auth().sendPasswordResetEmail(email);
+    succ.textContent="✓ Az új jelszó beállítási linket elküldtük a "+email+" címre. Ellenőrizze a postafiókját (esetleg a Spam mappát is)!";
+    show("forgot-success");
+  }catch(e){
+    let msg="Hiba történt.";
+    if(e.code==="auth/user-not-found")msg="Nincs ilyen email című fiók.";
+    else if(e.code==="auth/invalid-email")msg="Érvénytelen email cím.";
+    err.textContent=msg;show("forgot-error");
+  }
 }
 
 async function loadPhotographerData(){
