@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--cream:#FAF7F2;--warm:#F0E8DC;--brown:#5C3D2E;--gold:#C9A84C;--dark:#1A1208;--text:#3D2B1F;--muted:#8A7060;--white:#fff;--green:#2e7d50;--shadow:0 8px 40px rgba(92,61,46,.13);--shadow-sm:0 2px 12px rgba(92,61,46,.10)}
@@ -199,13 +200,23 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div class="admin-link">Ön fotós? <button onclick="showAdminLogin()">Admin belépés</button></div>
   </div>
   <div id="admin-login-card" class="card hidden">
-    <h2>Admin belépés</h2>
-    <p>Csak a fotós számára</p>
+    <h2 id="auth-title">Fotós bejelentkezés</h2>
+    <p id="auth-sub">Üdvözöljük a FotoLux fotós felületén</p>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <button id="auth-tab-login" class="type-tab active" style="flex:1;padding:10px" onclick="switchAuthMode('login')">Bejelentkezés</button>
+      <button id="auth-tab-register" class="type-tab" style="flex:1;padding:10px" onclick="switchAuthMode('register')">Regisztráció</button>
+    </div>
+    <div id="auth-name-wrap" class="hidden">
+      <label>Fotós/cég neve</label>
+      <input id="inp-auth-name" type="text" placeholder="pl. Bukta Anita Photo">
+    </div>
+    <label>Email cím</label>
+    <input id="inp-auth-email" type="email" placeholder="pelda@email.com">
     <label>Jelszó</label>
-    <input id="inp-admin-pass" type="password" placeholder="••••••••">
-    <button class="btn" onclick="handleAdminLogin()">Belépés →</button>
-    <div id="admin-error" class="error-msg hidden"></div>
-    <div class="admin-link"><button onclick="showParentLogin()">← Vissza</button></div>
+    <input id="inp-auth-pass" type="password" placeholder="••••••••" minlength="6">
+    <button id="auth-submit-btn" class="btn" onclick="handleAuth()">Bejelentkezés →</button>
+    <div id="auth-error" class="error-msg hidden"></div>
+    <div class="admin-link"><button onclick="showParentLogin()">← Vissza a szülői bejelentkezéshez</button></div>
   </div>
 </div>
 
@@ -481,6 +492,15 @@ async function loadData(){
   showPage("page-login");
 }
 
+// On page load, check if photographer is already logged in
+firebase.auth().onAuthStateChanged(async function(user){
+  if(user){
+    const doc=await db.collection("photographers").doc(user.uid).get();
+    const data=doc.exists?doc.data():{name:user.email,email:user.email};
+    currentUser={uid:user.uid,email:data.email,name:data.name};
+  }
+});
+
 async function uploadPhoto(file,i,total,progressId,statusId){
   const fd=new FormData();fd.append("file",file);fd.append("upload_preset",UPLOAD_PRESET);fd.append("folder","fotolux");
   const res=await fetch("https://api.cloudinary.com/v1_1/"+CLOUD_NAME+"/image/upload",{method:"POST",body:fd});
@@ -528,12 +548,71 @@ function handleLogin(){
   if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email cím vagy a gyerek neve nem egyezik.";show("login-error");return}
   currentGallery=found;loadCart();renderGallery();showPage("page-gallery");
 }
-function handleAdminLogin(){
-  const pass=document.getElementById("inp-admin-pass").value;
-  if(pass===ADMIN_PASSWORD){showPage("page-admin");renderAdmin()}
-  else{document.getElementById("admin-error").textContent="Helytelen jelszó.";show("admin-error")}
+let authMode="login";
+let currentUser=null;
+
+function switchAuthMode(mode){
+  authMode=mode;
+  document.getElementById("auth-tab-login").classList.toggle("active",mode==="login");
+  document.getElementById("auth-tab-register").classList.toggle("active",mode==="register");
+  document.getElementById("auth-title").textContent=mode==="login"?"Fotós bejelentkezés":"Fotós regisztráció";
+  document.getElementById("auth-sub").textContent=mode==="login"?"Üdvözöljük a FotoLux fotós felületén":"Hozzon létre egy új fotós fiókot";
+  document.getElementById("auth-submit-btn").textContent=mode==="login"?"Bejelentkezés →":"Regisztráció →";
+  document.getElementById("auth-name-wrap").classList.toggle("hidden",mode!=="register");
+  hide("auth-error");
 }
-function logout(){cart=[];currentGallery=null;showPage("page-login")}
+
+async function handleAuth(){
+  const email=document.getElementById("inp-auth-email").value.trim().toLowerCase();
+  const pass=document.getElementById("inp-auth-pass").value;
+  const err=document.getElementById("auth-error");
+  hide("auth-error");
+  if(!email||!pass){err.textContent="Kérjük töltse ki az email címet és jelszót.";show("auth-error");return}
+  if(pass.length<6){err.textContent="A jelszónak legalább 6 karakter hosszúnak kell lennie.";show("auth-error");return}
+  const btn=document.getElementById("auth-submit-btn");
+  btn.disabled=true;
+  try{
+    if(authMode==="register"){
+      const name=document.getElementById("inp-auth-name").value.trim();
+      if(!name){err.textContent="Kérjük adja meg a fotós/cég nevét.";show("auth-error");btn.disabled=false;return}
+      const cred=await firebase.auth().createUserWithEmailAndPassword(email,pass);
+      await db.collection("photographers").doc(cred.user.uid).set({name,email,createdAt:Date.now()});
+      currentUser={uid:cred.user.uid,email,name};
+    }else{
+      const cred=await firebase.auth().signInWithEmailAndPassword(email,pass);
+      const doc=await db.collection("photographers").doc(cred.user.uid).get();
+      const data=doc.exists?doc.data():{name:email,email};
+      currentUser={uid:cred.user.uid,email:data.email,name:data.name};
+    }
+    await loadPhotographerData();
+    showPage("page-admin");
+    renderAdmin();
+  }catch(e){
+    let msg="Hiba történt a bejelentkezés során.";
+    if(e.code==="auth/wrong-password"||e.code==="auth/invalid-credential")msg="Helytelen email cím vagy jelszó.";
+    else if(e.code==="auth/user-not-found")msg="Nincs ilyen fiók.";
+    else if(e.code==="auth/email-already-in-use")msg="Ez az email cím már használatban van.";
+    else if(e.code==="auth/invalid-email")msg="Érvénytelen email cím.";
+    else if(e.code==="auth/weak-password")msg="Túl gyenge jelszó.";
+    err.textContent=msg;show("auth-error");
+  }
+  btn.disabled=false;
+}
+
+async function loadPhotographerData(){
+  if(!currentUser)return;
+  try{
+    const gs=await db.collection("galleries").where("photographerId","==",currentUser.uid).orderBy("createdAt","desc").get();
+    galleries=gs.docs.map(d=>({id:d.id,...d.data()}));
+    const os=await db.collection("orders").where("photographerId","==",currentUser.uid).orderBy("createdAt","desc").get();
+    orders=os.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(e){console.error("Adatbetöltési hiba:",e);galleries=[];orders=[]}
+}
+function logout(){
+  cart=[];currentGallery=null;
+  if(currentUser){firebase.auth().signOut();currentUser=null;galleries=[];orders=[]}
+  showPage("page-login");
+}
 
 function renderGallery(){
   document.getElementById("gallery-title").textContent=currentGallery.child+" képei";
@@ -594,7 +673,7 @@ async function sendOrder(){
   const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;
   try{
     const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-    await db.collection("orders").add({child:currentGallery.child,parentEmail:currentGallery.parentEmail,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
+    await db.collection("orders").add({child:currentGallery.child,parentEmail:currentGallery.parentEmail,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",photographerId:currentGallery.photographerId||null,photographerName:currentGallery.photographerName||null,items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
     document.getElementById("success-child-name").textContent=currentGallery.child+" képei";
     document.getElementById("success-total").textContent=fmt(total);
     cart=[];saveCart();updateCartUI();
@@ -759,7 +838,7 @@ async function createGallery(){
   const child=document.getElementById("new-child").value.trim();const email=document.getElementById("new-email").value.trim().toLowerCase();const errDiv=document.getElementById("new-form-error");hide("new-form-error");
   if(!child||!email){errDiv.textContent="A gyerek neve és az email cím kötelező.";show("new-form-error");return}
   const btn=document.getElementById("create-btn");btn.disabled=true;btn.textContent="Mentés...";
-  try{const existing=galleries.find(g=>g.parentEmail.toLowerCase()===email);const finalCode=existing?existing.code:(generatedCode||generateCode(child));await db.collection("galleries").add({name:child+" – Iskolai fotók 2025",code:finalCode,child,parentEmail:email,createdAt:Date.now(),photos:uploadedPhotosNew});const gs=await db.collection("galleries").orderBy("createdAt","desc").get();galleries=gs.docs.map(d=>({id:d.id,...d.data()}));document.getElementById("new-child").value="";document.getElementById("new-email").value="";uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");hide("code-box");renderAdmin();setAdminTab("galleries")}
+  try{const existing=galleries.find(g=>g.parentEmail.toLowerCase()===email);const finalCode=existing?existing.code:(generatedCode||generateCode(child));await db.collection("galleries").add({name:child+" – Iskolai fotók 2025",code:finalCode,child,parentEmail:email,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null});const gs=await db.collection("galleries").orderBy("createdAt","desc").get();galleries=gs.docs.map(d=>({id:d.id,...d.data()}));document.getElementById("new-child").value="";document.getElementById("new-email").value="";uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");hide("code-box");renderAdmin();setAdminTab("galleries")}
   catch(e){errDiv.textContent="Hiba történt. Próbáld újra.";show("new-form-error")}
   finally{btn.disabled=false;btn.textContent="✓ Galéria létrehozása"}
 }
