@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FotoLux – Iskolai fotók</title>
+<title>SpringMoon Gallery</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -181,7 +181,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 <body>
 
 <div id="page-loading" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#FAF7F2,#F0E8DC)">
-  <div style="font-family:'Playfair Display',serif;font-size:2rem;color:#5C3D2E;margin-bottom:4px">foto<span style="color:#C9A84C;font-style:italic">lux</span></div>
+  <div style="font-family:'Playfair Display',serif;font-size:2rem;color:#5C3D2E;margin-bottom:4px">SpringMoon<span style="color:#C9A84C;font-style:italic">Gallery</span></div>
   <div style="font-family:'DM Sans',sans-serif;font-size:.7rem;color:#8A7060;letter-spacing:.05em;margin-bottom:6px;text-transform:uppercase">by</div>
   <img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:28px;width:auto;margin-bottom:20px">
   <div class="spinner"></div>
@@ -189,10 +189,10 @@ input:focus{border-color:var(--gold);background:var(--white)}
 </div>
 
 <div id="page-login" class="login-wrap hidden">
-  <div class="logo">foto<span>lux</span></div>
+  <div class="logo">SpringMoon<span>Gallery</span></div>
   <div style="font-size:.7rem;color:var(--muted);font-family:'DM Sans',sans-serif;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">by</div>
   <img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:32px;width:auto;margin-bottom:24px">
-  <div class="login-sub" style="margin-top:0">Iskolai fotók – biztonságos galéria</div>
+  <div style="margin-bottom:20px"></div>
   <div id="parent-login-card" class="card">
     <h2>Belépés a galériába</h2>
     <p>Adja meg a fotóstól kapott kódot, email címét és gyermeke nevét</p>
@@ -209,7 +209,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
   <div id="admin-login-card" class="card hidden">
     <div id="auth-main">
       <h2 id="auth-title">Fotós bejelentkezés</h2>
-      <p id="auth-sub">Üdvözöljük a FotoLux fotós felületén</p>
+      <p id="auth-sub">Üdvözöljük a SpringMoon Gallery fotós felületén</p>
       <div style="display:flex;gap:8px;margin-bottom:20px">
         <button id="auth-tab-login" class="type-tab active" style="flex:1;padding:10px" onclick="switchAuthMode('login')">Bejelentkezés</button>
         <button id="auth-tab-register" class="type-tab" style="flex:1;padding:10px" onclick="switchAuthMode('register')">Regisztráció</button>
@@ -230,7 +230,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div id="auth-success" class="hidden" style="text-align:center;padding:20px 0">
       <div style="font-size:3.5rem;margin-bottom:14px">🎉</div>
       <h2 style="color:var(--dark);margin-bottom:8px">Sikeres regisztráció!</h2>
-      <p style="color:var(--muted);font-size:.9rem;margin-bottom:20px">Üdvözöljük a FotoLux fotósai között!</p>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:20px">Üdvözöljük a SpringMoon Gallery fotósai között!</p>
       <div style="background:var(--cream);border-radius:12px;padding:18px;text-align:left;margin-bottom:18px">
         <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Bejelentkezési adatok</div>
         <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Email cím</div>
@@ -258,7 +258,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 
 <div id="page-gallery" class="hidden">
   <div class="header">
-    <div style="display:flex;flex-direction:column"><div class="header-logo">foto<span>lux</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
+    <div style="display:flex;flex-direction:column"><div class="header-logo">SpringMoon<span>Gallery</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
     <div class="header-right">
       <button class="orders-btn" onclick="showMyOrders()">&#128203; Rendeléseim</button>
       <button class="cart-btn" onclick="showCart()">&#128722; <span id="cart-badge" class="cart-badge hidden">0</span></button>
@@ -309,7 +309,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 
 <div id="page-cart" class="hidden">
   <div class="header">
-    <div style="display:flex;flex-direction:column"><div class="header-logo">foto<span>lux</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
+    <div style="display:flex;flex-direction:column"><div class="header-logo">SpringMoon<span>Gallery</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
     <button class="logout-btn" onclick="showGallery()">← Vissza</button>
   </div>
   <div class="wrap">
@@ -353,7 +353,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 
 <div id="page-admin" class="hidden">
   <div class="header">
-    <div style="display:flex;flex-direction:column"><div class="header-logo">foto<span>lux</span> <span style="font-size:.7rem;color:var(--muted);font-family:DM Sans;font-style:normal">Admin</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
+    <div style="display:flex;flex-direction:column"><div class="header-logo">SpringMoon<span>Gallery</span> <span style="font-size:.7rem;color:var(--muted);font-family:DM Sans;font-style:normal">Admin</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
     <button class="logout-btn" onclick="logout()">Kilépés</button>
   </div>
   <div class="wrap">
@@ -430,7 +430,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 
 <div id="page-gallery-detail" class="hidden">
   <div class="header">
-    <div style="display:flex;flex-direction:column"><div class="header-logo">foto<span>lux</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
+    <div style="display:flex;flex-direction:column"><div class="header-logo">SpringMoon<span>Gallery</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
     <button class="logout-btn" onclick="backToAdminGalleries()">← Vissza</button>
   </div>
   <div class="wrap">
@@ -592,7 +592,7 @@ function switchAuthMode(mode){
   document.getElementById("auth-tab-login").classList.toggle("active",mode==="login");
   document.getElementById("auth-tab-register").classList.toggle("active",mode==="register");
   document.getElementById("auth-title").textContent=mode==="login"?"Fotós bejelentkezés":"Fotós regisztráció";
-  document.getElementById("auth-sub").textContent=mode==="login"?"Üdvözöljük a FotoLux fotós felületén":"Hozzon létre egy új fotós fiókot";
+  document.getElementById("auth-sub").textContent=mode==="login"?"Üdvözöljük a SpringMoon Gallery fotós felületén":"Hozzon létre egy új fotós fiókot";
   document.getElementById("auth-submit-btn").textContent=mode==="login"?"Bejelentkezés →":"Regisztráció →";
   document.getElementById("auth-name-wrap").classList.toggle("hidden",mode!=="register");
   hide("auth-error");
