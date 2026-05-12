@@ -815,7 +815,7 @@ function addToCart(){
 }
 function updateCartUI(){
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-  if(cart.length>0){document.getElementById("cart-badge").textContent=cart.length;show("cart-badge");document.getElementById("cart-float-btn").textContent="&#128722; Kosár ("+cart.length+" tétel – "+fmt(total)+")";show("cart-float-btn")}
+  if(cart.length>0){document.getElementById("cart-badge").textContent=cart.length;show("cart-badge");document.getElementById("cart-float-btn").textContent="🛒 Kosár ("+cart.length+" tétel – "+fmt(total)+")";show("cart-float-btn")}
   else{hide("cart-badge");hide("cart-float-btn")}
 }
 function showGallery(){showPage("page-gallery");renderGallery()}
@@ -825,7 +825,10 @@ function renderCartItems(){
   if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("social-consent-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
   hide("cart-empty");
   itemsDiv.innerHTML=cart.map(item=>{
-    const detail=item.type==="digital"?"&#128190; Digitális fájl":"&#128444;&#65039; Papírkép – "+item.size.label;
+    let detail;
+    if(item.type==="digital")detail="💾 Digitális fájl";
+    else if(item.type==="gift"){detail=item.giftLabel||"Ajándéktárgy";if(item.mugText)detail+=" - "+item.mugText;}
+    else detail="🖼️ Papírkép – "+item.size.label;
     const qtySuffix=item.qty>1?" · "+item.qty+" db":"";
     return '<div class="cart-item"><img src="'+item.photo.url+'" alt=""><div class="cart-item-info"><div class="cart-item-name">'+item.photo.name+'</div><div class="cart-item-detail">'+detail+qtySuffix+'</div><div class="cart-item-price">'+fmt(item.totalPrice)+'</div></div><button class="cart-item-remove" onclick="removeFromCart(\''+item.id+'\')">×</button></div>';
   }).join("");
