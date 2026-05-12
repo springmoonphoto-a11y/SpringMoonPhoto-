@@ -15,8 +15,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);
 h1,h2,h3{font-family:'Playfair Display',serif}
 .hidden{display:none!important}
 .login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#FAF7F2 0%,#F0E8DC 100%);padding:24px}
-.logo{font-family:'Playfair Display',serif;font-size:2rem;color:var(--brown);margin-bottom:8px}
+.logo{font-family:'Playfair Display',serif;font-size:2rem;color:var(--brown);margin-bottom:4px}
 .logo span{color:var(--gold);font-style:italic}
+.brand-tag{font-family:'DM Sans',sans-serif;font-size:.7rem;color:var(--muted);letter-spacing:.05em;margin-bottom:6px;text-transform:uppercase;font-weight:400}
+.brand-tag strong{color:var(--brown);font-weight:500;letter-spacing:.03em}
+.header-brand{font-size:.6rem;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;letter-spacing:.03em;margin-top:-2px;line-height:1}
 .login-sub{color:var(--muted);font-size:.95rem;margin-bottom:32px}
 .card{background:var(--white);border-radius:16px;box-shadow:var(--shadow);padding:36px 28px;width:100%;max-width:380px}
 .card h2{font-size:1.4rem;color:var(--dark);margin-bottom:6px}
@@ -178,14 +181,18 @@ input:focus{border-color:var(--gold);background:var(--white)}
 <body>
 
 <div id="page-loading" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#FAF7F2,#F0E8DC)">
-  <div style="font-family:'Playfair Display',serif;font-size:2rem;color:#5C3D2E;margin-bottom:20px">foto<span style="color:#C9A84C;font-style:italic">lux</span></div>
+  <div style="font-family:'Playfair Display',serif;font-size:2rem;color:#5C3D2E;margin-bottom:4px">foto<span style="color:#C9A84C;font-style:italic">lux</span></div>
+  <div style="font-family:'DM Sans',sans-serif;font-size:.7rem;color:#8A7060;letter-spacing:.05em;margin-bottom:6px;text-transform:uppercase">by</div>
+  <img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:28px;width:auto;margin-bottom:20px">
   <div class="spinner"></div>
   <p style="color:#8A7060;font-size:.9rem">Betöltés...</p>
 </div>
 
 <div id="page-login" class="login-wrap hidden">
   <div class="logo">foto<span>lux</span></div>
-  <div class="login-sub">Iskolai fotók – biztonságos galéria</div>
+  <div style="font-size:.7rem;color:var(--muted);font-family:'DM Sans',sans-serif;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">by</div>
+  <img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:32px;width:auto;margin-bottom:24px">
+  <div class="login-sub" style="margin-top:0">Iskolai fotók – biztonságos galéria</div>
   <div id="parent-login-card" class="card">
     <h2>Belépés a galériába</h2>
     <p>Adja meg a fotóstól kapott kódot, email címét és gyermeke nevét</p>
@@ -251,7 +258,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 
 <div id="page-gallery" class="hidden">
   <div class="header">
-    <div class="header-logo">foto<span>lux</span></div>
+    <div style="display:flex;flex-direction:column"><div class="header-logo">foto<span>lux</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
     <div class="header-right">
       <button class="orders-btn" onclick="showMyOrders()">&#128203; Rendeléseim</button>
       <button class="cart-btn" onclick="showCart()">&#128722; <span id="cart-badge" class="cart-badge hidden">0</span></button>
@@ -302,7 +309,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 
 <div id="page-cart" class="hidden">
   <div class="header">
-    <div class="header-logo">foto<span>lux</span></div>
+    <div style="display:flex;flex-direction:column"><div class="header-logo">foto<span>lux</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
     <button class="logout-btn" onclick="showGallery()">← Vissza</button>
   </div>
   <div class="wrap">
@@ -346,7 +353,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 
 <div id="page-admin" class="hidden">
   <div class="header">
-    <div class="header-logo">foto<span>lux</span> <span style="font-size:.7rem;color:var(--muted);font-family:DM Sans;font-style:normal">Admin</span></div>
+    <div style="display:flex;flex-direction:column"><div class="header-logo">foto<span>lux</span> <span style="font-size:.7rem;color:var(--muted);font-family:DM Sans;font-style:normal">Admin</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
     <button class="logout-btn" onclick="logout()">Kilépés</button>
   </div>
   <div class="wrap">
@@ -423,7 +430,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 
 <div id="page-gallery-detail" class="hidden">
   <div class="header">
-    <div class="header-logo">foto<span>lux</span></div>
+    <div style="display:flex;flex-direction:column"><div class="header-logo">foto<span>lux</span></div><img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:12px;width:auto;margin-top:1px;opacity:.7"></div>
     <button class="logout-btn" onclick="backToAdminGalleries()">← Vissza</button>
   </div>
   <div class="wrap">
