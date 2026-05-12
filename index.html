@@ -320,9 +320,10 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <div class="stat-card"><div id="stat-revenue" class="stat-num">0 Ft</div><div class="stat-label">Bevétel</div></div>
     </div>
     <div class="admin-tabs">
-      <button id="atab-orders" class="admin-tab active" onclick="setAdminTab('orders')">Rendelések</button>
+      <button id="atab-orders" class="admin-tab active" onclick="setAdminTab('orders')">Aktív</button>
+      <button id="atab-completed" class="admin-tab" onclick="setAdminTab('completed')">Teljesített</button>
       <button id="atab-galleries" class="admin-tab" onclick="setAdminTab('galleries')">Galériák</button>
-      <button id="atab-new" class="admin-tab" onclick="setAdminTab('new')">+ Új galéria</button>
+      <button id="atab-new" class="admin-tab" onclick="setAdminTab('new')">+ Új</button>
     </div>
     <div id="admin-orders-wrap">
       <div id="bulk-bar" class="bulk-bar hidden">
@@ -347,6 +348,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <div id="admin-orders"></div>
     </div>
     <div id="admin-galleries" class="hidden"></div>
+    <div id="admin-completed" class="hidden"></div>
     <div id="admin-new" class="hidden">
       <div class="new-form">
         <h3>&#128193; Új galéria létrehozása</h3>
@@ -633,7 +635,7 @@ function getStatusOptions(order){
   return opts;
 }
 async function updateSingleStatus(orderId,status){
-  try{await db.collection("orders").doc(orderId).update({status});const o=orders.find(x=>x.id===orderId);if(o)o.status=status;renderAdminOrders()}
+  try{await db.collection("orders").doc(orderId).update({status});const o=orders.find(x=>x.id===orderId);if(o)o.status=status;renderAdminOrders();renderCompletedOrders()}
   catch(e){alert("Hiba történt!");console.error(e)}
 }
 function updateBulkStatusOptions(){
@@ -656,16 +658,19 @@ function renderAdmin(){
   renderAdminOrders();renderAdminGalleries();
 }
 function setAdminTab(tab){
-  ["orders","galleries","new"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
+  ["orders","completed","galleries","new"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
   document.getElementById("admin-orders-wrap").classList.toggle("hidden",tab!=="orders");
+  document.getElementById("admin-completed").classList.toggle("hidden",tab!=="completed");
   document.getElementById("admin-galleries").classList.toggle("hidden",tab!=="galleries");
   document.getElementById("admin-new").classList.toggle("hidden",tab!=="new");
   if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new")}
+  if(tab==="completed")renderCompletedOrders();
 }
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
-  if(orders.length===0){div.innerHTML='<div class="empty-msg">Még nincs rendelés.</div>';return}
-  div.innerHTML=orders.map(o=>{
+  const activeOrders=orders.filter(o=>o.status!=="completed");
+  if(activeOrders.length===0){div.innerHTML='<div class="empty-msg">Nincs aktív rendelés.</div>';return}
+  div.innerHTML=activeOrders.map(o=>{
     const itemsHtml=(o.items||[]).map(i=>{
       const typeLabel=i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")";
       return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>';
@@ -673,6 +678,19 @@ function renderAdminOrders(){
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div><div style="margin-top:6px;display:flex;align-items:center;gap:8px">'+getStatusBadge(o.status)+'<select class="order-status-select" onchange="updateSingleStatus(\''+o.id+'\',this.value)">'+getStatusOptions(o)+'</select></div></div><div class="order-card-total">'+fmt(o.total)+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
   }).join("");
 }
+function renderCompletedOrders(){
+  const div=document.getElementById("admin-completed");
+  const completedOrders=orders.filter(o=>o.status==="completed");
+  if(completedOrders.length===0){div.innerHTML='<div class="empty-msg">Még nincs teljesített rendelés.</div>';return}
+  div.innerHTML=completedOrders.map(o=>{
+    const itemsHtml=(o.items||[]).map(i=>{
+      const typeLabel=i.type==="digital"?"Digitális":"Papírkép ("+i.sizeLabel+")";
+      return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>';
+    }).join("");
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div><div style="margin-top:6px;display:flex;align-items:center;gap:8px">'+getStatusBadge(o.status)+'<select class="order-status-select" onchange="updateSingleStatus(\''+o.id+'\',this.value)">'+getStatusOptions(o)+'</select></div></div><div class="order-card-total">'+fmt(o.total)+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
+  }).join("");
+}
+
 function renderAdminGalleries(){
   const div=document.getElementById("admin-galleries");
   if(galleries.length===0){div.innerHTML='<div class="empty-msg">Még nincs galéria.</div>';return}
@@ -690,7 +708,7 @@ async function applyBulkStatus(){
   const status=document.getElementById("bulk-status").value;
   if(!status){alert("Kérjük válassz státuszt!");return}
   if(!selectedOrderIds.size)return;
-  try{const batch=db.batch();selectedOrderIds.forEach(id=>batch.update(db.collection("orders").doc(id),{status}));await batch.commit();orders.forEach(o=>{if(selectedOrderIds.has(o.id))o.status=status});clearSelection();renderAdminOrders();document.getElementById("bulk-status").value=""}
+  try{const batch=db.batch();selectedOrderIds.forEach(id=>batch.update(db.collection("orders").doc(id),{status}));await batch.commit();orders.forEach(o=>{if(selectedOrderIds.has(o.id))o.status=status});clearSelection();renderAdminOrders();renderCompletedOrders();document.getElementById("bulk-status").value=""}
   catch(e){alert("Hiba történt!");console.error(e)}
 }
 
