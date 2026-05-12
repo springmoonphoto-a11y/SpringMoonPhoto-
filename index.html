@@ -868,7 +868,7 @@ function openGalleryDetail(galleryId){
   uploadedPhotosDetail=[];document.getElementById("photo-previews-detail").innerHTML="";hide("upload-progress-detail");hide("save-photos-btn");document.getElementById("detail-upload-msg").innerHTML="";
   document.getElementById("detail-name").textContent=currentDetailGallery.child+" galériája";
   document.getElementById("detail-meta").textContent=currentDetailGallery.parentEmail;
-  document.getElementById("detail-code").textContent=currentDetailGallery.code+" &#128203;";
+  document.getElementById("detail-code").textContent=currentDetailGallery.code+" 📋";
   hide("edit-form");renderDetailPhotos();showPage("page-gallery-detail");
 }
 function renderDetailPhotos(){
@@ -898,7 +898,7 @@ function regenEditCode(){document.getElementById("edit-code").value=generateCode
 async function saveEdit(){
   const child=document.getElementById("edit-child").value.trim();const email=document.getElementById("edit-email").value.trim().toLowerCase();const code=document.getElementById("edit-code").value.trim().toUpperCase();const msg=document.getElementById("edit-msg");
   if(!child||!email){msg.innerHTML='<div class="error-msg">Töltsd ki mindkét mezőt!</div>';return}
-  try{await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,code,name:child+" – Iskolai fotók 2025"});currentDetailGallery.child=child;currentDetailGallery.parentEmail=email;currentDetailGallery.code=code;const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.child=child;g.parentEmail=email;g.code=code}document.getElementById("detail-name").textContent=child+" galériája";document.getElementById("detail-meta").textContent=email;document.getElementById("detail-code").textContent=code+" &#128203;";msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';setTimeout(()=>{document.getElementById("edit-form").classList.add("hidden");msg.innerHTML=""},1500)}
+  try{await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,code,name:child+" – Iskolai fotók 2025"});currentDetailGallery.child=child;currentDetailGallery.parentEmail=email;currentDetailGallery.code=code;const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.child=child;g.parentEmail=email;g.code=code}document.getElementById("detail-name").textContent=child+" galériája";document.getElementById("detail-meta").textContent=email;document.getElementById("detail-code").textContent=code+" 📋";msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';setTimeout(()=>{document.getElementById("edit-form").classList.add("hidden");msg.innerHTML=""},1500)}
   catch(e){msg.innerHTML='<div class="error-msg">Hiba történt!</div>'}
 }
 function copyDetailCode(){navigator.clipboard?.writeText(currentDetailGallery.code);alert("Kód másolva: "+currentDetailGallery.code)}
