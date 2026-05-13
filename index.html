@@ -394,6 +394,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <button id="atab-orders" class="admin-tab active" onclick="setAdminTab('orders')">Aktív</button>
       <button id="atab-completed" class="admin-tab" onclick="setAdminTab('completed')">Teljesített</button>
       <button id="atab-galleries" class="admin-tab" onclick="setAdminTab('galleries')">Galériák</button>
+      <button id="atab-prices" class="admin-tab" onclick="setAdminTab('prices')">💰 Árak</button>
       <button id="atab-new" class="admin-tab" onclick="setAdminTab('new')">+ Új</button>
     </div>
     <div id="admin-orders-wrap">
@@ -420,6 +421,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
     </div>
     <div id="admin-galleries" class="hidden"></div>
     <div id="admin-completed" class="hidden"></div>
+    <div id="admin-prices" class="hidden"></div>
     <div id="admin-new" class="hidden">
       <div class="new-form">
         <h3>&#128193; Új galéria létrehozása</h3>
@@ -520,15 +522,18 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 const CLOUD_NAME="dpluouggw";
 const UPLOAD_PRESET="fotolux_upload";
-const PRINT_SIZES=[{id:"10x15",label:"10×15 cm",price:1500},{id:"13x18",label:"13×18 cm",price:1800},{id:"A4",label:"A4 / 20×30 cm",price:2500}];
-const DIGITAL_PRICE=2000;
-const GIFT_ITEMS=[
+const DEFAULT_PRINT_SIZES=[{id:"10x15",label:"10×15 cm",price:1500},{id:"13x18",label:"13×18 cm",price:1800},{id:"A4",label:"A4 / 20×30 cm",price:2500}];
+const DEFAULT_DIGITAL_PRICE=2000;
+const DEFAULT_GIFT_ITEMS=[
   {id:"magnet",label:"🧲 Hűtőmágnes",price:2000},
   {id:"keychain",label:"🔑 Kulcstartó",price:1500},
   {id:"mug",label:"☕ Bögre (felirattal is)",price:5500},
   {id:"photo-magnet",label:"🖼️ Hűtőmágneses képkeret (10×15)",price:2000},
   {id:"folder",label:"📁 Átadómappa",price:1500}
 ];
+let PRINT_SIZES=JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
+let DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
+let GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
 let selectedGift=null;
 let socialConsent=null;
 const ADMIN_PASSWORD="admin2025";
@@ -540,6 +545,80 @@ let activePhoto=null,orderType="print",selectedSize=PRINT_SIZES[0],qty=1;
 let generatedCode="",uploadedPhotosNew=[];
 let currentDetailGallery=null,uploadedPhotosDetail=[];
 let selectedOrderIds=new Set();
+
+
+async function loadGalleryPrices(gallery){
+  if(!gallery||!gallery.photographerId)return;
+  try{
+    const doc=await db.collection("photographers").doc(gallery.photographerId).get();
+    if(doc.exists){
+      const data=doc.data();
+      if(data.printSizes)PRINT_SIZES=data.printSizes;
+      else PRINT_SIZES=JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
+      if(typeof data.digitalPrice==="number")DIGITAL_PRICE=data.digitalPrice;
+      else DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
+      if(data.giftItems)GIFT_ITEMS=data.giftItems;
+      else GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
+    }
+  }catch(e){console.error("Árlista betöltési hiba:",e)}
+}
+
+async function loadMyPrices(){
+  if(!currentUser)return;
+  try{
+    const doc=await db.collection("photographers").doc(currentUser.uid).get();
+    if(doc.exists){
+      const data=doc.data();
+      PRINT_SIZES=data.printSizes||JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
+      DIGITAL_PRICE=typeof data.digitalPrice==="number"?data.digitalPrice:DEFAULT_DIGITAL_PRICE;
+      GIFT_ITEMS=data.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
+    }
+  }catch(e){console.error("Árlista betöltési hiba:",e)}
+}
+
+function renderPricesEditor(){
+  const div=document.getElementById("admin-prices");
+  let html='<div class="new-form"><h3>💰 Papírkép árak</h3>';
+  PRINT_SIZES.forEach((s,i)=>{
+    html+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><span style="flex:1;font-weight:500">'+s.label+'</span><input type="number" id="price-print-'+i+'" value="'+s.price+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
+  });
+  html+='</div><div class="new-form" style="margin-top:14px"><h3>💾 Digitális kép ára</h3>';
+  html+='<div style="display:flex;gap:10px;align-items:center"><span style="flex:1;font-weight:500">Digitális JPG fájl</span><input type="number" id="price-digital" value="'+DIGITAL_PRICE+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
+  html+='</div><div class="new-form" style="margin-top:14px"><h3>🎁 Ajándéktárgy árak</h3>';
+  GIFT_ITEMS.forEach((g,i)=>{
+    html+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><span style="flex:1;font-weight:500">'+g.label+'</span><input type="number" id="price-gift-'+i+'" value="'+g.price+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
+  });
+  html+='</div><div id="save-prices-msg" style="margin-top:14px"></div><button class="btn btn-green" style="margin-top:14px" onclick="savePrices()">✓ Árak mentése</button>';
+  div.innerHTML=html;
+}
+
+async function savePrices(){
+  const msg=document.getElementById("save-prices-msg");
+  const newPrintSizes=PRINT_SIZES.map((s,i)=>{
+    const val=parseInt(document.getElementById("price-print-"+i).value);
+    return {id:s.id,label:s.label,price:isNaN(val)?s.price:val};
+  });
+  const newDigital=parseInt(document.getElementById("price-digital").value);
+  const newGiftItems=GIFT_ITEMS.map((g,i)=>{
+    const val=parseInt(document.getElementById("price-gift-"+i).value);
+    return {id:g.id,label:g.label,price:isNaN(val)?g.price:val};
+  });
+  try{
+    await db.collection("photographers").doc(currentUser.uid).update({
+      printSizes:newPrintSizes,
+      digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,
+      giftItems:newGiftItems
+    });
+    PRINT_SIZES=newPrintSizes;
+    DIGITAL_PRICE=isNaN(newDigital)?DIGITAL_PRICE:newDigital;
+    GIFT_ITEMS=newGiftItems;
+    msg.innerHTML='<div class="success-msg">✓ Az árlistát sikeresen mentettük!</div>';
+    setTimeout(()=>msg.innerHTML="",3000);
+  }catch(e){
+    msg.innerHTML='<div class="error-msg">Hiba történt a mentés során.</div>';
+    console.error(e);
+  }
+}
 
 function fmt(n){return n.toLocaleString("hu-HU")+" Ft"}
 function show(id){document.getElementById(id).classList.remove("hidden")}
@@ -605,7 +684,7 @@ async function saveDetailPhotos(){
 
 function showAdminLogin(){hide("parent-login-card");show("admin-login-card");showAuthMain()}
 function showParentLogin(){show("parent-login-card");hide("admin-login-card");showAuthMain()}
-function handleLogin(){
+async function handleLogin(){
   const code=document.getElementById("inp-code").value.trim().toUpperCase();
   const email=document.getElementById("inp-email").value.trim().toLowerCase();
   const child=document.getElementById("inp-child").value.trim().toLowerCase();
@@ -614,7 +693,9 @@ function handleLogin(){
   const found=galleries.find(g=>g.code===code);
   if(!found){err.textContent="Érvénytelen belépési kód.";show("login-error");return}
   if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email cím vagy a gyerek neve nem egyezik.";show("login-error");return}
-  currentGallery=found;loadCart();renderGallery();showPage("page-gallery");
+  currentGallery=found;
+  await loadGalleryPrices(found);
+  loadCart();renderGallery();showPage("page-gallery");
 }
 let authMode="login";
 let currentUser=null;
@@ -647,6 +728,7 @@ async function handleAuth(){
       await db.collection("photographers").doc(cred.user.uid).set({name,email,createdAt:Date.now()});
       currentUser={uid:cred.user.uid,email,name};
       await loadPhotographerData();
+      await loadMyPrices();
       document.getElementById("success-email").textContent=email;
       document.getElementById("success-name").textContent=name;
       hide("auth-main");show("auth-success");
@@ -656,6 +738,7 @@ async function handleAuth(){
       const data=doc.exists?doc.data():{name:email,email};
       currentUser={uid:cred.user.uid,email:data.email,name:data.name};
       await loadPhotographerData();
+      await loadMyPrices();
       showPage("page-admin");
       renderAdmin();
     }
@@ -956,13 +1039,15 @@ function renderAdmin(){
   renderAdminOrders();renderAdminGalleries();
 }
 function setAdminTab(tab){
-  ["orders","completed","galleries","new"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
+  ["orders","completed","galleries","prices","new"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
   document.getElementById("admin-orders-wrap").classList.toggle("hidden",tab!=="orders");
   document.getElementById("admin-completed").classList.toggle("hidden",tab!=="completed");
   document.getElementById("admin-galleries").classList.toggle("hidden",tab!=="galleries");
+  document.getElementById("admin-prices").classList.toggle("hidden",tab!=="prices");
   document.getElementById("admin-new").classList.toggle("hidden",tab!=="new");
   if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new")}
   if(tab==="completed")renderCompletedOrders();
+  if(tab==="prices")renderPricesEditor();
 }
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
