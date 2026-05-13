@@ -719,10 +719,10 @@ async function loadPhotographerData(){
     orders=os.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   }catch(e){console.error("Adatbetöltési hiba:",e);galleries=[];orders=[]}
 }
-function logout(){
+async function logout(){
   cart=[];currentGallery=null;
-  if(currentUser){firebase.auth().signOut();currentUser=null;galleries=[];orders=[]}
-  showPage("page-login");
+  if(currentUser){await firebase.auth().signOut();currentUser=null;orders=[]}
+  await loadData();
 }
 
 function renderGallery(){
