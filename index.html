@@ -438,10 +438,34 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div id="admin-new" class="hidden">
       <div class="new-form">
         <h3>&#128193; Új galéria létrehozása</h3>
-        <label>Gyerek teljes neve *</label>
-        <input id="new-child" type="text" placeholder="pl. Kiss Péter" oninput="updateCode()">
-        <label>Szülő email címe *</label>
-        <input id="new-email" type="email" placeholder="szulo@email.com">
+        <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--warm);border-radius:10px;margin-bottom:14px;cursor:pointer;background:var(--cream)">
+          <input type="checkbox" id="new-is-group" onchange="toggleGroupGallery()" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
+          <div style="flex:1"><div style="font-weight:500;color:var(--dark);font-size:.92rem">&#128101; Csoportos galéria</div><div style="font-size:.75rem;color:var(--muted);margin-top:2px">Pl. ovis csoport - bárki bejelentkezhet a kóddal</div></div>
+        </label>
+        <div id="individual-gallery-fields">
+          <label>Gyerek teljes neve *</label>
+          <input id="new-child" type="text" placeholder="pl. Kiss Péter" oninput="updateCode()">
+          <label>Szülő email címe *</label>
+          <input id="new-email" type="email" placeholder="szulo@email.com">
+        </div>
+        <div id="group-gallery-fields" class="hidden">
+          <label>Csoport neve *</label>
+          <input id="new-group-name" type="text" placeholder="pl. Napsugár csoport 2025" oninput="updateGroupCode()">
+        </div>
+        <label style="margin-top:14px;margin-bottom:8px">&#127919; Elérhető termékek</label>
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">A szülők csak a bepipált terméktípusokat rendelhetik ebben a galériában.</p>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--cream)">
+          <input type="checkbox" id="new-enable-print" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
+          <span style="font-size:.9rem">&#128444;&#65039; Papírképek</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--cream)">
+          <input type="checkbox" id="new-enable-digital" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
+          <span style="font-size:.9rem">&#128190; Digitális képek</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:14px;cursor:pointer;background:var(--cream)">
+          <input type="checkbox" id="new-enable-gift" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
+          <span style="font-size:.9rem">&#127873; Ajándéktárgyak</span>
+        </label>
         <div id="code-box" class="code-box hidden">
           <div><div style="font-size:.72rem;color:var(--muted);margin-bottom:3px">AUTOMATIKUSAN GENERÁLT KÓD</div><div id="new-code" class="code-val"></div><div class="code-hint">Ezt küldd el a szülőnek</div></div>
           <button class="regen-btn" onclick="regenCode()">&#128260;</button>
@@ -479,6 +503,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <div id="detail-code" class="gallery-detail-code" onclick="copyDetailCode()"></div>
       <div class="gallery-detail-actions">
         <button class="btn btn-blue btn-sm" onclick="toggleEditForm()">&#9999;&#65039; Szerkesztés</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleProductsForm()">&#127919; Termékek</button>
         <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">&#128465;&#65039; Törlés</button>
       </div>
       <div id="edit-form" class="hidden" style="margin-top:16px;border-top:1px solid var(--warm);padding-top:16px">
