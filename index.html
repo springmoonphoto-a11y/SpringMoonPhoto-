@@ -534,6 +534,7 @@ const DEFAULT_GIFT_ITEMS=[
 let PRINT_SIZES=JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
 let DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
 let GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
+let ENABLED_PRODUCTS={print:true,digital:true,gift:true};
 let selectedGift=null;
 let socialConsent=null;
 const ADMIN_PASSWORD="admin2025";
@@ -559,6 +560,8 @@ async function loadGalleryPrices(gallery){
       else DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
       if(data.giftItems)GIFT_ITEMS=data.giftItems;
       else GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
+      if(data.enabledProducts)ENABLED_PRODUCTS=data.enabledProducts;
+      else ENABLED_PRODUCTS={print:true,digital:true,gift:true};
     }
   }catch(e){console.error("Árlista betöltési hiba:",e)}
 }
@@ -572,13 +575,21 @@ async function loadMyPrices(){
       PRINT_SIZES=data.printSizes||JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
       DIGITAL_PRICE=typeof data.digitalPrice==="number"?data.digitalPrice:DEFAULT_DIGITAL_PRICE;
       GIFT_ITEMS=data.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
+      ENABLED_PRODUCTS=data.enabledProducts||{print:true,digital:true,gift:true};
     }
   }catch(e){console.error("Árlista betöltési hiba:",e)}
 }
 
 function renderPricesEditor(){
   const div=document.getElementById("admin-prices");
-  let html='<div class="new-form"><h3>💰 Papírkép árak</h3>';
+  let html='<div class="new-form"><h3>🎯 Termékek elérhetősége</h3>';
+  html+='<p style="font-size:.85rem;color:var(--muted);margin-bottom:14px">Itt kapcsolhatod ki/be, hogy a szülők milyen termékeket rendelhetnek.</p>';
+  const productTypes=[{key:"print",label:"🖼️ Papírképek",desc:"Nyomtatott fényképek különböző méretben"},{key:"digital",label:"💾 Digitális képek",desc:"Nagy felbontású JPG fájlok"},{key:"gift",label:"🎁 Ajándéktárgyak",desc:"Bögre, hűtőmágnes, kulcstartó stb."}];
+  productTypes.forEach(p=>{
+    const checked=ENABLED_PRODUCTS[p.key]?"checked":"";
+    html+='<label style="display:flex;align-items:flex-start;gap:12px;padding:12px;border:1.5px solid var(--warm);border-radius:10px;margin-bottom:10px;cursor:pointer;background:var(--cream)"><input type="checkbox" id="toggle-'+p.key+'" '+checked+' style="margin-top:3px;cursor:pointer;width:18px;height:18px;accent-color:var(--gold);flex-shrink:0"><div style="flex:1"><div style="font-weight:500;color:var(--dark);font-size:.95rem">'+p.label+'</div><div style="font-size:.78rem;color:var(--muted);margin-top:2px">'+p.desc+'</div></div></label>';
+  });
+  html+='</div><div class="new-form" style="margin-top:14px"><h3>💰 Papírkép árak</h3>';
   PRINT_SIZES.forEach((s,i)=>{
     html+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><span style="flex:1;font-weight:500">'+s.label+'</span><input type="number" id="price-print-'+i+'" value="'+s.price+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
   });
@@ -603,15 +614,26 @@ async function savePrices(){
     const val=parseInt(document.getElementById("price-gift-"+i).value);
     return {id:g.id,label:g.label,price:isNaN(val)?g.price:val};
   });
+  const newEnabledProducts={
+    print:document.getElementById("toggle-print").checked,
+    digital:document.getElementById("toggle-digital").checked,
+    gift:document.getElementById("toggle-gift").checked
+  };
+  if(!newEnabledProducts.print&&!newEnabledProducts.digital&&!newEnabledProducts.gift){
+    msg.innerHTML='<div class="error-msg">Legalább egy terméktípust be kell kapcsolni!</div>';
+    return;
+  }
   try{
     await db.collection("photographers").doc(currentUser.uid).update({
       printSizes:newPrintSizes,
       digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,
-      giftItems:newGiftItems
+      giftItems:newGiftItems,
+      enabledProducts:newEnabledProducts
     });
     PRINT_SIZES=newPrintSizes;
     DIGITAL_PRICE=isNaN(newDigital)?DIGITAL_PRICE:newDigital;
     GIFT_ITEMS=newGiftItems;
+    ENABLED_PRODUCTS=newEnabledProducts;
     msg.innerHTML='<div class="success-msg">✓ Az árlistát sikeresen mentettük!</div>';
     setTimeout(()=>msg.innerHTML="",3000);
   }catch(e){
@@ -815,14 +837,23 @@ function renderGallery(){
   updateCartUI();
 }
 function openSheet(photo){
-  activePhoto=photo;orderType="print";selectedSize=PRINT_SIZES[0];qty=1;
+  activePhoto=photo;
+  // Show/hide tabs based on enabled products
+  document.getElementById("tab-print").style.display=ENABLED_PRODUCTS.print?"block":"none";
+  document.getElementById("tab-digital").style.display=ENABLED_PRODUCTS.digital?"block":"none";
+  document.getElementById("tab-gift").style.display=ENABLED_PRODUCTS.gift?"block":"none";
+  // Set default order type to first enabled
+  if(ENABLED_PRODUCTS.print)orderType="print";
+  else if(ENABLED_PRODUCTS.digital)orderType="digital";
+  else if(ENABLED_PRODUCTS.gift)orderType="gift";
+  selectedSize=PRINT_SIZES[0];qty=1;
   selectedGift=GIFT_ITEMS[0];
   document.getElementById("sheet-img").src=photo.url;
   document.getElementById("sheet-name").textContent=photo.name;
   document.getElementById("qty-num").textContent=1;
-  document.getElementById("tab-print").classList.add("active");
-  document.getElementById("tab-digital").classList.remove("active");
-  document.getElementById("tab-gift").classList.remove("active");
+  document.getElementById("tab-print").classList.toggle("active",orderType==="print");
+  document.getElementById("tab-digital").classList.toggle("active",orderType==="digital");
+  document.getElementById("tab-gift").classList.toggle("active",orderType==="gift");
   document.getElementById("mug-text").value="";
   renderSizes();renderGifts();updateSheetType();updateSheetTotal();show("overlay");
 }
