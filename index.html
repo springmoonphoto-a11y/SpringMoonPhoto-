@@ -982,7 +982,9 @@ async function loadPhotographerData(){
 async function logout(){
   cart=[];currentGallery=null;
   if(currentUser){await firebase.auth().signOut();currentUser=null;orders=[]}
-  await 
+  await loadData();
+}
+
 // Image protection - only on parent gallery pages
 document.addEventListener("contextmenu",function(e){
   if(currentGallery&&!currentUser&&(e.target.tagName==="IMG"||e.target.closest(".photo-card")||e.target.closest(".sheet-photo-wrap"))){
@@ -1040,9 +1042,6 @@ function closeCopyrightWarning(e){
   if(!e||e.target===document.getElementById("copyright-warning")||e.target.tagName==="BUTTON"){
     document.getElementById("copyright-warning").classList.add("hidden");
   }
-}
-
-loadData();
 }
 
 function renderGallery(){
@@ -1483,64 +1482,7 @@ async function createGallery(){
 }
 
 
-// Image protection - only on parent gallery pages
-document.addEventListener("contextmenu",function(e){
-  if(currentGallery&&!currentUser&&(e.target.tagName==="IMG"||e.target.closest(".photo-card")||e.target.closest(".sheet-photo-wrap"))){
-    e.preventDefault();
-    return false;
-  }
-});
-document.addEventListener("dragstart",function(e){
-  if(currentGallery&&!currentUser&&e.target.tagName==="IMG"){
-    e.preventDefault();
-    return false;
-  }
-});
-document.addEventListener("keydown",function(e){
-  if(currentGallery&&!currentUser){
-    // Block Ctrl+S, Ctrl+P, Ctrl+Shift+S
-    if((e.ctrlKey||e.metaKey)&&(e.key==="s"||e.key==="S"||e.key==="p"||e.key==="P")){
-      e.preventDefault();
-      showCopyrightWarning();
-      return false;
-    }
-    // Detect Print Screen key
-    if(e.key==="PrintScreen"||e.keyCode===44){
-      // Try to clear clipboard (some browsers allow this)
-      try{navigator.clipboard.writeText("")}catch(err){}
-      showCopyrightWarning();
-    }
-    // Detect F12 (developer tools)
-    if(e.key==="F12"||(e.ctrlKey&&e.shiftKey&&(e.key==="I"||e.key==="i"||e.key==="J"||e.key==="j"||e.key==="C"||e.key==="c"))){
-      showCopyrightWarning();
-    }
-    // Detect Ctrl+U (view source)
-    if((e.ctrlKey||e.metaKey)&&(e.key==="u"||e.key==="U")){
-      e.preventDefault();
-      showCopyrightWarning();
-      return false;
-    }
-  }
-});
 
-// Detect when window loses focus (might indicate screenshot tool)
-let lastFocusTime=Date.now();
-window.addEventListener("blur",function(){
-  if(currentGallery&&!currentUser){
-    lastFocusTime=Date.now();
-  }
-});
-
-function showCopyrightWarning(){
-  const modal=document.getElementById("copyright-warning");
-  if(modal)modal.classList.remove("hidden");
-}
-
-function closeCopyrightWarning(e){
-  if(!e||e.target===document.getElementById("copyright-warning")||e.target.tagName==="BUTTON"){
-    document.getElementById("copyright-warning").classList.add("hidden");
-  }
-}
 
 loadData();
 </script>
