@@ -176,6 +176,14 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .gallery-detail-actions{display:flex;gap:10px;margin-top:12px}
 .modal-overlay{position:fixed;inset:0;background:rgba(26,18,8,.55);z-index:300;display:flex;align-items:flex-end;justify-content:center}
 .modal-sheet{background:var(--white);border-radius:24px 24px 0 0;padding:26px 18px 40px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
+.photo-card,.photo-card img,.sheet-photo{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;user-drag:none;-webkit-touch-callout:none;pointer-events:auto}
+.photo-card{position:relative;overflow:hidden}
+.watermark-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2}
+.watermark-text{font-family:'Playfair Display',serif;color:rgba(255,255,255,.55);font-size:1rem;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.4);transform:rotate(-30deg);text-align:center;letter-spacing:.08em;white-space:nowrap;text-transform:uppercase}
+.sheet-photo-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:18px}
+.sheet-photo-wrap .watermark-overlay{align-items:center;justify-content:center}
+.sheet-photo-wrap .watermark-text{font-size:1.3rem}
+.sheet-photo{margin-bottom:0!important}
 </style>
 </head>
 <body>
@@ -285,7 +293,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 <div id="overlay" class="overlay hidden" onclick="closeOverlay(event)">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <img id="sheet-img" class="sheet-photo" src="" alt="">
+    <div class="sheet-photo-wrap"><img id="sheet-img" class="sheet-photo" src="" alt="" oncontextmenu="return false" ondragstart="return false"><div class="watermark-overlay"><span class="watermark-text">SpringMoonPhoto<br>MINTA</span></div></div>
     <div id="sheet-name" class="sheet-name"></div>
     <div class="type-tabs">
       <div id="tab-print" class="type-tab active" onclick="setType('print')"><span class="tab-icon">&#128444;&#65039;</span>Papírkép</div>
@@ -568,6 +576,21 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div class="section-title">Feltöltött képek</div>
     <div id="detail-photo-grid" class="admin-photo-grid"></div>
     <div id="detail-empty" class="empty-msg hidden">Még nincs feltöltött kép ebben a galériában.</div>
+  </div>
+</div>
+
+<div id="copyright-warning" class="modal-overlay hidden" style="z-index:500" onclick="closeCopyrightWarning(event)">
+  <div class="modal-sheet" style="max-width:440px;text-align:center">
+    <div class="sheet-handle"></div>
+    <div style="font-size:3.5rem;margin-bottom:14px">&#9888;&#65039;</div>
+    <h2 style="color:#c0392b;margin-bottom:10px;font-size:1.4rem">FIGYELEM!</h2>
+    <p style="font-size:1rem;color:var(--dark);margin-bottom:14px;font-weight:500">A képek lemásolása, képernyőfotózása vagy bármilyen más módon történő letöltése <strong>SZIGORÚAN TILOS</strong>.</p>
+    <div style="background:#fdf2f2;border-radius:12px;padding:14px;margin-bottom:18px;font-size:.88rem;color:var(--text);text-align:left;line-height:1.5">
+      &#128218; <strong>Szerz&#337;i jogi figyelmeztetés:</strong><br>
+      A galériában szereplő fotók a <strong>SpringMoonPhoto – Bukta Anita</strong> szellemi tulajdonát képezik. Engedély nélküli felhasználásuk, másolásuk, terjesztésük <strong>szerz&#337;i jogi jogsértésnek minősül</strong> és jogi következményekkel járhat.
+    </div>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:18px">A fotókat a rendelés leadásával hivatalosan is megvásárolhatja.</p>
+    <button class="btn" onclick="closeCopyrightWarning()">Megértettem</button>
   </div>
 </div>
 
@@ -959,13 +982,79 @@ async function loadPhotographerData(){
 async function logout(){
   cart=[];currentGallery=null;
   if(currentUser){await firebase.auth().signOut();currentUser=null;orders=[]}
-  await loadData();
+  await 
+// Image protection - only on parent gallery pages
+document.addEventListener("contextmenu",function(e){
+  if(currentGallery&&!currentUser&&(e.target.tagName==="IMG"||e.target.closest(".photo-card")||e.target.closest(".sheet-photo-wrap"))){
+    e.preventDefault();
+    return false;
+  }
+});
+document.addEventListener("dragstart",function(e){
+  if(currentGallery&&!currentUser&&e.target.tagName==="IMG"){
+    e.preventDefault();
+    return false;
+  }
+});
+document.addEventListener("keydown",function(e){
+  if(currentGallery&&!currentUser){
+    // Block Ctrl+S, Ctrl+P, Ctrl+Shift+S
+    if((e.ctrlKey||e.metaKey)&&(e.key==="s"||e.key==="S"||e.key==="p"||e.key==="P")){
+      e.preventDefault();
+      showCopyrightWarning();
+      return false;
+    }
+    // Detect Print Screen key
+    if(e.key==="PrintScreen"||e.keyCode===44){
+      // Try to clear clipboard (some browsers allow this)
+      try{navigator.clipboard.writeText("")}catch(err){}
+      showCopyrightWarning();
+    }
+    // Detect F12 (developer tools)
+    if(e.key==="F12"||(e.ctrlKey&&e.shiftKey&&(e.key==="I"||e.key==="i"||e.key==="J"||e.key==="j"||e.key==="C"||e.key==="c"))){
+      showCopyrightWarning();
+    }
+    // Detect Ctrl+U (view source)
+    if((e.ctrlKey||e.metaKey)&&(e.key==="u"||e.key==="U")){
+      e.preventDefault();
+      showCopyrightWarning();
+      return false;
+    }
+  }
+});
+
+// Detect when window loses focus (might indicate screenshot tool)
+let lastFocusTime=Date.now();
+window.addEventListener("blur",function(){
+  if(currentGallery&&!currentUser){
+    lastFocusTime=Date.now();
+  }
+});
+
+function showCopyrightWarning(){
+  const modal=document.getElementById("copyright-warning");
+  if(modal)modal.classList.remove("hidden");
+}
+
+function closeCopyrightWarning(e){
+  if(!e||e.target===document.getElementById("copyright-warning")||e.target.tagName==="BUTTON"){
+    document.getElementById("copyright-warning").classList.add("hidden");
+  }
+}
+
+loadData();
 }
 
 function renderGallery(){
   document.getElementById("gallery-title").textContent=currentGallery.isGroup?currentGallery.name+" - összes kép":currentGallery.child+" képei";
   const grid=document.getElementById("photo-grid");grid.innerHTML="";
-  (currentGallery.photos||[]).forEach(photo=>{const div=document.createElement("div");div.className="photo-card";div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy">';div.onclick=()=>openSheet(photo);grid.appendChild(div)});
+  (currentGallery.photos||[]).forEach(photo=>{
+    const div=document.createElement("div");
+    div.className="photo-card";
+    div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false"><div class="watermark-overlay"><span class="watermark-text">SpringMoonPhoto<br>MINTA</span></div>';
+    div.onclick=()=>openSheet(photo);
+    grid.appendChild(div);
+  });
   updateCartUI();
 }
 function openSheet(photo){
@@ -1391,6 +1480,66 @@ async function createGallery(){
   }
   catch(e){errDiv.textContent="Hiba történt. Próbáld újra.";show("new-form-error");console.error(e)}
   finally{btn.disabled=false;btn.textContent="✓ Galéria létrehozása"}
+}
+
+
+// Image protection - only on parent gallery pages
+document.addEventListener("contextmenu",function(e){
+  if(currentGallery&&!currentUser&&(e.target.tagName==="IMG"||e.target.closest(".photo-card")||e.target.closest(".sheet-photo-wrap"))){
+    e.preventDefault();
+    return false;
+  }
+});
+document.addEventListener("dragstart",function(e){
+  if(currentGallery&&!currentUser&&e.target.tagName==="IMG"){
+    e.preventDefault();
+    return false;
+  }
+});
+document.addEventListener("keydown",function(e){
+  if(currentGallery&&!currentUser){
+    // Block Ctrl+S, Ctrl+P, Ctrl+Shift+S
+    if((e.ctrlKey||e.metaKey)&&(e.key==="s"||e.key==="S"||e.key==="p"||e.key==="P")){
+      e.preventDefault();
+      showCopyrightWarning();
+      return false;
+    }
+    // Detect Print Screen key
+    if(e.key==="PrintScreen"||e.keyCode===44){
+      // Try to clear clipboard (some browsers allow this)
+      try{navigator.clipboard.writeText("")}catch(err){}
+      showCopyrightWarning();
+    }
+    // Detect F12 (developer tools)
+    if(e.key==="F12"||(e.ctrlKey&&e.shiftKey&&(e.key==="I"||e.key==="i"||e.key==="J"||e.key==="j"||e.key==="C"||e.key==="c"))){
+      showCopyrightWarning();
+    }
+    // Detect Ctrl+U (view source)
+    if((e.ctrlKey||e.metaKey)&&(e.key==="u"||e.key==="U")){
+      e.preventDefault();
+      showCopyrightWarning();
+      return false;
+    }
+  }
+});
+
+// Detect when window loses focus (might indicate screenshot tool)
+let lastFocusTime=Date.now();
+window.addEventListener("blur",function(){
+  if(currentGallery&&!currentUser){
+    lastFocusTime=Date.now();
+  }
+});
+
+function showCopyrightWarning(){
+  const modal=document.getElementById("copyright-warning");
+  if(modal)modal.classList.remove("hidden");
+}
+
+function closeCopyrightWarning(e){
+  if(!e||e.target===document.getElementById("copyright-warning")||e.target.tagName==="BUTTON"){
+    document.getElementById("copyright-warning").classList.add("hidden");
+  }
 }
 
 loadData();
