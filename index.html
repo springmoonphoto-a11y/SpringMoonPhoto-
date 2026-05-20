@@ -817,11 +817,18 @@ firebase.auth().onAuthStateChanged(async function(user){
 });
 
 async function uploadPhoto(file,i,total,progressId,statusId){
-  const fd=new FormData();fd.append("file",file);fd.append("upload_preset",UPLOAD_PRESET);fd.append("folder","fotolux");
+  const fd=new FormData();
+  fd.append("file",file);
+  fd.append("upload_preset",UPLOAD_PRESET);
   const res=await fetch("https://api.cloudinary.com/v1_1/"+CLOUD_NAME+"/image/upload",{method:"POST",body:fd});
   const data=await res.json();
-  if(data.secure_url){document.getElementById(progressId).style.width=Math.round(((i+1)/total)*100)+"%";document.getElementById(statusId).textContent="Feltöltés: "+(i+1)+"/"+total+" kép...";return data.secure_url}
-  throw new Error("Feltöltési hiba");
+  if(data.secure_url){
+    document.getElementById(progressId).style.width=Math.round(((i+1)/total)*100)+"%";
+    document.getElementById(statusId).textContent="Feltöltés: "+(i+1)+"/"+total+" kép...";
+    return data.secure_url;
+  }
+  console.error("Cloudinary error response:",data);
+  throw new Error(data.error?data.error.message:"Feltöltési hiba");
 }
 
 async function handleFileSelectNew(event){
@@ -829,7 +836,7 @@ async function handleFileSelectNew(event){
   show("upload-progress-new");document.getElementById("progress-fill-new").style.width="0%";document.getElementById("upload-status-new").textContent="Előkészítés...";
   try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-new","upload-status-new");uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1)})}
   document.getElementById("upload-status-new").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsNew()}
-  catch(e){document.getElementById("upload-status-new").textContent="⚠️ Hiba. Próbáld újra!"}
+  catch(e){console.error("Upload error:",e);document.getElementById("upload-status-new").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
 }
 function renderPreviewsNew(){document.getElementById("photo-previews-new").innerHTML=uploadedPhotosNew.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosNew.splice('+i+',1);uploadedPhotosNew.forEach((x,j)=>x.name=\'Portré \'+(j+1));renderPreviewsNew()">×</button></div>').join("")}
 
@@ -838,7 +845,7 @@ async function handleFileSelectDetail(event){
   show("upload-progress-detail");document.getElementById("progress-fill-detail").style.width="0%";document.getElementById("upload-status-detail").textContent="Előkészítés...";
   try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-detail","upload-status-detail");uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:"Portré "+((currentDetailGallery.photos||[]).length+uploadedPhotosDetail.length+1)})}
   document.getElementById("upload-status-detail").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsDetail();show("save-photos-btn")}
-  catch(e){document.getElementById("upload-status-detail").textContent="⚠️ Hiba. Próbáld újra!"}
+  catch(e){console.error("Upload error:",e);document.getElementById("upload-status-detail").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
 }
 function renderPreviewsDetail(){document.getElementById("photo-previews-detail").innerHTML=uploadedPhotosDetail.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosDetail.splice('+i+',1);renderPreviewsDetail()">×</button></div>').join("")}
 async function saveDetailPhotos(){
