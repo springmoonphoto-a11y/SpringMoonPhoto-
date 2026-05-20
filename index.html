@@ -480,6 +480,14 @@ input:focus{border-color:var(--gold);background:var(--white)}
           <input type="checkbox" id="new-enable-gift" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
           <span style="font-size:.9rem">&#127873; Ajándéktárgyak</span>
         </label>
+        <label style="margin-top:14px;margin-bottom:8px">&#128737;&#65039; Vízjel beállításai</label>
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">A vízjel megakadályozza a képek ellopását. Ha kikapcsolod, a galéria képein nem lesz vízjel.</p>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:10px;cursor:pointer;background:var(--cream)">
+          <input type="checkbox" id="new-watermark-enabled" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
+          <span style="font-size:.9rem">Vízjel megjelenítése a galéria képein</span>
+        </label>
+        <input type="text" id="new-watermark-text" value="SpringMoonPhoto\nMINTA" placeholder="pl. SpringMoonPhoto\nMINTA" style="margin-bottom:14px">
+        <p style="font-size:.74rem;color:var(--muted);margin-top:-8px;margin-bottom:14px">Tipp: \n jelet használj sortörésnek</p>
         <div id="code-box" class="code-box hidden">
           <div><div style="font-size:.72rem;color:var(--muted);margin-bottom:3px">AUTOMATIKUSAN GENERÁLT KÓD</div><div id="new-code" class="code-val"></div><div class="code-hint">Ezt küldd el a szülőnek</div></div>
           <button class="regen-btn" onclick="regenCode()">&#128260;</button>
@@ -551,6 +559,13 @@ input:focus{border-color:var(--gold);background:var(--white)}
           <input type="checkbox" id="edit-enable-gift" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
           <span style="font-size:.9rem">🎁 Ajándéktárgyak</span>
         </label>
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-top:16px;margin-bottom:10px">🛡️ Vízjel</h3>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:10px;cursor:pointer;background:var(--cream)">
+          <input type="checkbox" id="edit-watermark-enabled" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
+          <span style="font-size:.9rem">Vízjel megjelenítése</span>
+        </label>
+        <input type="text" id="edit-watermark-text" placeholder="pl. SpringMoonPhoto\nMINTA" style="margin-bottom:6px">
+        <p style="font-size:.74rem;color:var(--muted);margin-bottom:14px">Tipp: \n jelet használj sortörésnek</p>
         <div id="products-msg"></div>
         <div style="display:flex;gap:9px;margin-top:4px">
           <button class="btn btn-outline btn-sm" onclick="toggleProductsForm()">Mégsem</button>
@@ -649,11 +664,12 @@ async function loadGalleryPrices(gallery){
       else DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
       if(data.giftItems)GIFT_ITEMS=data.giftItems;
       else GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
-      if(data.watermarkConfig)WATERMARK_CONFIG=data.watermarkConfig;
-      else WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
-    }
+      }
     if(gallery.enabledProducts)ENABLED_PRODUCTS=gallery.enabledProducts;
     else ENABLED_PRODUCTS={print:true,digital:true,gift:true};
+    // Watermark: prefer gallery's setting (per-gallery)
+    if(gallery.watermarkConfig)WATERMARK_CONFIG=gallery.watermarkConfig;
+    else WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
   }catch(e){console.error("Árlista betöltési hiba:",e)}
 }
 
@@ -674,55 +690,81 @@ async function loadMyPrices(){
 
 function renderPricesEditor(){
   const div=document.getElementById("admin-prices");
-  let html='<div class="new-form"><h3>🛡️ Vízjel beállításai</h3>';
-  html+='<p style="font-size:.85rem;color:var(--muted);margin-bottom:14px">A vízjel az ellopás ellen véd. Kikapcsolható, vagy a szöveg testreszabható (\\n a sortörés).</p>';
-  html+='<label style="display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--warm);border-radius:10px;margin-bottom:12px;cursor:pointer;background:var(--cream)">';
-  html+='<input type="checkbox" id="watermark-enabled" '+(WATERMARK_CONFIG.enabled?"checked":"")+' style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">';
-  html+='<span style="font-size:.95rem;font-weight:500">Vízjel megjelenítése a képeken</span></label>';
-  html+='<label>Vízjel szövege (használj \\n a sortöréshez)</label>';
-  const escapedText=(WATERMARK_CONFIG.text||"").replace(/\n/g,"\\n");
-  html+='<input type="text" id="watermark-text-input" value="'+escapedText.replace(/"/g,"&quot;")+'" placeholder="pl. SpringMoonPhoto\\nMINTA" style="margin-bottom:0">';
-  html+='<p style="font-size:.78rem;color:var(--muted);margin-top:6px">Tipp: használj nagy betűket pl. „TILTOTT MÁSOLÁS"</p>';
-  html+='</div><div class="new-form" style="margin-top:14px"><h3>💰 Papírkép árak</h3>';
-  PRINT_SIZES.forEach((s,i)=>{
-    html+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><span style="flex:1;font-weight:500">'+s.label+'</span><input type="number" id="price-print-'+i+'" value="'+s.price+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
-  });
+  let html='<div class="new-form"><h3>💰 Papírkép árak</h3>';
+  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:12px">Méretek és árak. Bővítheted új típussal.</p>';
+  html+='<div id="price-print-list"></div>';
+  html+='<button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%" onclick="addPrintSize()">+ Új méret hozzáadása</button>';
   html+='</div><div class="new-form" style="margin-top:14px"><h3>💾 Digitális kép ára</h3>';
   html+='<div style="display:flex;gap:10px;align-items:center"><span style="flex:1;font-weight:500">Digitális JPG fájl</span><input type="number" id="price-digital" value="'+DIGITAL_PRICE+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
   html+='</div><div class="new-form" style="margin-top:14px"><h3>🎁 Ajándéktárgy árak</h3>';
-  GIFT_ITEMS.forEach((g,i)=>{
-    html+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><span style="flex:1;font-weight:500">'+g.label+'</span><input type="number" id="price-gift-'+i+'" value="'+g.price+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
-  });
+  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:12px">Termékek és árak. Bővítheted új ajándéktárgyakkal.</p>';
+  html+='<div id="price-gift-list"></div>';
+  html+='<button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%" onclick="addGiftItem()">+ Új ajándéktárgy hozzáadása</button>';
   html+='</div><div id="save-prices-msg" style="margin-top:14px"></div><button class="btn btn-green" style="margin-top:14px" onclick="savePrices()">✓ Árak mentése</button>';
   div.innerHTML=html;
+  renderPriceLists();
+}
+
+function renderPriceLists(){
+  const printList=document.getElementById("price-print-list");
+  printList.innerHTML=PRINT_SIZES.map((s,i)=>'<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="text" id="print-label-'+i+'" value="'+(s.label||"").replace(/"/g,"&quot;")+'" placeholder="pl. 10×15 cm" style="flex:1;margin-bottom:0"><input type="number" id="print-price-'+i+'" value="'+s.price+'" min="0" step="50" style="width:100px;margin-bottom:0;text-align:right"><span style="color:var(--muted);font-size:.85rem">Ft</span><button class="regen-btn" style="color:#c0392b" onclick="removePrintSize('+i+')" title="Törlés">&#128465;&#65039;</button></div>').join("");
+  const giftList=document.getElementById("price-gift-list");
+  giftList.innerHTML=GIFT_ITEMS.map((g,i)=>'<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="text" id="gift-label-'+i+'" value="'+(g.label||"").replace(/"/g,"&quot;")+'" placeholder="pl. 🧲 Hűtőmágnes" style="flex:1;margin-bottom:0"><input type="number" id="gift-price-'+i+'" value="'+g.price+'" min="0" step="50" style="width:100px;margin-bottom:0;text-align:right"><span style="color:var(--muted);font-size:.85rem">Ft</span><button class="regen-btn" style="color:#c0392b" onclick="removeGiftItem('+i+')" title="Törlés">&#128465;&#65039;</button></div>').join("");
+}
+
+function readCurrentPrices(){
+  PRINT_SIZES.forEach((s,i)=>{
+    const lbl=document.getElementById("print-label-"+i);
+    const pr=document.getElementById("print-price-"+i);
+    if(lbl)s.label=lbl.value.trim()||s.label;
+    if(pr){const v=parseInt(pr.value);if(!isNaN(v))s.price=v;}
+  });
+  GIFT_ITEMS.forEach((g,i)=>{
+    const lbl=document.getElementById("gift-label-"+i);
+    const pr=document.getElementById("gift-price-"+i);
+    if(lbl)g.label=lbl.value.trim()||g.label;
+    if(pr){const v=parseInt(pr.value);if(!isNaN(v))g.price=v;}
+  });
+}
+
+function addPrintSize(){
+  readCurrentPrices();
+  PRINT_SIZES.push({id:"size"+Date.now(),label:"Új méret",price:1000});
+  renderPriceLists();
+}
+
+function removePrintSize(idx){
+  if(PRINT_SIZES.length<=1){alert("Legalább egy méretnek lennie kell!");return}
+  if(!confirm("Biztosan törlöd ezt a méretet?"))return;
+  readCurrentPrices();
+  PRINT_SIZES.splice(idx,1);
+  renderPriceLists();
+}
+
+function addGiftItem(){
+  readCurrentPrices();
+  GIFT_ITEMS.push({id:"gift"+Date.now(),label:"🎁 Új ajándéktárgy",price:1000});
+  renderPriceLists();
+}
+
+function removeGiftItem(idx){
+  if(!confirm("Biztosan törlöd ezt az ajándéktárgyat?"))return;
+  readCurrentPrices();
+  GIFT_ITEMS.splice(idx,1);
+  renderPriceLists();
 }
 
 async function savePrices(){
   const msg=document.getElementById("save-prices-msg");
-  const newPrintSizes=PRINT_SIZES.map((s,i)=>{
-    const val=parseInt(document.getElementById("price-print-"+i).value);
-    return {id:s.id,label:s.label,price:isNaN(val)?s.price:val};
-  });
+  readCurrentPrices();
   const newDigital=parseInt(document.getElementById("price-digital").value);
-  const newGiftItems=GIFT_ITEMS.map((g,i)=>{
-    const val=parseInt(document.getElementById("price-gift-"+i).value);
-    return {id:g.id,label:g.label,price:isNaN(val)?g.price:val};
-  });
-  const newWatermark={
-    enabled:document.getElementById("watermark-enabled").checked,
-    text:document.getElementById("watermark-text-input").value.replace(/\\n/g,"\n")||"SpringMoonPhoto\nMINTA"
-  };
   try{
     await db.collection("photographers").doc(currentUser.uid).update({
-      printSizes:newPrintSizes,
+      printSizes:PRINT_SIZES,
       digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,
-      giftItems:newGiftItems,
-      watermarkConfig:newWatermark
+      giftItems:GIFT_ITEMS
     });
-    PRINT_SIZES=newPrintSizes;
     DIGITAL_PRICE=isNaN(newDigital)?DIGITAL_PRICE:newDigital;
-    GIFT_ITEMS=newGiftItems;
-    WATERMARK_CONFIG=newWatermark;
     msg.innerHTML='<div class="success-msg">✓ Az árlistát sikeresen mentettük!</div>';
     setTimeout(()=>msg.innerHTML="",3000);
   }catch(e){
@@ -742,6 +784,9 @@ function toggleProductsForm(){
     document.getElementById("edit-enable-print").checked=ep.print!==false;
     document.getElementById("edit-enable-digital").checked=ep.digital!==false;
     document.getElementById("edit-enable-gift").checked=ep.gift!==false;
+    const wm=currentDetailGallery.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"};
+    document.getElementById("edit-watermark-enabled").checked=wm.enabled!==false;
+    document.getElementById("edit-watermark-text").value=(wm.text||"").replace(/\n/g,"\\n");
     document.getElementById("products-msg").innerHTML="";
   }
 }
@@ -752,16 +797,21 @@ async function saveProducts(){
     digital:document.getElementById("edit-enable-digital").checked,
     gift:document.getElementById("edit-enable-gift").checked
   };
+  const newWM={
+    enabled:document.getElementById("edit-watermark-enabled").checked,
+    text:document.getElementById("edit-watermark-text").value.replace(/\\n/g,"\n")||"SpringMoonPhoto\nMINTA"
+  };
   const msg=document.getElementById("products-msg");
   if(!newEP.print&&!newEP.digital&&!newEP.gift){
     msg.innerHTML='<div class="error-msg">Legalább egy terméktípust be kell kapcsolni!</div>';
     return;
   }
   try{
-    await db.collection("galleries").doc(currentDetailGallery.id).update({enabledProducts:newEP});
+    await db.collection("galleries").doc(currentDetailGallery.id).update({enabledProducts:newEP,watermarkConfig:newWM});
     currentDetailGallery.enabledProducts=newEP;
+    currentDetailGallery.watermarkConfig=newWM;
     const g=galleries.find(x=>x.id===currentDetailGallery.id);
-    if(g)g.enabledProducts=newEP;
+    if(g){g.enabledProducts=newEP;g.watermarkConfig=newWM;}
     msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';
     setTimeout(()=>{document.getElementById("products-form").classList.add("hidden");msg.innerHTML=""},1500);
   }catch(e){
@@ -803,6 +853,13 @@ function getNewEnabledProducts(){
     print:document.getElementById("new-enable-print").checked,
     digital:document.getElementById("new-enable-digital").checked,
     gift:document.getElementById("new-enable-gift").checked
+  };
+}
+
+function getNewWatermarkConfig(){
+  return {
+    enabled:document.getElementById("new-watermark-enabled").checked,
+    text:document.getElementById("new-watermark-text").value.replace(/\\n/g,"\n")||"SpringMoonPhoto\nMINTA"
   };
 }
 
@@ -1536,14 +1593,14 @@ async function createGallery(){
     const groupName=document.getElementById("new-group-name").value.trim();
     if(!groupName){errDiv.textContent="A csoport nevének megadása kötelező.";show("new-form-error");return}
     const finalCode=generatedCode||generateCode(groupName);
-    galleryData={name:groupName,code:finalCode,child:groupName,parentEmail:"",isGroup:true,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,enabledProducts:getNewEnabledProducts()};
+    galleryData={name:groupName,code:finalCode,child:groupName,parentEmail:"",isGroup:true,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig()};
   }else{
     const child=document.getElementById("new-child").value.trim();
     const email=document.getElementById("new-email").value.trim().toLowerCase();
     if(!child||!email){errDiv.textContent="A gyerek neve és az email cím kötelező.";show("new-form-error");return}
     const existing=galleries.find(g=>!g.isGroup&&g.parentEmail&&g.parentEmail.toLowerCase()===email);
     const finalCode=existing?existing.code:(generatedCode||generateCode(child));
-    galleryData={name:child+" – Iskolai fotók 2025",code:finalCode,child,parentEmail:email,isGroup:false,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,enabledProducts:getNewEnabledProducts()};
+    galleryData={name:child+" – Iskolai fotók 2025",code:finalCode,child,parentEmail:email,isGroup:false,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig()};
   }
   const btn=document.getElementById("create-btn");btn.disabled=true;btn.textContent="Mentés...";
   try{
@@ -1556,6 +1613,8 @@ async function createGallery(){
     document.getElementById("new-enable-print").checked=true;
     document.getElementById("new-enable-digital").checked=true;
     document.getElementById("new-enable-gift").checked=true;
+    document.getElementById("new-watermark-enabled").checked=true;
+    document.getElementById("new-watermark-text").value="SpringMoonPhoto\\nMINTA";
     toggleGroupGallery();
     uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");hide("code-box");
     renderAdmin();setAdminTab("galleries");
