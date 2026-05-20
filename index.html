@@ -1026,7 +1026,7 @@ async function testEmail(){
     const to=document.getElementById("my-contact-email").value.trim()||currentUser.email;
     await emailjs.send(sid,tid,{
       to_email:to,
-      to_name:currentUser.name||"Fotós",
+      to_name:"Fotós",
       child_name:"TESZT Gyerek",
       parent_name:"TESZT Szülő",
       parent_email:"teszt@email.com",
@@ -1063,7 +1063,7 @@ async function sendNewOrderEmail(order){
     }).join("\n");
     await emailjs.send(cfg.serviceId,cfg.templateNewOrder,{
       to_email:data.contactEmail||data.email,
-      to_name:data.name||"Fotós",
+      to_name:"Fotós",
       child_name:order.child,
       parent_name:order.parentName||"-",
       parent_email:order.parentEmail||"-",
