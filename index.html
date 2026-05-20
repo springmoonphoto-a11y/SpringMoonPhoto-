@@ -293,7 +293,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 <div id="overlay" class="overlay hidden" onclick="closeOverlay(event)">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <div class="sheet-photo-wrap"><img id="sheet-img" class="sheet-photo" src="" alt="" oncontextmenu="return false" ondragstart="return false"><div class="watermark-overlay"><span class="watermark-text">SpringMoonPhoto<br>MINTA</span></div></div>
+    <div class="sheet-photo-wrap"><img id="sheet-img" class="sheet-photo" src="" alt="" oncontextmenu="return false" ondragstart="return false"><div id="sheet-watermark" class="watermark-overlay"><span id="sheet-watermark-text" class="watermark-text">SpringMoonPhoto<br>MINTA</span></div></div>
     <div id="sheet-name" class="sheet-name"></div>
     <div class="type-tabs">
       <div id="tab-print" class="type-tab active" onclick="setType('print')"><span class="tab-icon">&#128444;&#65039;</span>Papírkép</div>
@@ -623,6 +623,7 @@ let PRINT_SIZES=JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
 let DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
 let GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
 let ENABLED_PRODUCTS={print:true,digital:true,gift:true};
+let WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
 let selectedGift=null;
 let socialConsent=null;
 const ADMIN_PASSWORD="admin2025";
@@ -648,8 +649,9 @@ async function loadGalleryPrices(gallery){
       else DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
       if(data.giftItems)GIFT_ITEMS=data.giftItems;
       else GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
+      if(data.watermarkConfig)WATERMARK_CONFIG=data.watermarkConfig;
+      else WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
     }
-    // Use GALLERY's enabledProducts (per-gallery), fallback to all enabled
     if(gallery.enabledProducts)ENABLED_PRODUCTS=gallery.enabledProducts;
     else ENABLED_PRODUCTS={print:true,digital:true,gift:true};
   }catch(e){console.error("Árlista betöltési hiba:",e)}
@@ -665,13 +667,23 @@ async function loadMyPrices(){
       DIGITAL_PRICE=typeof data.digitalPrice==="number"?data.digitalPrice:DEFAULT_DIGITAL_PRICE;
       GIFT_ITEMS=data.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
       ENABLED_PRODUCTS=data.enabledProducts||{print:true,digital:true,gift:true};
+      WATERMARK_CONFIG=data.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"};
     }
   }catch(e){console.error("Árlista betöltési hiba:",e)}
 }
 
 function renderPricesEditor(){
   const div=document.getElementById("admin-prices");
-  let html='<div class="new-form"><h3>💰 Papírkép árak</h3>';
+  let html='<div class="new-form"><h3>🛡️ Vízjel beállításai</h3>';
+  html+='<p style="font-size:.85rem;color:var(--muted);margin-bottom:14px">A vízjel az ellopás ellen véd. Kikapcsolható, vagy a szöveg testreszabható (\\n a sortörés).</p>';
+  html+='<label style="display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--warm);border-radius:10px;margin-bottom:12px;cursor:pointer;background:var(--cream)">';
+  html+='<input type="checkbox" id="watermark-enabled" '+(WATERMARK_CONFIG.enabled?"checked":"")+' style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">';
+  html+='<span style="font-size:.95rem;font-weight:500">Vízjel megjelenítése a képeken</span></label>';
+  html+='<label>Vízjel szövege (használj \\n a sortöréshez)</label>';
+  const escapedText=(WATERMARK_CONFIG.text||"").replace(/\n/g,"\\n");
+  html+='<input type="text" id="watermark-text-input" value="'+escapedText.replace(/"/g,"&quot;")+'" placeholder="pl. SpringMoonPhoto\\nMINTA" style="margin-bottom:0">';
+  html+='<p style="font-size:.78rem;color:var(--muted);margin-top:6px">Tipp: használj nagy betűket pl. „TILTOTT MÁSOLÁS"</p>';
+  html+='</div><div class="new-form" style="margin-top:14px"><h3>💰 Papírkép árak</h3>';
   PRINT_SIZES.forEach((s,i)=>{
     html+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><span style="flex:1;font-weight:500">'+s.label+'</span><input type="number" id="price-print-'+i+'" value="'+s.price+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
   });
@@ -696,15 +708,21 @@ async function savePrices(){
     const val=parseInt(document.getElementById("price-gift-"+i).value);
     return {id:g.id,label:g.label,price:isNaN(val)?g.price:val};
   });
+  const newWatermark={
+    enabled:document.getElementById("watermark-enabled").checked,
+    text:document.getElementById("watermark-text-input").value.replace(/\\n/g,"\n")||"SpringMoonPhoto\nMINTA"
+  };
   try{
     await db.collection("photographers").doc(currentUser.uid).update({
       printSizes:newPrintSizes,
       digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,
-      giftItems:newGiftItems
+      giftItems:newGiftItems,
+      watermarkConfig:newWatermark
     });
     PRINT_SIZES=newPrintSizes;
     DIGITAL_PRICE=isNaN(newDigital)?DIGITAL_PRICE:newDigital;
     GIFT_ITEMS=newGiftItems;
+    WATERMARK_CONFIG=newWatermark;
     msg.innerHTML='<div class="success-msg">✓ Az árlistát sikeresen mentettük!</div>';
     setTimeout(()=>msg.innerHTML="",3000);
   }catch(e){
@@ -1105,7 +1123,8 @@ function renderGallery(){
   (currentGallery.photos||[]).forEach(photo=>{
     const div=document.createElement("div");
     div.className="photo-card";
-    div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false"><div class="watermark-overlay"><span class="watermark-text">SpringMoonPhoto<br>MINTA</span></div>';
+    const wmHtml=WATERMARK_CONFIG.enabled?'<div class="watermark-overlay"><span class="watermark-text">'+(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")+'</span></div>':'';
+    div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false">'+wmHtml;
     div.onclick=()=>openSheet(photo);
     grid.appendChild(div);
   });
@@ -1125,6 +1144,15 @@ function openSheet(photo){
   selectedGift=GIFT_ITEMS[0];
   document.getElementById("sheet-img").src=photo.url;
   document.getElementById("sheet-name").textContent=photo.name;
+  // Apply watermark settings
+  const sw=document.getElementById("sheet-watermark");
+  const swt=document.getElementById("sheet-watermark-text");
+  if(WATERMARK_CONFIG.enabled){
+    sw.style.display="flex";
+    swt.innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>");
+  }else{
+    sw.style.display="none";
+  }
   document.getElementById("qty-num").textContent=1;
   document.getElementById("tab-print").classList.toggle("active",orderType==="print");
   document.getElementById("tab-digital").classList.toggle("active",orderType==="digital");
