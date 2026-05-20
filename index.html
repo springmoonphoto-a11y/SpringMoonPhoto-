@@ -816,15 +816,63 @@ firebase.auth().onAuthStateChanged(async function(user){
   }
 });
 
+async function compressImage(file,maxSizeMB){
+  const maxBytes=maxSizeMB*1024*1024;
+  if(file.size<=maxBytes)return file;
+  // Load image
+  const img=await new Promise((resolve,reject)=>{
+    const im=new Image();
+    im.onload=()=>resolve(im);
+    im.onerror=reject;
+    im.src=URL.createObjectURL(file);
+  });
+  // Calculate new dimensions - max 3000px on long side
+  let w=img.width,h=img.height;
+  const maxDim=3000;
+  if(w>maxDim||h>maxDim){
+    if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}
+    else{w=Math.round(w*maxDim/h);h=maxDim;}
+  }
+  // Try different qualities
+  for(let quality=0.92;quality>=0.5;quality-=0.1){
+    const canvas=document.createElement("canvas");
+    canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext("2d");
+    ctx.drawImage(img,0,0,w,h);
+    const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",quality));
+    if(blob.size<=maxBytes){
+      URL.revokeObjectURL(img.src);
+      return new File([blob],file.name.replace(/\.(png|webp|heic)$/i,".jpg"),{type:"image/jpeg"});
+    }
+  }
+  // If still too big, reduce dimensions further
+  for(let scale=0.8;scale>=0.3;scale-=0.1){
+    const canvas=document.createElement("canvas");
+    canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
+    const ctx=canvas.getContext("2d");
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.85));
+    if(blob.size<=maxBytes){
+      URL.revokeObjectURL(img.src);
+      return new File([blob],file.name.replace(/\.(png|webp|heic)$/i,".jpg"),{type:"image/jpeg"});
+    }
+  }
+  URL.revokeObjectURL(img.src);
+  throw new Error("A kép túl nagy a tömörítés után is.");
+}
+
 async function uploadPhoto(file,i,total,progressId,statusId){
+  // Compress if larger than 9.5MB (safety margin under 10MB limit)
+  document.getElementById(statusId).textContent="Tömörítés: "+(i+1)+"/"+total+" kép...";
+  const optimizedFile=await compressImage(file,9.5);
+  document.getElementById(statusId).textContent="Feltöltés: "+(i+1)+"/"+total+" kép...";
   const fd=new FormData();
-  fd.append("file",file);
+  fd.append("file",optimizedFile);
   fd.append("upload_preset",UPLOAD_PRESET);
   const res=await fetch("https://api.cloudinary.com/v1_1/"+CLOUD_NAME+"/image/upload",{method:"POST",body:fd});
   const data=await res.json();
   if(data.secure_url){
     document.getElementById(progressId).style.width=Math.round(((i+1)/total)*100)+"%";
-    document.getElementById(statusId).textContent="Feltöltés: "+(i+1)+"/"+total+" kép...";
     return data.secure_url;
   }
   console.error("Cloudinary error response:",data);
