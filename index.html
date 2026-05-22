@@ -179,12 +179,33 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .modal-sheet{background:var(--white);border-radius:24px 24px 0 0;padding:26px 18px 40px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
 .photo-card,.photo-card img,.sheet-photo{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;user-drag:none;-webkit-touch-callout:none;pointer-events:auto}
 .photo-card{position:relative;overflow:hidden}
+.photo-zoom-btn{position:absolute;top:8px;right:8px;background:rgba(20,14,6,.6);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:background .2s}
+.photo-zoom-btn:hover{background:rgba(201,168,76,.9)}
+.photo-fav-btn{position:absolute;top:8px;left:8px;background:rgba(20,14,6,.6);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:all .2s}
+.photo-fav-btn:hover{background:rgba(192,57,43,.8)}
+.photo-fav-btn.active{background:rgba(192,57,43,.9)}
+.fav-toggle-btn{background:var(--cream);border:1.5px solid var(--warm);border-radius:50px;padding:9px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--brown);font-weight:500;transition:background .2s;white-space:nowrap}
+.fav-toggle-btn.active{background:#fdeaea;border-color:#c0392b;color:#c0392b}
 .watermark-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2}
 .watermark-text{font-family:'Playfair Display',serif;color:rgba(255,255,255,.55);font-size:1rem;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.4);transform:rotate(-30deg);text-align:center;letter-spacing:.08em;white-space:nowrap;text-transform:uppercase}
 .sheet-photo-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:18px}
 .sheet-photo-wrap .watermark-overlay{align-items:center;justify-content:center}
 .sheet-photo-wrap .watermark-text{font-size:1.3rem}
 .sheet-photo{margin-bottom:0!important}
+.lightbox{position:fixed;inset:0;background:rgba(20,14,6,.94);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.lightbox-img-wrap{position:relative;max-width:85vw;max-height:62vh;display:flex;align-items:center;justify-content:center}
+.lightbox-img{max-width:85vw;max-height:62vh;object-fit:contain;border-radius:8px;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}
+.lightbox-wm{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.lightbox-wm span{font-family:'Playfair Display',serif;color:rgba(255,255,255,.45);font-size:1.6rem;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.5);transform:rotate(-30deg);text-align:center;letter-spacing:.1em;text-transform:uppercase;line-height:1.3}
+.lightbox-close{position:absolute;top:18px;right:20px;background:rgba(255,255,255,.15);border:none;color:#fff;width:42px;height:42px;border-radius:50%;font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;width:46px;height:46px;border-radius:50%;font-size:1.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.lightbox-prev{left:12px}.lightbox-next{right:12px}
+.lightbox-nav:hover,.lightbox-close:hover{background:rgba(255,255,255,.28)}
+.lightbox-counter{color:rgba(255,255,255,.85);font-size:.9rem;margin-top:16px;font-weight:500}
+.lightbox-name{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;margin-top:6px}
+.lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
+.lightbox-order-btn:hover{background:#b8922e}
+.lightbox-hint{color:rgba(255,255,255,.5);font-size:.78rem;margin-top:10px}
 </style>
 </head>
 <body>
@@ -274,6 +295,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
   <div class="header">
     <div class="header-logo">SpringMoon<span>Gallery</span></div>
     <div class="header-right">
+      <button id="fav-toggle-btn" class="fav-toggle-btn" onclick="toggleFavView()">🤍 Kedvenceim (0)</button>
       <button class="orders-btn" onclick="showMyOrders()">&#128203; Rendeléseim</button>
       <button class="cart-btn" onclick="showCart()">&#128722; <span id="cart-badge" class="cart-badge hidden">0</span></button>
       <button class="logout-btn" onclick="logout()">Kilépés</button>
@@ -464,6 +486,8 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div id="admin-new" class="hidden">
       <div class="new-form">
         <h3>&#128193; Új galéria létrehozása</h3>
+        <button class="btn btn-outline btn-sm" type="button" style="width:100%;margin-bottom:8px" onclick="pasteGallerySettings()">&#128203; Beállítások beillesztése másolt galériából</button>
+        <div id="paste-settings-msg" style="margin-bottom:10px"></div>
         <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--warm);border-radius:10px;margin-bottom:14px;cursor:pointer;background:var(--cream)">
           <input type="checkbox" id="new-is-group" onchange="toggleGroupGallery()" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
           <div style="flex:1"><div style="font-weight:500;color:var(--dark);font-size:.92rem">&#128101; Csoportos galéria</div><div style="font-size:.75rem;color:var(--muted);margin-top:2px">Pl. ovis csoport - bárki bejelentkezhet a kóddal</div></div>
@@ -552,6 +576,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <div class="gallery-detail-actions">
         <button class="btn btn-blue btn-sm" onclick="toggleEditForm()">&#9999;&#65039; Szerkesztés</button>
         <button class="btn btn-outline btn-sm" onclick="toggleProductsForm()">&#127919; Termékek</button>
+        <button class="btn btn-gold btn-sm" onclick="copyGallerySettings()">&#128203; Másolás</button>
         <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">&#128465;&#65039; Törlés</button>
       </div>
       <div id="edit-form" class="hidden" style="margin-top:16px;border-top:1px solid var(--warm);padding-top:16px">
@@ -623,6 +648,35 @@ input:focus{border-color:var(--gold);background:var(--white)}
   </div>
 </div>
 
+<div id="lightbox" class="hidden" style="position:fixed;inset:0;background:rgba(26,18,8,.92);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px">
+  <button onclick="closeLightbox()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;width:42px;height:42px;border-radius:50%;font-size:1.4rem;cursor:pointer;z-index:5">×</button>
+  <div style="position:relative;max-width:600px;width:100%;display:flex;align-items:center;justify-content:center">
+    <button id="lb-prev" onclick="lightboxNav(-1)" style="position:absolute;left:-8px;background:rgba(255,255,255,.2);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:1.5rem;cursor:pointer;z-index:5">‹</button>
+    <div style="position:relative;overflow:hidden;border-radius:12px;max-height:65vh">
+      <img id="lb-img" src="" alt="" style="max-width:100%;max-height:65vh;object-fit:contain;display:block;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none" oncontextmenu="return false" ondragstart="return false">
+      <div id="lb-watermark" class="watermark-overlay"><span class="watermark-text" style="font-size:1.5rem">SpringMoonPhoto<br>MINTA</span></div>
+    </div>
+    <button id="lb-next" onclick="lightboxNav(1)" style="position:absolute;right:-8px;background:rgba(255,255,255,.2);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:1.5rem;cursor:pointer;z-index:5">›</button>
+  </div>
+  <div id="lb-name" style="color:#fff;margin-top:16px;font-family:'Playfair Display',serif;font-size:1.1rem"></div>
+  <div id="lb-counter" style="color:rgba(255,255,255,.6);font-size:.85rem;margin-top:4px"></div>
+  <button class="btn btn-gold" style="width:auto;padding:12px 30px;margin-top:18px" onclick="orderFromLightbox()">🛒 Rendelés erről a képről</button>
+</div>
+
+<div id="lightbox" class="lightbox hidden">
+  <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+  <button class="lightbox-nav lightbox-prev" onclick="lightboxNav(-1)">&#8249;</button>
+  <div class="lightbox-img-wrap">
+    <img id="lightbox-img" class="lightbox-img" src="" alt="" oncontextmenu="return false" ondragstart="return false">
+    <div id="lightbox-wm" class="lightbox-wm"><span></span></div>
+  </div>
+  <button class="lightbox-nav lightbox-next" onclick="lightboxNav(1)">&#8250;</button>
+  <div id="lightbox-name" class="lightbox-name"></div>
+  <div id="lightbox-counter" class="lightbox-counter"></div>
+  <div style="display:flex;gap:10px;margin-top:18px"><button id="lightbox-fav-btn" class="lightbox-order-btn" style="background:rgba(255,255,255,.15)" onclick="toggleFavFromLightbox()">🤍</button><button class="lightbox-order-btn" style="margin-top:0" onclick="orderFromLightbox()">&#128722; Rendelés</button></div>
+  <div class="lightbox-hint">A képek védettek &middot; másolásuk tilos</div>
+</div>
+
 <div id="copyright-warning" class="modal-overlay hidden" style="z-index:500" onclick="closeCopyrightWarning(event)">
   <div class="modal-sheet" style="max-width:440px;text-align:center">
     <div class="sheet-handle"></div>
@@ -681,6 +735,8 @@ let activePhoto=null,orderType="print",selectedSize=PRINT_SIZES[0],qty=1;
 let generatedCode="",uploadedPhotosNew=[];
 let currentDetailGallery=null,uploadedPhotosDetail=[];
 let selectedOrderIds=new Set();
+let favorites=[];
+let showingFavoritesOnly=false;
 
 
 async function loadGalleryPrices(gallery){
@@ -932,6 +988,51 @@ function checkCodeType(){
   }
 }
 
+
+
+let copiedGallerySettings=null;
+
+function copyGallerySettings(){
+  if(!currentDetailGallery)return;
+  copiedGallerySettings={
+    enabledProducts:currentDetailGallery.enabledProducts||{print:true,digital:true,gift:true},
+    watermarkConfig:currentDetailGallery.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"},
+    discounts:currentDetailGallery.discounts||[],
+    promoText:currentDetailGallery.promoText||"",
+    galleryMessage:currentDetailGallery.galleryMessage||"",
+    expiresAt:currentDetailGallery.expiresAt||null
+  };
+  try{localStorage.setItem("fotolux_copied_settings",JSON.stringify(copiedGallerySettings))}catch(e){}
+  alert("✓ A galéria beállításai átmásolva: termékek, vízjel, kedvezmények, üzenetek, lejárat.\n\nMost menj a + Új fülre, és kattints a Beállítások beillesztése gombra!");
+}
+
+function pasteGallerySettings(){
+  let settings=copiedGallerySettings;
+  if(!settings){
+    try{const s=localStorage.getItem("fotolux_copied_settings");if(s)settings=JSON.parse(s)}catch(e){}
+  }
+  if(!settings){alert("Nincs másolt beállítás. Először egy meglévő galériánál kattints a Másolás gombra.");return}
+  // Apply enabled products
+  document.getElementById("new-enable-print").checked=settings.enabledProducts.print!==false;
+  document.getElementById("new-enable-digital").checked=settings.enabledProducts.digital!==false;
+  document.getElementById("new-enable-gift").checked=settings.enabledProducts.gift!==false;
+  // Apply watermark
+  document.getElementById("new-watermark-enabled").checked=settings.watermarkConfig.enabled!==false;
+  document.getElementById("new-watermark-text").value=(settings.watermarkConfig.text||"").replace(/\n/g,"\\n");
+  // Apply promo and message
+  document.getElementById("new-promo-text").value=settings.promoText||"";
+  document.getElementById("new-gallery-message").value=settings.galleryMessage||"";
+  // Apply discounts
+  newDiscounts=JSON.parse(JSON.stringify(settings.discounts||[]));
+  renderNewDiscounts();
+  // Apply expiration
+  if(settings.expiresAt){
+    const d=new Date(settings.expiresAt);
+    document.getElementById("new-expires-at").value=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  const msg=document.getElementById("paste-settings-msg");
+  if(msg){msg.innerHTML='<div class="success-msg">✓ Beállítások beillesztve! Most töltsd ki a gyerek nevét és tölts fel képeket.</div>';setTimeout(()=>msg.innerHTML="",4000)}
+}
 
 function getNewEnabledProducts(){
   return {
@@ -1235,7 +1336,7 @@ async function handleLogin(){
     await loadGalleryPrices(found);
     // Track visit for reminder system
     try{db.collection("galleries").doc(found.id).update({lastVisitAt:Date.now()});}catch(e){}
-    loadCart();renderGallery();showPage("page-gallery");
+    loadCart();loadFavorites();renderGallery();showPage("page-gallery");
   }else{
     // Individual gallery - need email and child name
     const email=document.getElementById("inp-email").value.trim().toLowerCase();
@@ -1246,7 +1347,7 @@ async function handleLogin(){
     await loadGalleryPrices(found);
     // Track visit
     try{db.collection("galleries").doc(found.id).update({lastVisitAt:Date.now()});}catch(e){}
-    loadCart();renderGallery();showPage("page-gallery");
+    loadCart();loadFavorites();renderGallery();showPage("page-gallery");
   }
 }
 let authMode="login";
@@ -1362,7 +1463,7 @@ async function logout(){
 
 // Image protection - only on parent gallery pages
 document.addEventListener("contextmenu",function(e){
-  if(currentGallery&&!currentUser&&(e.target.tagName==="IMG"||e.target.closest(".photo-card")||e.target.closest(".sheet-photo-wrap"))){
+  if(currentGallery&&!currentUser&&(e.target.tagName==="IMG"||e.target.closest(".photo-card")||e.target.closest(".sheet-photo-wrap")||e.target.closest("#lightbox"))){
     e.preventDefault();
     return false;
   }
@@ -1374,6 +1475,12 @@ document.addEventListener("dragstart",function(e){
   }
 });
 document.addEventListener("keydown",function(e){
+  // Lightbox navigation
+  if(!document.getElementById("lightbox").classList.contains("hidden")){
+    if(e.key==="ArrowLeft")lightboxNav(-1);
+    else if(e.key==="ArrowRight")lightboxNav(1);
+    else if(e.key==="Escape")closeLightbox();
+  }
   if(currentGallery&&!currentUser){
     // Block Ctrl+S, Ctrl+P, Ctrl+Shift+S
     if((e.ctrlKey||e.metaKey)&&(e.key==="s"||e.key==="S"||e.key==="p"||e.key==="P")){
@@ -1477,11 +1584,150 @@ function renderGallery(){
     div.className="photo-card";
     const wmHtml=WATERMARK_CONFIG.enabled?'<div class="watermark-overlay"><span class="watermark-text">'+(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")+'</span></div>':'';
     div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false">'+wmHtml;
-    div.onclick=()=>openSheet(photo);
+    div.onclick=()=>openLightbox(photo);
     grid.appendChild(div);
   });
   updateCartUI();
 }
+
+
+
+function openLightbox(photo){
+  const photos=currentGallery.photos||[];
+  lightboxIndex=photos.findIndex(p=>p.id===photo.id);
+  if(lightboxIndex<0)lightboxIndex=0;
+  renderLightbox();
+  show("lightbox");
+}
+
+function renderLightbox(){
+  const photos=currentGallery.photos||[];
+  if(!photos.length)return;
+  const photo=photos[lightboxIndex];
+  document.getElementById("lb-img").src=photo.url;
+  document.getElementById("lb-name").textContent=photo.name;
+  document.getElementById("lb-counter").textContent=(lightboxIndex+1)+" / "+photos.length;
+  // Watermark
+  const wm=document.getElementById("lb-watermark");
+  if(WATERMARK_CONFIG.enabled){
+    wm.style.display="flex";
+    wm.querySelector(".watermark-text").innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>");
+  }else{
+    wm.style.display="none";
+  }
+  // Show/hide nav buttons
+  document.getElementById("lb-prev").style.visibility=lightboxIndex>0?"visible":"hidden";
+  document.getElementById("lb-next").style.visibility=lightboxIndex<photos.length-1?"visible":"hidden";
+}
+
+function lightboxNav(dir){
+  const photos=currentGallery.photos||[];
+  const newIdx=lightboxIndex+dir;
+  if(newIdx>=0&&newIdx<photos.length){
+    lightboxIndex=newIdx;
+    renderLightbox();
+  }
+}
+
+function closeLightbox(){hide("lightbox")}
+
+function orderFromLightbox(){
+  const photos=currentGallery.photos||[];
+  const photo=photos[lightboxIndex];
+  closeLightbox();
+  openSheet(photo);
+}
+
+// Swipe support for lightbox
+let lbTouchStartX=0;
+document.addEventListener("touchstart",function(e){
+  if(!document.getElementById("lightbox").classList.contains("hidden")){
+    lbTouchStartX=e.touches[0].clientX;
+  }
+},{passive:true});
+document.addEventListener("touchend",function(e){
+  if(!document.getElementById("lightbox").classList.contains("hidden")){
+    const diff=e.changedTouches[0].clientX-lbTouchStartX;
+    if(Math.abs(diff)>50){
+      if(diff>0)lightboxNav(-1);
+      else lightboxNav(1);
+    }
+  }
+},{passive:true});
+
+// Keyboard navigation for lightbox
+document.addEventListener("keydown",function(e){
+  if(!document.getElementById("lightbox").classList.contains("hidden")){
+    if(e.key==="ArrowLeft")lightboxNav(-1);
+    else if(e.key==="ArrowRight")lightboxNav(1);
+    else if(e.key==="Escape")closeLightbox();
+  }
+});
+
+
+
+function saveFavorites(){try{localStorage.setItem("fotolux_favs_"+(currentGallery?currentGallery.id:""),JSON.stringify(favorites))}catch(e){}}
+function loadFavorites(){try{const s=localStorage.getItem("fotolux_favs_"+(currentGallery?currentGallery.id:""));favorites=s?JSON.parse(s):[]}catch(e){favorites=[]}}
+function toggleFavorite(photoId){
+  const idx=favorites.indexOf(photoId);
+  if(idx>=0)favorites.splice(idx,1);
+  else favorites.push(photoId);
+  saveFavorites();
+  renderGallery();
+}
+function toggleFavView(){
+  showingFavoritesOnly=!showingFavoritesOnly;
+  renderGallery();
+}
+
+let lightboxIndex=0;
+
+function openLightbox(idx){
+  lightboxIndex=idx;
+  renderLightbox();
+  show("lightbox");
+}
+
+function renderLightbox(){
+  const photos=currentGallery.photos||[];
+  if(!photos.length)return;
+  if(lightboxIndex<0)lightboxIndex=photos.length-1;
+  if(lightboxIndex>=photos.length)lightboxIndex=0;
+  const photo=photos[lightboxIndex];
+  document.getElementById("lightbox-img").src=photo.url;
+  document.getElementById("lightbox-name").textContent=photo.name;
+  document.getElementById("lightbox-counter").textContent=(lightboxIndex+1)+" / "+photos.length;
+  const wm=document.getElementById("lightbox-wm");
+  if(WATERMARK_CONFIG.enabled){
+    wm.querySelector("span").innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>");
+    wm.style.display="flex";
+  }else{
+    wm.style.display="none";
+  }
+  const favBtn=document.getElementById("lightbox-fav-btn");
+  if(favBtn)favBtn.textContent=favorites.includes(photo.id)?"❤️":"🤍";
+}
+
+function toggleFavFromLightbox(){
+  const photos=currentGallery.photos||[];
+  const photo=photos[lightboxIndex];
+  if(photo){toggleFavorite(photo.id);renderLightbox();}
+}
+
+function lightboxNav(dir){
+  lightboxIndex+=dir;
+  renderLightbox();
+}
+
+function closeLightbox(){hide("lightbox")}
+
+function orderFromLightbox(){
+  const photos=currentGallery.photos||[];
+  const photo=photos[lightboxIndex];
+  closeLightbox();
+  openSheet(photo);
+}
+
 function openSheet(photo){
   activePhoto=photo;
   // Show/hide tabs based on enabled products
