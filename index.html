@@ -679,20 +679,6 @@ input:focus{border-color:var(--gold);background:var(--white)}
   <button class="btn btn-gold" style="width:auto;padding:12px 30px;margin-top:18px" onclick="orderFromLightbox()">🛒 Rendelés erről a képről</button>
 </div>
 
-<div id="lightbox" class="lightbox hidden">
-  <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
-  <button class="lightbox-nav lightbox-prev" onclick="lightboxNav(-1)">&#8249;</button>
-  <div class="lightbox-img-wrap">
-    <img id="lightbox-img" class="lightbox-img" src="" alt="" oncontextmenu="return false" ondragstart="return false">
-    <div id="lightbox-wm" class="lightbox-wm"><span></span></div>
-  </div>
-  <button class="lightbox-nav lightbox-next" onclick="lightboxNav(1)">&#8250;</button>
-  <div id="lightbox-name" class="lightbox-name"></div>
-  <div id="lightbox-counter" class="lightbox-counter"></div>
-  <div style="display:flex;gap:10px;margin-top:18px"><button id="lightbox-fav-btn" class="lightbox-order-btn" style="background:rgba(255,255,255,.15)" onclick="toggleFavFromLightbox()">🤍</button><button class="lightbox-order-btn" style="margin-top:0" onclick="orderFromLightbox()">&#128722; Rendelés</button></div>
-  <div class="lightbox-hint">A képek védettek &middot; másolásuk tilos</div>
-</div>
-
 <div id="copyright-warning" class="modal-overlay hidden" style="z-index:500" onclick="closeCopyrightWarning(event)">
   <div class="modal-sheet" style="max-width:440px;text-align:center">
     <div class="sheet-handle"></div>
@@ -1626,9 +1612,9 @@ function renderGallery(){
 
 
 
-function openLightbox(photo){
+function openLightbox(idx){
   const photos=currentGallery.photos||[];
-  lightboxIndex=photos.findIndex(p=>p.id===photo.id);
+  lightboxIndex=(typeof idx==="number")?idx:photos.findIndex(p=>p.id===idx.id);
   if(lightboxIndex<0)lightboxIndex=0;
   renderLightbox();
   show("lightbox");
@@ -1731,53 +1717,6 @@ function toggleFavView(){
 }
 
 let lightboxIndex=0;
-
-function openLightbox(idx){
-  lightboxIndex=idx;
-  renderLightbox();
-  show("lightbox");
-}
-
-function renderLightbox(){
-  const photos=currentGallery.photos||[];
-  if(!photos.length)return;
-  if(lightboxIndex<0)lightboxIndex=photos.length-1;
-  if(lightboxIndex>=photos.length)lightboxIndex=0;
-  const photo=photos[lightboxIndex];
-  document.getElementById("lightbox-img").src=photo.url;
-  document.getElementById("lightbox-name").textContent=photo.name;
-  document.getElementById("lightbox-counter").textContent=(lightboxIndex+1)+" / "+photos.length;
-  const wm=document.getElementById("lightbox-wm");
-  if(WATERMARK_CONFIG.enabled){
-    wm.querySelector("span").innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>");
-    wm.style.display="flex";
-  }else{
-    wm.style.display="none";
-  }
-  const favBtn=document.getElementById("lightbox-fav-btn");
-  if(favBtn)favBtn.textContent=favorites.includes(photo.id)?"❤️":"🤍";
-}
-
-function toggleFavFromLightbox(){
-  const photos=currentGallery.photos||[];
-  const photo=photos[lightboxIndex];
-  if(photo){toggleFavorite(photo.id);renderLightbox();}
-}
-
-function lightboxNav(dir){
-  lightboxIndex+=dir;
-  renderLightbox();
-}
-
-function closeLightbox(){hide("lightbox")}
-
-function orderFromLightbox(){
-  const photos=currentGallery.photos||[];
-  const photo=photos[lightboxIndex];
-  closeLightbox();
-  openSheet(photo);
-}
-
 
 let sheetIndex=0;
 
