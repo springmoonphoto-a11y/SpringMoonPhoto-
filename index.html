@@ -1588,11 +1588,11 @@ function renderGallery(){
   // Update favorites toggle button
   let favBtn=document.getElementById("fav-toggle-btn");
   if(favBtn){
-    favBtn.textContent=showingFavoritesOnly?"❤️ Kedvenceim ("+favorites.length+")":"🤍 Kedvenceim ("+favorites.length+")";
+    favBtn.textContent=showingFavoritesOnly?"← Összes kép":"❤️ Kedvenceim ("+favorites.length+")";
     favBtn.classList.toggle("active",showingFavoritesOnly);
   }
   if(showingFavoritesOnly&&photos.length===0){
-    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:10px">🤍</div><p>Még nincs kedvenc képed.<br>Koppints a szívre a képeken!</p></div>';
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:10px">🤍</div><p style="margin-bottom:18px">Még nincs kedvenc képed.<br>Koppints a szívre a képeken!</p><button class="btn btn-outline" style="width:auto;padding:10px 24px" onclick="toggleFavView()">← Vissza az összes képhez</button></div>';
     updateCartUI();return;
   }
   photos.forEach((photo)=>{
