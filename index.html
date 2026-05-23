@@ -182,7 +182,9 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .gallery-detail-actions{display:flex;gap:10px;margin-top:12px}
 .modal-overlay{position:fixed;inset:0;background:rgba(26,18,8,.55);z-index:300;display:flex;align-items:flex-end;justify-content:center}
 .modal-sheet{background:var(--white);border-radius:24px 24px 0 0;padding:26px 18px 40px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
-.photo-card,.photo-card img,.sheet-photo{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;user-drag:none;-webkit-touch-callout:none;pointer-events:auto}
+.photo-card img,.sheet-photo{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;user-drag:none;-webkit-touch-callout:none}
+.photo-card img{pointer-events:none}
+.photo-card{cursor:pointer}
 .photo-card{position:relative;overflow:hidden}
 .photo-zoom-btn{position:absolute;top:8px;right:8px;background:rgba(20,14,6,.6);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:background .2s}
 .photo-zoom-btn:hover{background:rgba(201,168,76,.9)}
