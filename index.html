@@ -70,24 +70,24 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .admin-photo-card .delete-photo-btn{position:absolute;top:8px;right:8px;background:rgba(192,57,43,.9);color:#fff;border:none;border-radius:50%;width:30px;height:30px;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .admin-photo-card .photo-label{position:absolute;bottom:0;left:0;right:0;background:rgba(26,18,8,.5);color:#fff;font-size:.72rem;padding:5px 8px}
 .overlay{position:fixed;inset:0;background:rgba(26,18,8,.55);z-index:200;display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--white);border-radius:24px 24px 0 0;padding:26px 18px 38px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto}
-.sheet-handle{width:38px;height:4px;background:var(--warm);border-radius:4px;margin:0 auto 18px}
-.sheet-photo{width:100%;max-height:280px;object-fit:contain;background:var(--cream);border-radius:12px;margin-bottom:18px}
-.sheet-name{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--dark);margin-bottom:16px}
-.type-tabs{display:flex;gap:10px;margin-bottom:20px}
-.type-tab{flex:1;padding:12px;border:1.5px solid var(--warm);border-radius:10px;background:var(--cream);cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--muted);transition:all .15s}
+.sheet{background:var(--white);border-radius:24px 24px 0 0;padding:16px 18px 24px;width:100%;max-width:500px;max-height:96vh;overflow-y:auto}
+.sheet-handle{width:38px;height:4px;background:var(--warm);border-radius:4px;margin:0 auto 10px}
+.sheet-photo{width:100%;max-height:200px;object-fit:contain;background:var(--cream);border-radius:12px;margin-bottom:0}
+.sheet-name{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px;text-align:center}
+.type-tabs{display:flex;gap:8px;margin-bottom:14px}
+.type-tab{flex:1;padding:9px;border:1.5px solid var(--warm);border-radius:10px;background:var(--cream);cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;font-size:.84rem;color:var(--muted);transition:all .15s}
 .type-tab.active{border-color:var(--gold);background:#fff8ee;color:var(--brown);font-weight:500}
-.tab-icon{font-size:1.3rem;display:block;margin-bottom:3px}
-.size-list{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
-.size-row{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border:1.5px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);transition:all .15s}
+.tab-icon{font-size:1.1rem;display:block;margin-bottom:2px}
+.size-list{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.size-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);transition:all .15s}
 .size-row.active{border-color:var(--gold);background:#fff8ee}
-.digital-info{background:var(--cream);border-radius:12px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:12px}
-.qty-row{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.digital-info{background:var(--cream);border-radius:12px;padding:14px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.qty-row{display:flex;align-items:center;gap:14px;margin-bottom:12px}
 .qty-ctrl{display:flex;align-items:center;gap:12px}
 .qty-btn{width:34px;height:34px;border:1.5px solid var(--warm);border-radius:50%;background:var(--cream);cursor:pointer;font-size:1.1rem;color:var(--brown);display:flex;align-items:center;justify-content:center}
 .qty-num{font-size:1.1rem;font-weight:600;min-width:22px;text-align:center}
 .add-btn-row{display:flex;gap:10px}
-.sheet-total{font-weight:600;color:var(--gold);font-size:1rem;margin-bottom:16px;text-align:right}
+.sheet-total{font-weight:600;color:var(--gold);font-size:1rem;margin-bottom:12px;text-align:right}
 .cart-item{background:var(--white);border-radius:13px;padding:14px;margin-bottom:11px;display:flex;gap:12px;align-items:flex-start;box-shadow:var(--shadow-sm)}
 .cart-item img{width:66px;height:84px;object-fit:cover;border-radius:7px;flex-shrink:0}
 .cart-item-info{flex:1}
@@ -195,10 +195,14 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .fav-toggle-btn.active{background:#fdeaea;border-color:#c0392b;color:#c0392b}
 .watermark-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2}
 .watermark-text{font-family:'Playfair Display',serif;color:rgba(255,255,255,.55);font-size:1rem;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.4);transform:rotate(-30deg);text-align:center;letter-spacing:.08em;white-space:nowrap;text-transform:uppercase}
-.sheet-photo-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:18px}
+.sheet-photo-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:12px}
 .sheet-photo-wrap .watermark-overlay{align-items:center;justify-content:center}
 .sheet-photo-wrap .watermark-text{font-size:1.3rem}
 .sheet-photo{margin-bottom:0!important}
+.sheet-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(20,14,6,.55);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:background .2s}
+.sheet-nav:hover{background:rgba(201,168,76,.9)}
+.sheet-nav-prev{left:8px}.sheet-nav-next{right:8px}
+.sheet-counter{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(20,14,6,.6);color:#fff;font-size:.75rem;padding:3px 10px;border-radius:20px;z-index:3}
 .lightbox{position:fixed;inset:0;background:rgba(20,14,6,.94);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .lightbox-img-wrap{position:relative;max-width:85vw;max-height:62vh;display:flex;align-items:center;justify-content:center}
 .lightbox-img{max-width:85vw;max-height:62vh;object-fit:contain;border-radius:8px;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}
@@ -325,7 +329,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 <div id="overlay" class="overlay hidden" onclick="closeOverlay(event)">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <div class="sheet-photo-wrap"><img id="sheet-img" class="sheet-photo" src="" alt="" oncontextmenu="return false" ondragstart="return false"><div id="sheet-watermark" class="watermark-overlay"><span id="sheet-watermark-text" class="watermark-text">SpringMoonPhoto<br>MINTA</span></div></div>
+    <div class="sheet-photo-wrap"><img id="sheet-img" class="sheet-photo" src="" alt="" oncontextmenu="return false" ondragstart="return false"><div id="sheet-watermark" class="watermark-overlay"><span id="sheet-watermark-text" class="watermark-text">SpringMoonPhoto<br>MINTA</span></div><button class="sheet-nav sheet-nav-prev" onclick="sheetNav(-1)">&#8249;</button><button class="sheet-nav sheet-nav-next" onclick="sheetNav(1)">&#8250;</button><div id="sheet-counter" class="sheet-counter"></div></div>
     <div id="sheet-name" class="sheet-name"></div>
     <div class="type-tabs">
       <div id="tab-print" class="type-tab active" onclick="setType('print')"><span class="tab-icon">&#128444;&#65039;</span>Papírkép</div>
@@ -1774,8 +1778,39 @@ function orderFromLightbox(){
   openSheet(photo);
 }
 
+
+let sheetIndex=0;
+
+function sheetNav(dir){
+  const photos=currentGallery.photos||[];
+  if(!photos.length)return;
+  sheetIndex+=dir;
+  if(sheetIndex<0)sheetIndex=photos.length-1;
+  if(sheetIndex>=photos.length)sheetIndex=0;
+  openSheet(photos[sheetIndex]);
+}
+
+function updateSheetNav(){
+  const photos=currentGallery.photos||[];
+  const counter=document.getElementById("sheet-counter");
+  if(counter)counter.textContent=(sheetIndex+1)+" / "+photos.length;
+  const prev=document.querySelector(".sheet-nav-prev");
+  const next=document.querySelector(".sheet-nav-next");
+  if(photos.length<=1){
+    if(prev)prev.style.display="none";
+    if(next)next.style.display="none";
+    if(counter)counter.style.display="none";
+  }else{
+    if(prev)prev.style.display="flex";
+    if(next)next.style.display="flex";
+    if(counter)counter.style.display="block";
+  }
+}
+
 function openSheet(photo){
   activePhoto=photo;
+  sheetIndex=(currentGallery.photos||[]).findIndex(p=>p.id===photo.id);
+  updateSheetNav();
   // Show/hide tabs based on enabled products
   document.getElementById("tab-print").style.display=ENABLED_PRODUCTS.print?"block":"none";
   document.getElementById("tab-digital").style.display=ENABLED_PRODUCTS.digital?"block":"none";
