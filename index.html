@@ -12,6 +12,11 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--cream:#FAF7F2;--warm:#F0E8DC;--brown:#5C3D2E;--gold:#C9A84C;--dark:#1A1208;--text:#3D2B1F;--muted:#8A7060;--white:#fff;--green:#2e7d50;--shadow:0 8px 40px rgba(92,61,46,.13);--shadow-sm:0 2px 12px rgba(92,61,46,.10)}
+body.dark-mode{--cream:#1a1614;--warm:#2a2420;--brown:#d4a960;--gold:#C9A84C;--dark:#f5ede0;--text:#e0d5c5;--muted:#a08870;--white:#241f1b;--green:#3da868;--shadow:0 8px 40px rgba(0,0,0,.4);--shadow-sm:0 2px 12px rgba(0,0,0,.3)}
+body.dark-mode .login-wrap{background:linear-gradient(160deg,#1a1614 0%,#241f1b 100%)}
+body.dark-mode #page-loading{background:linear-gradient(160deg,#1a1614,#241f1b)!important}
+body.dark-mode input[type=text],body.dark-mode input[type=email],body.dark-mode input[type=password],body.dark-mode input[type=tel],body.dark-mode input[type=number],body.dark-mode textarea{background:#2a2420;color:#f5ede0}
+body.dark-mode .type-tab,body.dark-mode .size-row,body.dark-mode .admin-tab{background:#2a2420}
 body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
 h1,h2,h3{font-family:'Playfair Display',serif}
 .hidden{display:none!important}
@@ -219,6 +224,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 </div>
 
 <div id="page-login" class="login-wrap hidden">
+  <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="position:absolute;top:16px;right:16px;font-size:1.3rem">🌗</button>
   <div class="logo">SpringMoon<span>Gallery</span></div>
   <div style="font-size:.7rem;color:var(--muted);font-family:'DM Sans',sans-serif;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">by</div>
   <img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:32px;width:auto;margin-bottom:24px">
@@ -295,6 +301,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
   <div class="header">
     <div class="header-logo">SpringMoon<span>Gallery</span></div>
     <div class="header-right">
+      <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="font-size:1.1rem">🌗</button>
       <button id="fav-toggle-btn" class="fav-toggle-btn" onclick="toggleFavView()">🤍 Kedvenceim (0)</button>
       <button class="orders-btn" onclick="showMyOrders()">&#128203; Rendeléseim</button>
       <button class="cart-btn" onclick="showCart()">&#128722; <span id="cart-badge" class="cart-badge hidden">0</span></button>
@@ -306,7 +313,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
       <h2 id="gallery-title" style="font-size:1.55rem;color:var(--dark)">Képek</h2>
       <p style="color:var(--muted);margin-top:4px;font-size:.9rem">Koppintson egy képre a rendeléshez</p>
     </div>
-    <div class="section-title">Összes fotó</div>
+    <div class="section-title"><span id="photo-count-label">Összes fotó</span></div>
     <div style="text-align:center;color:var(--muted);font-size:.84rem;margin-bottom:18px;font-style:italic">Koppints a képre – rendelj digitálisan vagy papírban</div>
     <div id="photo-grid" class="photo-grid"></div>
     <button id="cart-float-btn" class="btn btn-gold hidden" onclick="showCart()"></button>
@@ -437,7 +444,10 @@ input:focus{border-color:var(--gold);background:var(--white)}
 <div id="page-admin" class="hidden">
   <div class="header">
     <div class="header-logo">SpringMoon<span>Gallery</span> <span style="font-size:.7rem;color:var(--muted);font-family:DM Sans;font-style:normal">Admin</span></div>
-    <button class="logout-btn" onclick="logout()">Kilépés</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="font-size:1.1rem">🌗</button>
+      <button class="logout-btn" onclick="logout()">Kilépés</button>
+    </div>
   </div>
   <div class="wrap">
     <div class="admin-header-box">
@@ -1675,6 +1685,22 @@ function toggleFavorite(photoId){
   saveFavorites();
   renderGallery();
 }
+
+function toggleDarkMode(){
+  document.body.classList.toggle("dark-mode");
+  const isDark=document.body.classList.contains("dark-mode");
+  try{localStorage.setItem("fotolux_dark_mode",isDark?"1":"0")}catch(e){}
+}
+
+function loadDarkMode(){
+  try{
+    if(localStorage.getItem("fotolux_dark_mode")==="1"){
+      document.body.classList.add("dark-mode");
+    }
+  }catch(e){}
+}
+loadDarkMode();
+
 function toggleFavView(){
   showingFavoritesOnly=!showingFavoritesOnly;
   renderGallery();
