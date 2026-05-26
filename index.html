@@ -218,10 +218,12 @@ body.dark-mode .header{background:#0d0a06!important;border-bottom-color:#1e1608!
 body.dark-mode .header-logo{background:linear-gradient(180deg,#f8e880 0%,#d4a028 42%,#8a5e0c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;display:inline-flex;flex-direction:column;line-height:1.1;gap:2px}
 body.dark-mode .header-logo>span{-webkit-text-fill-color:transparent}
 .header-logo-sub{display:none!important}
-body.dark-mode .header-logo-sub{display:flex!important;align-items:center;gap:5px;-webkit-text-fill-color:initial!important;color:#9a7018;font-family:'DM Sans',sans-serif;font-size:.44rem;letter-spacing:.1em;text-transform:uppercase;font-weight:400}
-.hls-line{display:block;width:14px;height:1px;background:linear-gradient(90deg,transparent,#9a7018);flex-shrink:0}
+body.dark-mode .header-logo-sub{display:flex!important;flex-direction:column;align-items:stretch;gap:3px;-webkit-text-fill-color:initial!important;margin-top:2px}
+.hls-byrow{display:flex;align-items:center;justify-content:center;gap:6px}
+.hls-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#9a7018);min-width:18px}
 .hls-line.r{background:linear-gradient(90deg,#9a7018,transparent)}
-.hls-script{font-family:'Great Vibes',cursive;font-size:.88rem;text-transform:none;letter-spacing:.01em;line-height:1;color:#c09020}
+.hls-by{font-family:'DM Sans',sans-serif;font-size:.42rem;letter-spacing:.22em;color:#9a7018;text-transform:uppercase;font-weight:400;white-space:nowrap}
+.hls-script{font-family:'Great Vibes',cursive;font-size:1.15rem;text-transform:none;letter-spacing:.01em;line-height:1;color:#c09020;text-align:center}
 body.dark-mode .logo{background:linear-gradient(180deg,#f8e880 0%,#d4a028 42%,#8a5e0c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 body.dark-mode .logo span{-webkit-text-fill-color:transparent}
 body.dark-mode .admin-header-box{background:linear-gradient(135deg,#1c1408,#2a1e08)}
@@ -306,7 +308,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
 </div>
 <div id="page-gallery" class="hidden">
   <div class="header">
-    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-line"></span><span class="hls-script">SpringMoonPhoto</span><span class="hls-line r"></span></div></div>
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-byrow"><span class="hls-line"></span><span class="hls-by">&#9670; BY &#9670;</span><span class="hls-line r"></span></span><span class="hls-script">SpringMoonPhoto</span></div></div>
     <div class="header-right">
       <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="font-size:1.1rem">🌗</button>
       <button id="fav-toggle-btn" class="fav-toggle-btn" onclick="toggleFavView()">🤍 Kedvenceim (0)</button>
@@ -366,7 +368,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
 </div>
 <div id="page-cart" class="hidden">
   <div class="header">
-    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-line"></span><span class="hls-script">SpringMoonPhoto</span><span class="hls-line r"></span></div></div>
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-byrow"><span class="hls-line"></span><span class="hls-by">&#9670; BY &#9670;</span><span class="hls-line r"></span></span><span class="hls-script">SpringMoonPhoto</span></div></div>
     <button class="logout-btn" onclick="showGallery()">← Vissza</button>
   </div>
   <div class="wrap">
@@ -437,7 +439,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
 </div>
 <div id="page-admin" class="hidden">
   <div class="header">
-    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-line"></span><span class="hls-script">SpringMoonPhoto</span><span class="hls-line r"></span></div></div>
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-byrow"><span class="hls-line"></span><span class="hls-by">&#9670; BY &#9670;</span><span class="hls-line r"></span></span><span class="hls-script">SpringMoonPhoto</span></div></div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="font-size:1.1rem">🌗</button>
       <button class="logout-btn" onclick="logout()">Kilépés</button>
@@ -559,7 +561,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
 </div>
 <div id="page-gallery-detail" class="hidden">
   <div class="header">
-    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-line"></span><span class="hls-script">SpringMoonPhoto</span><span class="hls-line r"></span></div></div>
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-byrow"><span class="hls-line"></span><span class="hls-by">&#9670; BY &#9670;</span><span class="hls-line r"></span></span><span class="hls-script">SpringMoonPhoto</span></div></div>
     <button class="logout-btn" onclick="backToAdminGalleries()">← Vissza</button>
   </div>
   <div class="wrap">
