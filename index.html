@@ -75,7 +75,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .overlay{position:fixed;inset:0;background:rgba(26,18,8,.55);z-index:200;display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--white);border-radius:24px 24px 0 0;padding:16px 18px 24px;width:100%;max-width:500px;max-height:96vh;overflow-y:auto}
 .sheet-handle{width:38px;height:4px;background:var(--warm);border-radius:4px;margin:0 auto 10px}
-.sheet-photo{width:100%;max-height:200px;object-fit:contain;background:var(--cream);border-radius:12px;margin-bottom:0}
+.sheet-photo{width:100%;max-height:340px;object-fit:contain;background:var(--cream);border-radius:12px;margin-bottom:0}
 .sheet-name{font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px;text-align:center}
 .type-tabs{display:flex;gap:8px;margin-bottom:14px}
 .type-tab{flex:1;padding:9px;border:1.5px solid var(--warm);border-radius:10px;background:var(--cream);cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;font-size:.84rem;color:var(--muted);transition:all .15s}
@@ -953,6 +953,7 @@ async function sendStatusChangeEmail(order,newStatus){
   }catch(e){console.error("Email send error:",e)}
 }
 function fmt(n){return n.toLocaleString("hu-HU")+" Ft"}
+function lowQ(url){if(!url||url.indexOf("/upload/")<0)return url;return url.replace("/upload/","/upload/q_25,w_750/")}
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
 function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail"].forEach(p=>hide(p));show(id)}
@@ -1168,7 +1169,7 @@ function openLightbox(idx){
 }
 function renderLightbox(){
   const photos=currentGallery.photos||[];if(!photos.length)return;const photo=photos[lightboxIndex];
-  document.getElementById("lb-img").src=photo.url;document.getElementById("lb-name").textContent=photo.name;document.getElementById("lb-counter").textContent=(lightboxIndex+1)+" / "+photos.length;
+  document.getElementById("lb-img").src=lowQ(photo.url);document.getElementById("lb-name").textContent=photo.name;document.getElementById("lb-counter").textContent=(lightboxIndex+1)+" / "+photos.length;
   const wm=document.getElementById("lb-watermark");if(WATERMARK_CONFIG.enabled){wm.style.display="flex";wm.querySelector(".watermark-text").innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")}else{wm.style.display="none"}
   document.getElementById("lb-prev").style.visibility=lightboxIndex>0?"visible":"hidden";document.getElementById("lb-next").style.visibility=lightboxIndex<photos.length-1?"visible":"hidden";
 }
@@ -1207,7 +1208,7 @@ function openSheet(photo){
   document.getElementById("tab-gift").style.display=ENABLED_PRODUCTS.gift?"block":"none";
   if(ENABLED_PRODUCTS.print)orderType="print";else if(ENABLED_PRODUCTS.digital)orderType="digital";else if(ENABLED_PRODUCTS.gift)orderType="gift";
   selectedSize=PRINT_SIZES[0];qty=1;selectedGift=GIFT_ITEMS[0];
-  document.getElementById("sheet-img").src=photo.url;document.getElementById("sheet-name").textContent=photo.name;
+  document.getElementById("sheet-img").src=lowQ(photo.url);document.getElementById("sheet-name").textContent=photo.name;
   const sw=document.getElementById("sheet-watermark");const swt=document.getElementById("sheet-watermark-text");
   if(WATERMARK_CONFIG.enabled){sw.style.display="flex";swt.innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")}else{sw.style.display="none"}
   document.getElementById("qty-num").textContent=1;
