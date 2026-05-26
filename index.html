@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SpringMoon Gallery</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=Great+Vibes&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0d0a06">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SpringMoon">
+<link rel="apple-touch-icon" href="https://res.cloudinary.com/dpluouggw/image/upload/c_pad,w_180,h_180,b_rgb:050302/v1778580136/springmoon_logo_dark_uaodfx.png">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22SpringMoon%20Gallery%22%2C%20%22short_name%22%3A%20%22SpringMoon%22%2C%20%22start_url%22%3A%20%22./%22%2C%20%22scope%22%3A%20%22./%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22orientation%22%3A%20%22portrait%22%2C%20%22background_color%22%3A%20%22%23050302%22%2C%20%22theme_color%22%3A%20%22%230d0a06%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22https%3A//res.cloudinary.com/dpluouggw/image/upload/c_pad%2Cw_192%2Ch_192%2Cb_rgb%3A050302/v1778580136/springmoon_logo_dark_uaodfx.png%22%2C%20%22sizes%22%3A%20%22192x192%22%2C%20%22type%22%3A%20%22image/png%22%2C%20%22purpose%22%3A%20%22any%22%7D%2C%20%7B%22src%22%3A%20%22https%3A//res.cloudinary.com/dpluouggw/image/upload/c_pad%2Cw_512%2Ch_512%2Cb_rgb%3A050302/v1778580136/springmoon_logo_dark_uaodfx.png%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/png%22%2C%20%22purpose%22%3A%20%22any%22%7D%5D%7D">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -216,6 +223,30 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .lightbox-name{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;margin-top:6px}
 .lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
 .lightbox-order-btn:hover{background:#b8922e}
+/* ===== NYOMTATÁSI ÖSSZESÍTŐ ===== */
+.ps-head{text-align:center;margin-bottom:16px}
+.ps-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--dark)}
+.ps-sub{font-size:.85rem;color:var(--muted);margin-top:3px}
+.ps-section-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--brown);margin:18px 0 10px;border-bottom:2px solid var(--gold);padding-bottom:5px}
+.ps-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--warm);font-size:.88rem}
+.ps-row img{width:38px;height:48px;object-fit:cover;border-radius:5px;flex-shrink:0}
+.ps-row .ps-name{flex:1;color:var(--dark)}
+.ps-row .ps-size{color:var(--muted);min-width:90px}
+.ps-row .ps-qty{font-weight:700;color:var(--gold);min-width:48px;text-align:right}
+.ps-cust{margin-bottom:12px;padding:10px 12px;background:var(--cream);border-radius:8px}
+.ps-cust-name{font-weight:600;color:var(--dark);margin-bottom:4px}
+.ps-cust-item{font-size:.82rem;color:var(--text);padding:2px 0}
+.ps-total{margin-top:14px;padding:12px;background:var(--brown);color:#fff;border-radius:10px;display:flex;justify-content:space-between;font-weight:600}
+@media print{
+  body{background:#fff!important}
+  body *{visibility:hidden}
+  #print-summary-modal,#print-summary-modal *{visibility:visible}
+  #print-summary-modal{position:absolute;inset:0;background:#fff;display:block;padding:0}
+  #print-summary-sheet{box-shadow:none;max-height:none;max-width:100%;border-radius:0;padding:10px 20px}
+  .ps-total{background:#5C3D2E!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .ps-section-title{border-bottom-color:#C9A84C!important}
+  .no-print{display:none!important}
+}
 /* ===== DARK MODE: Fekete hatter + arany gradiens logo ===== */
 body.dark-mode .header{background:#0d0a06!important;border-bottom-color:#1e1608!important}
 body.dark-mode .header-logo{background:linear-gradient(180deg,#f8e880 0%,#d4a028 42%,#8a5e0c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;display:inline-flex;flex-direction:column;line-height:1.1;gap:2px}
@@ -586,6 +617,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <button class="btn btn-blue btn-sm" onclick="toggleEditForm()">&#9999;&#65039; Szerkesztés</button>
         <button class="btn btn-outline btn-sm" onclick="toggleProductsForm()">&#127919; Termékek</button>
         <button class="btn btn-gold btn-sm" onclick="copyGallerySettings()">&#128203; Másolás</button>
+        <button class="btn btn-green btn-sm" onclick="showPrintSummary()">&#128424;&#65039; Nyomtatási összesítő</button>
         <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">&#128465;&#65039; Törlés</button>
       </div>
       <div id="edit-form" class="hidden" style="margin-top:16px;border-top:1px solid var(--warm);padding-top:16px">
@@ -684,6 +716,16 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <p style="font-size:.85rem;color:var(--muted);margin-bottom:20px">Az email címedhez tartozó összes rendelés és azok aktuális státusza</p>
     <div id="my-orders-list"></div>
     <button class="btn btn-outline" style="margin-top:10px" onclick="document.getElementById('my-orders-modal').classList.add('hidden')">Bezárás</button>
+  </div>
+</div>
+<div id="print-summary-modal" class="modal-overlay hidden" onclick="closePrintSummary(event)">
+  <div class="modal-sheet" id="print-summary-sheet">
+    <div class="sheet-handle no-print"></div>
+    <div id="print-summary-content"></div>
+    <div class="no-print" style="display:flex;gap:9px;margin-top:16px">
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('print-summary-modal').classList.add('hidden')">Bezárás</button>
+      <button class="btn btn-green" style="flex:1" onclick="window.print()">&#128424;&#65039; Nyomtatás / PDF mentés</button>
+    </div>
   </div>
 </div>
 <script>
@@ -1520,6 +1562,47 @@ async function deletePhoto(index){
   try{await db.collection("galleries").doc(currentDetailGallery.id).update({photos});currentDetailGallery.photos=photos;const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g)g.photos=photos;renderDetailPhotos()}
   catch(e){alert("Hiba történt a törlés során!")}
 }
+
+function showPrintSummary(){
+  if(!currentDetailGallery)return;
+  const gid=currentDetailGallery.id;
+  const gOrders=orders.filter(o=>o.galleryId===gid);
+  const agg={};let totalPrints=0;const perCust=[];
+  gOrders.forEach(o=>{
+    const printItems=(o.items||[]).filter(i=>i.type==="print");
+    if(printItems.length===0)return;
+    const ci=[];
+    printItems.forEach(i=>{
+      const key=i.photoName+"|||"+(i.sizeLabel||"");
+      if(!agg[key])agg[key]={photoName:i.photoName,photoUrl:i.photoUrl,size:i.sizeLabel||"",qty:0};
+      agg[key].qty+=i.qty;totalPrints+=i.qty;ci.push(i);
+    });
+    perCust.push({name:o.child||o.parentName||"-",parent:o.parentName||"",phone:o.phone||"",items:ci});
+  });
+  const content=document.getElementById("print-summary-content");
+  const gName=currentDetailGallery.isGroup?currentDetailGallery.name:currentDetailGallery.child;
+  if(totalPrints===0){
+    content.innerHTML='<div class="ps-head"><div class="ps-title">&#128424;&#65039; Nyomtat\u00e1si \u00f6sszes\u00edt\u0151</div><div class="ps-sub">'+gName+'</div></div><div class="empty-msg">Ebben a gal\u00e9ri\u00e1ban m\u00e9g nincs pap\u00edrk\u00e9p rendel\u00e9s.</div>';
+    document.getElementById("print-summary-modal").classList.remove("hidden");
+    return;
+  }
+  const aggList=Object.values(agg).sort((a,b)=>a.photoName.localeCompare(b.photoName,"hu")||a.size.localeCompare(b.size,"hu"));
+  let html='<div class="ps-head"><div class="ps-title">&#128424;&#65039; Nyomtat\u00e1si \u00f6sszes\u00edt\u0151</div><div class="ps-sub">'+gName+' &middot; '+new Date().toLocaleDateString("hu-HU")+'</div></div>';
+  html+='<div class="ps-section-title">\ud83d\udce6 Laborhoz \u2013 k\u00e9penk\u00e9nt \u00e9s m\u00e9retenk\u00e9nt</div>';
+  aggList.forEach(a=>{
+    html+='<div class="ps-row"><img src="'+lowQ(a.photoUrl)+'" alt=""><span class="ps-name">'+a.photoName+'</span><span class="ps-size">'+a.size+'</span><span class="ps-qty">'+a.qty+' db</span></div>';
+  });
+  html+='<div class="ps-total"><span>\u00d6sszes pap\u00edrk\u00e9p</span><span>'+totalPrints+' db</span></div>';
+  html+='<div class="ps-section-title">\ud83d\udc64 Rendel\u00e9senk\u00e9nt (csomagol\u00e1shoz)</div>';
+  perCust.forEach(c=>{
+    html+='<div class="ps-cust"><div class="ps-cust-name">'+c.name+(c.parent&&c.parent!==c.name?' ('+c.parent+')':'')+(c.phone?' \u00b7 '+c.phone:'')+'</div>';
+    c.items.forEach(i=>{html+='<div class="ps-cust-item">\u2022 '+i.photoName+' \u2013 '+(i.sizeLabel||"")+' \u00d7 '+i.qty+'</div>'});
+    html+='</div>';
+  });
+  content.innerHTML=html;
+  document.getElementById("print-summary-modal").classList.remove("hidden");
+}
+function closePrintSummary(e){if(e.target===document.getElementById("print-summary-modal"))document.getElementById("print-summary-modal").classList.add("hidden")}
 
 async function deleteCurrentGallery(){
   if(!confirm("Biztosan törli az egész galériát?"))return;
