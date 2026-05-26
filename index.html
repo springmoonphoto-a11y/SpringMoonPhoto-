@@ -48,7 +48,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .admin-link{margin-top:16px;text-align:center;font-size:.84rem;color:var(--muted)}
 .admin-link button{background:none;border:none;color:var(--gold);cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif}
 .header{background:var(--white);border-bottom:1px solid var(--warm);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(92,61,46,.06)}
-.header-logo{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--brown)}
+.header-logo{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--brown);display:inline-flex;flex-direction:column;line-height:1.1;gap:2px}
 .header-logo span{color:var(--gold);font-style:italic}
 .header-right{display:flex;align-items:center;gap:8px}
 .cart-btn{background:var(--warm);border:none;border-radius:50px;padding:9px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--brown);font-weight:500;display:flex;align-items:center;gap:5px;transition:background .2s}
@@ -217,13 +217,23 @@ input:focus{border-color:var(--gold);background:var(--white)}
 body.dark-mode .header{background:#0d0a06!important;border-bottom-color:#1e1608!important}
 body.dark-mode .header-logo{background:linear-gradient(180deg,#f8e880 0%,#d4a028 42%,#8a5e0c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;display:inline-flex;flex-direction:column;line-height:1.1;gap:2px}
 body.dark-mode .header-logo>span{-webkit-text-fill-color:transparent}
-.header-logo-sub{display:none!important}
+.header-logo-sub{display:flex!important;flex-direction:column;align-items:stretch;gap:3px;margin-top:2px}
 body.dark-mode .header-logo-sub{display:flex!important;flex-direction:column;align-items:stretch;gap:3px;-webkit-text-fill-color:initial!important;margin-top:2px}
 .hls-byrow{display:flex;align-items:center;justify-content:center;gap:6px}
 .hls-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#9a7018);min-width:18px}
 .hls-line.r{background:linear-gradient(90deg,#9a7018,transparent)}
 .hls-by{font-family:'DM Sans',sans-serif;font-size:.42rem;letter-spacing:.22em;color:#9a7018;text-transform:uppercase;font-weight:400;white-space:nowrap}
 .hls-script{font-family:'Great Vibes',cursive;font-size:1.15rem;text-transform:none;letter-spacing:.01em;line-height:1;color:#c09020;text-align:center}
+.logo-sub{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:230px;margin-bottom:24px}
+.ls-byrow{display:flex;align-items:center;justify-content:center;gap:10px}
+.ls-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#c9a84c)}
+.ls-line.r{background:linear-gradient(90deg,#c9a84c,transparent)}
+.ls-by{font-family:'DM Sans',sans-serif;font-size:.62rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
+.ls-script{font-family:'Great Vibes',cursive;font-size:1.9rem;line-height:1;color:#c9a84c;text-align:center}
+body.dark-mode .ls-line{background:linear-gradient(90deg,transparent,#9a7018)}
+body.dark-mode .ls-line.r{background:linear-gradient(90deg,#9a7018,transparent)}
+body.dark-mode .ls-by{color:#9a7018}
+body.dark-mode .ls-script{color:#c09020}
 body.dark-mode .logo{background:linear-gradient(180deg,#f8e880 0%,#d4a028 42%,#8a5e0c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 body.dark-mode .logo span{-webkit-text-fill-color:transparent}
 body.dark-mode .admin-header-box{background:linear-gradient(135deg,#1c1408,#2a1e08)}
@@ -234,16 +244,14 @@ body.dark-mode .upload-area:hover{background:#1a1408}
 <body>
 <div id="page-loading" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#FAF7F2,#F0E8DC)">
   <div style="font-family:'Playfair Display',serif;font-size:2rem;color:#5C3D2E;margin-bottom:4px">SpringMoon<span style="color:#C9A84C;font-style:italic">Gallery</span></div>
-  <div style="font-family:'DM Sans',sans-serif;font-size:.7rem;color:#8A7060;letter-spacing:.05em;margin-bottom:6px;text-transform:uppercase">by</div>
-  <img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:28px;width:auto;margin-bottom:20px">
+  <div class="logo-sub" style="margin-bottom:20px"><span class="ls-byrow"><span class="ls-line"></span><span class="ls-by">BY</span><span class="ls-line r"></span></span><span class="ls-script">SpringMoonPhoto</span></div>
   <div class="spinner"></div>
   <p style="color:#8A7060;font-size:.9rem">Betoltes...</p>
 </div>
 <div id="page-login" class="login-wrap hidden">
   <button class="logout-btn" onclick="toggleDarkMode()" title="Sotet mod" style="position:absolute;top:16px;right:16px;font-size:1.3rem">&#127771;</button>
   <div class="logo">SpringMoon<span>Gallery</span></div>
-  <div style="font-size:.7rem;color:var(--muted);font-family:'DM Sans',sans-serif;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">by</div>
-  <img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:32px;width:auto;margin-bottom:24px">
+  <div class="logo-sub"><span class="ls-byrow"><span class="ls-line"></span><span class="ls-by">BY</span><span class="ls-line r"></span></span><span class="ls-script">SpringMoonPhoto</span></div>
   <div style="margin-bottom:20px"></div>
   <div id="parent-login-card" class="card">
     <h2>Belepes a galeriaba</h2>
