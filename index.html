@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SpringMoon Gallery</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=Great+Vibes&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -12,11 +12,11 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--cream:#FAF7F2;--warm:#F0E8DC;--brown:#5C3D2E;--gold:#C9A84C;--dark:#1A1208;--text:#3D2B1F;--muted:#8A7060;--white:#fff;--green:#2e7d50;--shadow:0 8px 40px rgba(92,61,46,.13);--shadow-sm:0 2px 12px rgba(92,61,46,.10)}
-body.dark-mode{--cream:#1a1614;--warm:#2a2420;--brown:#d4a960;--gold:#C9A84C;--dark:#f5ede0;--text:#e0d5c5;--muted:#a08870;--white:#241f1b;--green:#3da868;--shadow:0 8px 40px rgba(0,0,0,.4);--shadow-sm:0 2px 12px rgba(0,0,0,.3)}
-body.dark-mode .login-wrap{background:linear-gradient(160deg,#1a1614 0%,#241f1b 100%)}
-body.dark-mode #page-loading{background:linear-gradient(160deg,#1a1614,#241f1b)!important}
-body.dark-mode input[type=text],body.dark-mode input[type=email],body.dark-mode input[type=password],body.dark-mode input[type=tel],body.dark-mode input[type=number],body.dark-mode textarea{background:#2a2420;color:#f5ede0}
-body.dark-mode .type-tab,body.dark-mode .size-row,body.dark-mode .admin-tab{background:#2a2420}
+body.dark-mode{--cream:#050302;--warm:#100c08;--brown:#d4a960;--gold:#C9A84C;--dark:#f5ede0;--text:#e0d5c5;--muted:#a08870;--white:#0d0a06;--green:#3da868;--shadow:0 8px 40px rgba(0,0,0,.7);--shadow-sm:0 2px 12px rgba(0,0,0,.5)}
+body.dark-mode .login-wrap{background:linear-gradient(160deg,#050302 0%,#0d0a06 100%)}
+body.dark-mode #page-loading{background:linear-gradient(160deg,#050302,#0d0a06)!important}
+body.dark-mode input[type=text],body.dark-mode input[type=email],body.dark-mode input[type=password],body.dark-mode input[type=tel],body.dark-mode input[type=number],body.dark-mode textarea{background:#1a1408;color:#f5ede0}
+body.dark-mode .type-tab,body.dark-mode .size-row,body.dark-mode .admin-tab{background:#1a1408}
 body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
 h1,h2,h3{font-family:'Playfair Display',serif}
 .hidden{display:none!important}
@@ -184,8 +184,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .modal-sheet{background:var(--white);border-radius:24px 24px 0 0;padding:26px 18px 40px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
 .photo-card img,.sheet-photo{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;user-drag:none;-webkit-touch-callout:none}
 .photo-card img{pointer-events:none}
-.photo-card{cursor:pointer}
-.photo-card{position:relative;overflow:hidden}
+.photo-card{cursor:pointer;position:relative;overflow:hidden}
 .photo-zoom-btn{position:absolute;top:8px;right:8px;background:rgba(20,14,6,.6);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:background .2s}
 .photo-zoom-btn:hover{background:rgba(201,168,76,.9)}
 .photo-fav-btn{position:absolute;top:8px;left:8px;background:rgba(20,14,6,.6);border:none;color:#fff;width:34px;height:34px;border-radius:50%;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;transition:all .2s}
@@ -204,8 +203,6 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .sheet-nav-prev{left:8px}.sheet-nav-next{right:8px}
 .sheet-counter{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(20,14,6,.6);color:#fff;font-size:.75rem;padding:3px 10px;border-radius:20px;z-index:3}
 .lightbox{position:fixed;inset:0;background:rgba(20,14,6,.94);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.lightbox-img-wrap{position:relative;max-width:85vw;max-height:62vh;display:flex;align-items:center;justify-content:center}
-.lightbox-img{max-width:85vw;max-height:62vh;object-fit:contain;border-radius:8px;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}
 .lightbox-wm{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .lightbox-wm span{font-family:'Playfair Display',serif;color:rgba(255,255,255,.45);font-size:1.6rem;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.5);transform:rotate(-30deg);text-align:center;letter-spacing:.1em;text-transform:uppercase;line-height:1.3}
 .lightbox-close{position:absolute;top:18px;right:20px;background:rgba(255,255,255,.15);border:none;color:#fff;width:42px;height:42px;border-radius:50%;font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
@@ -216,96 +213,100 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .lightbox-name{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;margin-top:6px}
 .lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
 .lightbox-order-btn:hover{background:#b8922e}
-.lightbox-hint{color:rgba(255,255,255,.5);font-size:.78rem;margin-top:10px}
+/* ===== DARK MODE: Fekete hatter + arany gradiens logo ===== */
+body.dark-mode .header{background:#0d0a06!important;border-bottom-color:#1e1608!important}
+body.dark-mode .header-logo{background:linear-gradient(180deg,#f8e880 0%,#d4a028 42%,#8a5e0c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;display:inline-flex;flex-direction:column;line-height:1.1;gap:2px}
+body.dark-mode .header-logo>span{-webkit-text-fill-color:transparent}
+.header-logo-sub{display:none!important}
+body.dark-mode .header-logo-sub{display:flex!important;align-items:center;gap:5px;-webkit-text-fill-color:initial!important;color:#9a7018;font-family:'DM Sans',sans-serif;font-size:.44rem;letter-spacing:.1em;text-transform:uppercase;font-weight:400}
+.hls-line{display:block;width:14px;height:1px;background:linear-gradient(90deg,transparent,#9a7018);flex-shrink:0}
+.hls-line.r{background:linear-gradient(90deg,#9a7018,transparent)}
+.hls-script{font-family:'Great Vibes',cursive;font-size:.88rem;text-transform:none;letter-spacing:.01em;line-height:1;color:#c09020}
+body.dark-mode .logo{background:linear-gradient(180deg,#f8e880 0%,#d4a028 42%,#8a5e0c 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+body.dark-mode .logo span{-webkit-text-fill-color:transparent}
+body.dark-mode .admin-header-box{background:linear-gradient(135deg,#1c1408,#2a1e08)}
+body.dark-mode .upload-area{background:#100c08}
+body.dark-mode .upload-area:hover{background:#1a1408}
 </style>
 </head>
 <body>
-
 <div id="page-loading" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#FAF7F2,#F0E8DC)">
   <div style="font-family:'Playfair Display',serif;font-size:2rem;color:#5C3D2E;margin-bottom:4px">SpringMoon<span style="color:#C9A84C;font-style:italic">Gallery</span></div>
   <div style="font-family:'DM Sans',sans-serif;font-size:.7rem;color:#8A7060;letter-spacing:.05em;margin-bottom:6px;text-transform:uppercase">by</div>
   <img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:28px;width:auto;margin-bottom:20px">
   <div class="spinner"></div>
-  <p style="color:#8A7060;font-size:.9rem">Betöltés...</p>
+  <p style="color:#8A7060;font-size:.9rem">Betoltes...</p>
 </div>
-
 <div id="page-login" class="login-wrap hidden">
-  <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="position:absolute;top:16px;right:16px;font-size:1.3rem">🌗</button>
+  <button class="logout-btn" onclick="toggleDarkMode()" title="Sotet mod" style="position:absolute;top:16px;right:16px;font-size:1.3rem">&#127771;</button>
   <div class="logo">SpringMoon<span>Gallery</span></div>
   <div style="font-size:.7rem;color:var(--muted);font-family:'DM Sans',sans-serif;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">by</div>
   <img src="https://res.cloudinary.com/dpluouggw/image/upload/q_auto/f_auto/v1778580136/springmoon_logo_dark_uaodfx.png" alt="SpringMoonPhoto" style="height:32px;width:auto;margin-bottom:24px">
   <div style="margin-bottom:20px"></div>
   <div id="parent-login-card" class="card">
-    <h2>Belépés a galériába</h2>
-    <p>Adja meg a fotóstól kapott kódot</p>
-    <label>Belépési kód</label>
+    <h2>Belepes a galeriaba</h2>
+    <p>Adja meg a fotostol kapott kodot</p>
+    <label>Belepesi kod</label>
     <input id="inp-code" type="text" class="code-input" placeholder="pl. BENCE2025" oninput="this.value=this.value.toUpperCase();checkCodeType()">
     <div id="individual-fields">
-      <label>Az Ön email címe</label>
+      <label>Az On email cime</label>
       <input id="inp-email" type="email" placeholder="pelda@email.com">
       <label>Gyermeke neve</label>
-      <input id="inp-child" type="text" placeholder="pl. Kovács Bence">
+      <input id="inp-child" type="text" placeholder="pl. Kovacs Bence">
     </div>
     <div id="group-info" class="hidden" style="background:#fff8ee;border:1.5px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px;font-size:.85rem;color:var(--brown)">
-      👥 <strong>Csoportos galéria</strong><br>Az email címet és a gyermek nevét a rendelés leadásakor kell megadnia.
+      &#128101; <strong>Csoportos galeria</strong><br>Az email cimet es a gyermek nevet a rendeles leadasakor kell megadnia.
     </div>
-    <button class="btn" onclick="handleLogin()">Belépés →</button>
+    <button class="btn" onclick="handleLogin()">Belepes &rarr;</button>
     <div id="login-error" class="error-msg hidden"></div>
-    <div class="admin-link">Ön fotós? <button onclick="showAdminLogin()">Admin belépés</button></div>
+    <div class="admin-link">On fotos? <button onclick="showAdminLogin()">Admin belepes</button></div>
   </div>
   <div id="admin-login-card" class="card hidden">
     <div id="auth-main">
-      <h2 id="auth-title">Fotós bejelentkezés</h2>
-      <p id="auth-sub">Üdvözöljük a SpringMoon Gallery fotós felületén</p>
+      <h2 id="auth-title">Fotos bejelentkezes</h2>
+      <p id="auth-sub">Udvozoljuk a SpringMoon Gallery fotos feluleten</p>
       <div style="display:flex;gap:8px;margin-bottom:20px">
-        <button id="auth-tab-login" class="type-tab active" style="flex:1;padding:10px" onclick="switchAuthMode('login')">Bejelentkezés</button>
-        <button id="auth-tab-register" class="type-tab" style="flex:1;padding:10px" onclick="switchAuthMode('register')">Regisztráció</button>
+        <button id="auth-tab-login" class="type-tab active" style="flex:1;padding:10px" onclick="switchAuthMode('login')">Bejelentkezes</button>
+        <button id="auth-tab-register" class="type-tab" style="flex:1;padding:10px" onclick="switchAuthMode('register')">Regisztracio</button>
       </div>
-      <div id="auth-name-wrap" class="hidden">
-        <label>Fotós/cég neve</label>
-        <input id="inp-auth-name" type="text" placeholder="pl. Bukta Anita Photo">
-      </div>
-      <label>Email cím</label>
-      <input id="inp-auth-email" type="email" placeholder="pelda@email.com">
-      <label>Jelszó</label>
-      <input id="inp-auth-pass" type="password" placeholder="••••••••" minlength="6">
-      <button id="auth-submit-btn" class="btn" onclick="handleAuth()">Bejelentkezés →</button>
+      <div id="auth-name-wrap" class="hidden"><label>Fotos/ceg neve</label><input id="inp-auth-name" type="text" placeholder="pl. Bukta Anita Photo"></div>
+      <label>Email cim</label><input id="inp-auth-email" type="email" placeholder="pelda@email.com">
+      <label>Jelszo</label><input id="inp-auth-pass" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6">
+      <button id="auth-submit-btn" class="btn" onclick="handleAuth()">Bejelentkezes &rarr;</button>
       <div id="auth-error" class="error-msg hidden"></div>
-      <div id="forgot-link" class="admin-link"><button onclick="showForgotPassword()">Elfelejtett jelszó?</button></div>
-      <div class="admin-link"><button onclick="showParentLogin()">← Vissza a szülői bejelentkezéshez</button></div>
+      <div id="forgot-link" class="admin-link"><button onclick="showForgotPassword()">Elfelejtett jelszo?</button></div>
+      <div class="admin-link"><button onclick="showParentLogin()">&larr; Vissza a szuloi bejelentkezeshez</button></div>
     </div>
     <div id="auth-success" class="hidden" style="text-align:center;padding:20px 0">
-      <div style="font-size:3.5rem;margin-bottom:14px">🎉</div>
-      <h2 style="color:var(--dark);margin-bottom:8px">Sikeres regisztráció!</h2>
-      <p style="color:var(--muted);font-size:.9rem;margin-bottom:20px">Üdvözöljük a SpringMoon Gallery fotósai között!</p>
+      <div style="font-size:3.5rem;margin-bottom:14px">&#127881;</div>
+      <h2 style="color:var(--dark);margin-bottom:8px">Sikeres regisztracio!</h2>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:20px">Udvozoljuk a SpringMoon Gallery fotosai kozott!</p>
       <div style="background:var(--cream);border-radius:12px;padding:18px;text-align:left;margin-bottom:18px">
-        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Bejelentkezési adatok</div>
-        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Email cím</div>
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Bejelentkezesi adatok</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Email cim</div>
         <div id="success-email" style="font-weight:600;color:var(--dark);margin-bottom:10px"></div>
-        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Fotós/cég neve</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Fotos/ceg neve</div>
         <div id="success-name" style="font-weight:600;color:var(--dark)"></div>
       </div>
       <div style="background:#fff8ee;border:1.5px solid var(--gold);border-radius:12px;padding:14px;margin-bottom:18px;font-size:.85rem;color:var(--brown);text-align:left">
-        🔒 <strong>Fontos:</strong> A jelszavát biztos helyen tárolja! Ha elfelejti, a bejelentkezési oldalon az „Elfelejtett jelszó?" linkre kattintva kérhet újat email címére.
+        &#128274; <strong>Fontos:</strong> A jelszavat biztos helyen tarolja!
       </div>
-      <button class="btn" onclick="goToAdminAfterRegister()">Tovább a fotós felületre →</button>
+      <button class="btn" onclick="goToAdminAfterRegister()">Tovabb a fotos felulete &rarr;</button>
     </div>
     <div id="auth-forgot" class="hidden">
-      <h2 style="color:var(--dark);margin-bottom:6px">Elfelejtett jelszó</h2>
-      <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px">Adja meg az email címét, és küldünk egy linket az új jelszó beállításához.</p>
-      <label>Email cím</label>
-      <input id="inp-forgot-email" type="email" placeholder="pelda@email.com">
-      <button class="btn" onclick="sendPasswordReset()">Új jelszó kérése →</button>
+      <h2 style="color:var(--dark);margin-bottom:6px">Elfelejtett jelszo</h2>
+      <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px">Adja meg az email cimet, es kuldunk egy linket az uj jelszo beallitasahoz.</p>
+      <label>Email cim</label><input id="inp-forgot-email" type="email" placeholder="pelda@email.com">
+      <button class="btn" onclick="sendPasswordReset()">Uj jelszo kerese &rarr;</button>
       <div id="forgot-error" class="error-msg hidden"></div>
       <div id="forgot-success" class="success-msg hidden"></div>
-      <div class="admin-link"><button onclick="showAuthMain()">← Vissza a bejelentkezéshez</button></div>
+      <div class="admin-link"><button onclick="showAuthMain()">&larr; Vissza a bejelentkezeshez</button></div>
     </div>
   </div>
 </div>
-
 <div id="page-gallery" class="hidden">
   <div class="header">
-    <div class="header-logo">SpringMoon<span>Gallery</span></div>
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-line"></span><span class="hls-script">SpringMoonPhoto</span><span class="hls-line r"></span></div></div>
     <div class="header-right">
       <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="font-size:1.1rem">🌗</button>
       <button id="fav-toggle-btn" class="fav-toggle-btn" onclick="toggleFavView()">🤍 Kedvenceim (0)</button>
@@ -325,7 +326,6 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <button id="cart-float-btn" class="btn btn-gold hidden" onclick="showCart()"></button>
   </div>
 </div>
-
 <div id="overlay" class="overlay hidden" onclick="closeOverlay(event)">
   <div class="sheet">
     <div class="sheet-handle"></div>
@@ -364,10 +364,9 @@ input:focus{border-color:var(--gold);background:var(--white)}
     </div>
   </div>
 </div>
-
 <div id="page-cart" class="hidden">
   <div class="header">
-    <div class="header-logo">SpringMoon<span>Gallery</span></div>
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-line"></span><span class="hls-script">SpringMoonPhoto</span><span class="hls-line r"></span></div></div>
     <button class="logout-btn" onclick="showGallery()">← Vissza</button>
   </div>
   <div class="wrap">
@@ -375,17 +374,13 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div id="cart-success" class="order-success hidden">
       <div class="ok-icon">&#9989;</div>
       <h2 style="margin-bottom:10px">Rendelés elküldve!</h2>
-      <p style="color:var(--muted);margin-bottom:20px">Köszönjük a rendelést! Kérjük az alábbi bankszamlára utald el a végösszeget <strong>3 munkanapon belül</strong>.</p>
+      <p style="color:var(--muted);margin-bottom:20px">Köszönjük a rendelést! Kérjük az alábbi bankszámlára utald el a végösszeget <strong>3 munkanapon belül</strong>.</p>
       <div class="payment-box">
         <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;font-weight:500">Fizetési adatok</div>
-        <div class="payment-label">Kedvezményezett neve</div>
-        <div class="payment-value">Bukta Anita</div>
-        <div class="payment-label">Bank</div>
-        <div class="payment-value">OTP Bank</div>
-        <div class="payment-label">Számlaszám</div>
-        <div class="payment-account">11773391-00491127</div>
-        <div class="payment-label">Megjegyzésbe írd</div>
-        <div class="payment-value" id="success-child-name"></div>
+        <div class="payment-label">Kedvezményezett neve</div><div class="payment-value">Bukta Anita</div>
+        <div class="payment-label">Bank</div><div class="payment-value">OTP Bank</div>
+        <div class="payment-label">Számlaszám</div><div class="payment-account">11773391-00491127</div>
+        <div class="payment-label">Megjegyzésbe írd</div><div class="payment-value" id="success-child-name"></div>
         <div class="payment-total-row">
           <span style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--dark)">Fizetendő összeg</span>
           <strong style="font-size:1.3rem;color:var(--gold)" id="success-total"></strong>
@@ -408,15 +403,11 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div id="order-contact-form" class="hidden" style="background:var(--white);border:2px solid var(--gold);border-radius:14px;padding:18px;margin-top:18px;box-shadow:var(--shadow-sm)">
       <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">👤 Kapcsolattartási adatok</h3>
       <p style="font-size:.88rem;color:var(--text);margin-bottom:14px">Kérjük adja meg az alábbi adatokat a rendelés leadásához.</p>
-      <label>Szülő neve *</label>
-      <input id="order-parent-name" type="text" placeholder="pl. Kovács Anna">
-      <label>Telefonszám *</label>
-      <input id="order-phone" type="tel" placeholder="pl. +36 30 123 4567">
+      <label>Szülő neve *</label><input id="order-parent-name" type="text" placeholder="pl. Kovács Anna">
+      <label>Telefonszám *</label><input id="order-phone" type="tel" placeholder="pl. +36 30 123 4567">
       <div id="group-only-fields" class="hidden">
-        <label>Az Ön email címe *</label>
-        <input id="group-order-email" type="email" placeholder="pelda@email.com">
-        <label>Gyermek neve *</label>
-        <input id="group-order-child" type="text" placeholder="pl. Kovács Bence">
+        <label>Az Ön email címe *</label><input id="group-order-email" type="email" placeholder="pelda@email.com">
+        <label>Gyermek neve *</label><input id="group-order-child" type="text" placeholder="pl. Kovács Bence">
       </div>
     </div>
     <div id="discount-box" class="hidden" style="background:var(--white);border:1.5px solid var(--warm);border-radius:14px;padding:16px;margin-top:14px;box-shadow:var(--shadow-sm)">
@@ -429,15 +420,13 @@ input:focus{border-color:var(--gold);background:var(--white)}
     </div>
     <div id="social-consent-box" class="hidden" style="background:var(--white);border:2px solid var(--gold);border-radius:14px;padding:18px;margin-top:18px;box-shadow:var(--shadow-sm)">
       <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">📸 Hozzájárulás a képek közzétételéhez</h3>
-      <p style="font-size:.88rem;color:var(--text);line-height:1.5;margin-bottom:14px">Hozzájárul ahhoz, hogy gyermeke fotói megjelenjenek a <strong>SpringMoonPhoto – Bukta Anita</strong> közösségi média felületein (Facebook, Instagram, weboldal)?</p>
+      <p style="font-size:.88rem;color:var(--text);line-height:1.5;margin-bottom:14px">Hozzájárul ahhoz, hogy gyermeke fotói megjelenjenek a <strong>SpringMoonPhoto – Bukta Anita</strong> közösségi média felületein?</p>
       <div style="display:flex;gap:10px;margin-bottom:8px">
         <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);font-size:.95rem;font-weight:500" id="consent-yes-label">
-          <input type="radio" name="social-consent" value="yes" onchange="updateConsent('yes')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px">
-          <span>✅ Igen, hozzájárulok</span>
+          <input type="radio" name="social-consent" value="yes" onchange="updateConsent('yes')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px"><span>✅ Igen, hozzájárulok</span>
         </label>
         <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);font-size:.95rem;font-weight:500" id="consent-no-label">
-          <input type="radio" name="social-consent" value="no" onchange="updateConsent('no')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px">
-          <span>❌ Nem járulok hozzá</span>
+          <input type="radio" name="social-consent" value="no" onchange="updateConsent('no')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px"><span>❌ Nem járulok hozzá</span>
         </label>
       </div>
       <p id="consent-warning" style="font-size:.78rem;color:#c0392b;margin-top:8px;font-style:italic">A rendelés leadásához kérjük válaszoljon a fenti kérdésre.</p>
@@ -446,10 +435,9 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <button id="back-btn" class="btn btn-outline hidden" style="margin-top:9px" onclick="showGallery()">← Még válogatnék</button>
   </div>
 </div>
-
 <div id="page-admin" class="hidden">
   <div class="header">
-    <div class="header-logo">SpringMoon<span>Gallery</span> <span style="font-size:.7rem;color:var(--muted);font-family:DM Sans;font-style:normal">Admin</span></div>
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-line"></span><span class="hls-script">SpringMoonPhoto</span><span class="hls-line r"></span></div></div>
     <div style="display:flex;align-items:center;gap:8px">
       <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="font-size:1.1rem">🌗</button>
       <button class="logout-btn" onclick="logout()">Kilépés</button>
@@ -509,50 +497,41 @@ input:focus{border-color:var(--gold);background:var(--white)}
           <div style="flex:1"><div style="font-weight:500;color:var(--dark);font-size:.92rem">&#128101; Csoportos galéria</div><div style="font-size:.75rem;color:var(--muted);margin-top:2px">Pl. ovis csoport - bárki bejelentkezhet a kóddal</div></div>
         </label>
         <div id="individual-gallery-fields">
-          <label>Gyerek teljes neve *</label>
-          <input id="new-child" type="text" placeholder="pl. Kiss Péter" oninput="updateCode()">
-          <label>Szülő email címe *</label>
-          <input id="new-email" type="email" placeholder="szulo@email.com">
+          <label>Gyerek teljes neve *</label><input id="new-child" type="text" placeholder="pl. Kiss Péter" oninput="updateCode()">
+          <label>Szülő email címe *</label><input id="new-email" type="email" placeholder="szulo@email.com">
         </div>
         <div id="group-gallery-fields" class="hidden">
-          <label>Csoport neve *</label>
-          <input id="new-group-name" type="text" placeholder="pl. Napsugár csoport 2025" oninput="updateGroupCode()">
+          <label>Csoport neve *</label><input id="new-group-name" type="text" placeholder="pl. Napsugár csoport 2025" oninput="updateGroupCode()">
         </div>
         <label style="margin-top:14px;margin-bottom:8px">&#127919; Elérhető termékek</label>
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">A szülők csak a bepipált terméktípusokat rendelhetik ebben a galériában.</p>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--cream)">
-          <input type="checkbox" id="new-enable-print" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
-          <span style="font-size:.9rem">&#128444;&#65039; Papírképek</span>
+          <input type="checkbox" id="new-enable-print" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">&#128444;&#65039; Papírképek</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--cream)">
-          <input type="checkbox" id="new-enable-digital" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
-          <span style="font-size:.9rem">&#128190; Digitális képek</span>
+          <input type="checkbox" id="new-enable-digital" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">&#128190; Digitális képek</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:14px;cursor:pointer;background:var(--cream)">
-          <input type="checkbox" id="new-enable-gift" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
-          <span style="font-size:.9rem">&#127873; Ajándéktárgyak</span>
+          <input type="checkbox" id="new-enable-gift" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">&#127873; Ajándéktárgyak</span>
         </label>
         <label style="margin-top:14px;margin-bottom:8px">&#128737;&#65039; Vízjel beállításai</label>
-        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">A vízjel megakadályozza a képek ellopását. Ha kikapcsolod, a galéria képein nem lesz vízjel.</p>
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">A vízjel megakadályozza a képek ellopását.</p>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:10px;cursor:pointer;background:var(--cream)">
-          <input type="checkbox" id="new-watermark-enabled" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
-          <span style="font-size:.9rem">Vízjel megjelenítése a galéria képein</span>
+          <input type="checkbox" id="new-watermark-enabled" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">Vízjel megjelenítése a galéria képein</span>
         </label>
         <input type="text" id="new-watermark-text" value="SpringMoonPhoto\nMINTA" placeholder="pl. SpringMoonPhoto\nMINTA" style="margin-bottom:14px">
         <p style="font-size:.74rem;color:var(--muted);margin-top:-8px;margin-bottom:14px">Tipp: \n jelet használj sortörésnek</p>
         <label style="margin-top:14px;margin-bottom:8px">⏰ Galéria lejárati ideje</label>
-        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Mikor záruljon le a galéria? Utána a szülők nem tudnak rendelni.</p>
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Mikor záruljon le a galéria?</p>
         <input type="date" id="new-expires-at" style="margin-bottom:14px">
         <p style="font-size:.74rem;color:var(--muted);margin-top:-8px;margin-bottom:14px">Hagyd üresen, ha nincs lejárat</p>
         <label style="margin-top:14px;margin-bottom:8px">🎁 Kedvezménykódok</label>
-        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Adj meg kedvezménykódokat, amit a szülők beírhatnak. Pl. "NYAR2025" → 15%.</p>
+        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Adj meg kedvezménykódokat, amit a szülők beírhatnak.</p>
         <div id="new-discounts-list"></div>
         <button class="btn btn-outline btn-sm" type="button" style="width:100%;margin-bottom:14px" onclick="addNewDiscount()">+ Új kedvezménykód</button>
         <label style="margin-top:14px;margin-bottom:8px">📦 Csomagajánlat (opcionális)</label>
-        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Egy promóciós szöveg a galéria tetején (pl. "3 papírkép + 1 digitális = 4000 Ft helyett 3500 Ft kedvezménykóddal: CSOMAG3+1")</p>
         <textarea id="new-promo-text" placeholder="Hagyd üresen, ha nincs csomagajánlat" style="width:100%;min-height:60px;padding:12px 15px;border:1.5px solid var(--warm);border-radius:10px;font-size:.95rem;font-family:inherit;background:var(--cream);color:var(--dark);outline:none;margin-bottom:14px;resize:vertical"></textarea>
         <label style="margin-top:14px;margin-bottom:8px">💬 Üzenet a szülőknek</label>
-        <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Pl. "Kedves szülők! December 15-ig lehet rendelni. Köszönöm!"</p>
         <textarea id="new-gallery-message" placeholder="Hagyd üresen, ha nincs üzenet" style="width:100%;min-height:60px;padding:12px 15px;border:1.5px solid var(--warm);border-radius:10px;font-size:.95rem;font-family:inherit;background:var(--cream);color:var(--dark);outline:none;margin-bottom:14px;resize:vertical"></textarea>
         <div id="code-box" class="code-box hidden">
           <div><div style="font-size:.72rem;color:var(--muted);margin-bottom:3px">AUTOMATIKUSAN GENERÁLT KÓD</div><div id="new-code" class="code-val"></div><div class="code-hint">Ezt küldd el a szülőnek</div></div>
@@ -578,10 +557,9 @@ input:focus{border-color:var(--gold);background:var(--white)}
     </div>
   </div>
 </div>
-
 <div id="page-gallery-detail" class="hidden">
   <div class="header">
-    <div class="header-logo">SpringMoon<span>Gallery</span></div>
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-line"></span><span class="hls-script">SpringMoonPhoto</span><span class="hls-line r"></span></div></div>
     <button class="logout-btn" onclick="backToAdminGalleries()">← Vissza</button>
   </div>
   <div class="wrap">
@@ -596,10 +574,8 @@ input:focus{border-color:var(--gold);background:var(--white)}
         <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">&#128465;&#65039; Törlés</button>
       </div>
       <div id="edit-form" class="hidden" style="margin-top:16px;border-top:1px solid var(--warm);padding-top:16px">
-        <label>Gyerek neve</label>
-        <input type="text" id="edit-child" placeholder="pl. Kovács Bence" oninput="updateEditCode()">
-        <label>Szülő email címe</label>
-        <input type="email" id="edit-email" placeholder="szulo@email.com">
+        <label>Gyerek neve</label><input type="text" id="edit-child" placeholder="pl. Kovács Bence" oninput="updateEditCode()">
+        <label>Szülő email címe</label><input type="email" id="edit-email" placeholder="szulo@email.com">
         <label>Belépési kód</label>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
           <input type="text" id="edit-code" style="margin-bottom:0;letter-spacing:.1em;font-weight:600;flex:1" readonly>
@@ -612,24 +588,19 @@ input:focus{border-color:var(--gold);background:var(--white)}
         </div>
       </div>
       <div id="products-form" class="hidden" style="margin-top:16px;border-top:1px solid var(--warm);padding-top:16px">
-        <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">🎯 Elérhető termékek ebben a galériában</h3>
-        <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">A szülők csak a bepipált terméktípusokat rendelhetik.</p>
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">🎯 Elérhető termékek</h3>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--cream)">
-          <input type="checkbox" id="edit-enable-print" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
-          <span style="font-size:.9rem">🖼️ Papírképek</span>
+          <input type="checkbox" id="edit-enable-print" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">🖼️ Papírképek</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--cream)">
-          <input type="checkbox" id="edit-enable-digital" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
-          <span style="font-size:.9rem">💾 Digitális képek</span>
+          <input type="checkbox" id="edit-enable-digital" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">💾 Digitális képek</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:14px;cursor:pointer;background:var(--cream)">
-          <input type="checkbox" id="edit-enable-gift" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
-          <span style="font-size:.9rem">🎁 Ajándéktárgyak</span>
+          <input type="checkbox" id="edit-enable-gift" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">🎁 Ajándéktárgyak</span>
         </label>
         <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-top:16px;margin-bottom:10px">🛡️ Vízjel</h3>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:10px;cursor:pointer;background:var(--cream)">
-          <input type="checkbox" id="edit-watermark-enabled" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)">
-          <span style="font-size:.9rem">Vízjel megjelenítése</span>
+          <input type="checkbox" id="edit-watermark-enabled" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">Vízjel megjelenítése</span>
         </label>
         <input type="text" id="edit-watermark-text" placeholder="pl. SpringMoonPhoto\nMINTA" style="margin-bottom:6px">
         <p style="font-size:.74rem;color:var(--muted);margin-bottom:14px">Tipp: \n jelet használj sortörésnek</p>
@@ -663,7 +634,6 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <div id="detail-empty" class="empty-msg hidden">Még nincs feltöltött kép ebben a galériában.</div>
   </div>
 </div>
-
 <div id="lightbox" class="hidden" style="position:fixed;inset:0;background:rgba(26,18,8,.92);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px">
   <button onclick="closeLightbox()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;width:42px;height:42px;border-radius:50%;font-size:1.4rem;cursor:pointer;z-index:5">×</button>
   <div style="position:relative;max-width:600px;width:100%;display:flex;align-items:center;justify-content:center">
@@ -678,7 +648,6 @@ input:focus{border-color:var(--gold);background:var(--white)}
   <div id="lb-counter" style="color:rgba(255,255,255,.6);font-size:.85rem;margin-top:4px"></div>
   <button class="btn btn-gold" style="width:auto;padding:12px 30px;margin-top:18px" onclick="orderFromLightbox()">🛒 Rendelés erről a képről</button>
 </div>
-
 <div id="copyright-warning" class="modal-overlay hidden" style="z-index:500" onclick="closeCopyrightWarning(event)">
   <div class="modal-sheet" style="max-width:440px;text-align:center">
     <div class="sheet-handle"></div>
@@ -687,13 +656,12 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <p style="font-size:1rem;color:var(--dark);margin-bottom:14px;font-weight:500">A képek lemásolása, képernyőfotózása vagy bármilyen más módon történő letöltése <strong>SZIGORÚAN TILOS</strong>.</p>
     <div style="background:#fdf2f2;border-radius:12px;padding:14px;margin-bottom:18px;font-size:.88rem;color:var(--text);text-align:left;line-height:1.5">
       &#128218; <strong>Szerz&#337;i jogi figyelmeztetés:</strong><br>
-      A galériában szereplő fotók a <strong>SpringMoonPhoto – Bukta Anita</strong> szellemi tulajdonát képezik. Engedély nélküli felhasználásuk, másolásuk, terjesztésük <strong>szerz&#337;i jogi jogsértésnek minősül</strong> és jogi következményekkel járhat.
+      A galériában szereplő fotók a <strong>SpringMoonPhoto – Bukta Anita</strong> szellemi tulajdonát képezik. Engedély nélküli felhasználásuk <strong>szerz&#337;i jogi jogsértésnek minősül</strong>.
     </div>
     <p style="font-size:.85rem;color:var(--muted);margin-bottom:18px">A fotókat a rendelés leadásával hivatalosan is megvásárolhatja.</p>
     <button class="btn" onclick="closeCopyrightWarning()">Megértettem</button>
   </div>
 </div>
-
 <div id="my-orders-modal" class="modal-overlay hidden" onclick="closeMyOrdersModal(event)">
   <div class="modal-sheet">
     <div class="sheet-handle"></div>
@@ -703,23 +671,21 @@ input:focus{border-color:var(--gold);background:var(--white)}
     <button class="btn btn-outline" style="margin-top:10px" onclick="document.getElementById('my-orders-modal').classList.add('hidden')">Bezárás</button>
   </div>
 </div>
-
 <script>
 const firebaseConfig={apiKey:"AIzaSyAOw4Lt6YVyIjnYKuNEGzpA7XiJgMssc9o",authDomain:"springmoon-a8d86.firebaseapp.com",projectId:"springmoon-a8d86",storageBucket:"springmoon-a8d86.firebasestorage.app",messagingSenderId:"1037425486077",appId:"1:1037425486077:web:f83b87367c885002fe3694"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 const CLOUD_NAME="dpluouggw";
 const UPLOAD_PRESET="springmoon_upload";
-// EmailJS config - állítsd be a saját adataidat az admin felületen
 let EMAILJS_CONFIG={publicKey:"",serviceId:"",templateNewOrder:"",templateStatusChange:""};
-const DEFAULT_PRINT_SIZES=[{id:"10x15",label:"10×15 cm",price:1500},{id:"13x18",label:"13×18 cm",price:1800},{id:"A4",label:"A4 / 20×30 cm",price:2500}];
+const DEFAULT_PRINT_SIZES=[{id:"10x15",label:"10\u00d715 cm",price:1500},{id:"13x18",label:"13\u00d718 cm",price:1800},{id:"A4",label:"A4 / 20\u00d730 cm",price:2500}];
 const DEFAULT_DIGITAL_PRICE=2000;
 const DEFAULT_GIFT_ITEMS=[
-  {id:"magnet",label:"🧲 Hűtőmágnes",price:2000},
-  {id:"keychain",label:"🔑 Kulcstartó",price:1500},
-  {id:"mug",label:"☕ Bögre (felirattal is)",price:5500},
-  {id:"photo-magnet",label:"🖼️ Hűtőmágneses képkeret (10×15)",price:2000},
-  {id:"folder",label:"📁 Átadómappa",price:1500}
+  {id:"magnet",label:"\ud83e\uddf2 H\u0171t\u0151m\u00e1gnes",price:2000},
+  {id:"keychain",label:"\ud83d\udd11 Kulcstart\u00f3",price:1500},
+  {id:"mug",label:"\u2615 B\u00f6gre (felirattal is)",price:5500},
+  {id:"photo-magnet",label:"\ud83d\uddbc\ufe0f H\u0171t\u0151m\u00e1gneses k\u00e9pkeret (10\u00d715)",price:2000},
+  {id:"folder",label:"\ud83d\udcc1 \u00c1tad\u00f3mappa",price:1500}
 ];
 let PRINT_SIZES=JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
 let DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
@@ -729,9 +695,8 @@ let WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
 let selectedGift=null;
 let socialConsent=null;
 const ADMIN_PASSWORD="admin2025";
-const STATUS_LABELS={pending:"⏳ Függőben",digital:"&#128231; Digitális elküldve",printing:"&#128424;&#65039; Nyomtatás alatt",delivered:"&#9989; Papírkép átadva",paid:"&#128176; Fizetve",completed:"&#11088; Teljesítve"};
+const STATUS_LABELS={pending:"\u23f3 F\u00fcgg\u0151ben",digital:"&#128231; Digit\u00e1lis elk\u00fcldve",printing:"&#128424;&#65039; Nyomtat\u00e1s alatt",delivered:"&#9989; Pap\u00edrkép \u00e1tadva",paid:"&#128176; Fizetve",completed:"&#11088; Teljes\u00edtve"};
 const STATUS_CLASSES={pending:"status-pending",digital:"status-digital",printing:"status-printing",delivered:"status-delivered",paid:"status-paid",completed:"status-completed"};
-
 let galleries=[],orders=[],currentGallery=null,cart=[];
 let activePhoto=null,orderType="print",selectedSize=PRINT_SIZES[0],qty=1;
 let generatedCode="",uploadedPhotosNew=[];
@@ -739,7 +704,6 @@ let currentDetailGallery=null,uploadedPhotosDetail=[];
 let selectedOrderIds=new Set();
 let favorites=[];
 let showingFavoritesOnly=false;
-
 
 async function loadGalleryPrices(gallery){
   if(!gallery||!gallery.photographerId)return;
@@ -753,10 +717,9 @@ async function loadGalleryPrices(gallery){
       else DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
       if(data.giftItems)GIFT_ITEMS=data.giftItems;
       else GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
-      }
+    }
     if(gallery.enabledProducts)ENABLED_PRODUCTS=gallery.enabledProducts;
     else ENABLED_PRODUCTS={print:true,digital:true,gift:true};
-    // Watermark: prefer gallery's setting (per-gallery)
     if(gallery.watermarkConfig)WATERMARK_CONFIG=gallery.watermarkConfig;
     else WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
   }catch(e){console.error("Árlista betöltési hiba:",e)}
@@ -783,37 +746,29 @@ async function loadMyPrices(){
     }
   }catch(e){console.error("Árlista betöltési hiba:",e)}
 }
-
 function renderPricesEditor(){
   const div=document.getElementById("admin-prices");
   let html='<div class="new-form"><h3>📞 Elérhetőségek</h3>';
-  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Ezeket az adatokat a szülők látják a rendelés után, hogy gyorsan tudjanak veled kommunikálni.</p>';
-  html+='<label>Telefonszám (nemzetközi formában WhatsApp-hoz, pl. +36301234567)</label>';
+  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Ezeket az adatokat a szülők látják a rendelés után.</p>';
+  html+='<label>Telefonszám (pl. +36301234567)</label>';
   html+='<input type="tel" id="my-phone" value="'+(window.MY_PROFILE?.phone||"").replace(/"/g,"&quot;")+'" placeholder="+36 30 123 4567" style="margin-bottom:10px">';
   html+='<label>Email cím (kapcsolatfelvételhez)</label>';
   html+='<input type="email" id="my-contact-email" value="'+(window.MY_PROFILE?.contactEmail||currentUser?.email||"").replace(/"/g,"&quot;")+'" placeholder="kapcsolat@email.com" style="margin-bottom:14px">';
   html+='</div>';
   html+='<div class="new-form" style="margin-top:14px"><h3>📨 Automatikus email értesítés (EmailJS)</h3>';
-  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Új rendelésről kapsz emailt, a szülő pedig státusz változáskor. Regisztráció: <a href="https://www.emailjs.com" target="_blank" style="color:var(--gold)">emailjs.com</a> (ingyenes 200 email/hó). Lentebb beírod a 4 értéket.</p>';
-  html+='<label>EmailJS Public Key</label>';
-  html+='<input type="text" id="emailjs-public-key" value="'+(EMAILJS_CONFIG.publicKey||"").replace(/"/g,"&quot;")+'" placeholder="pl. user_xxxxxxxxxxxxxx" style="margin-bottom:10px">';
-  html+='<label>Service ID</label>';
-  html+='<input type="text" id="emailjs-service-id" value="'+(EMAILJS_CONFIG.serviceId||"").replace(/"/g,"&quot;")+'" placeholder="pl. service_xxxxxxx" style="margin-bottom:10px">';
-  html+='<label>"Új rendelés" Template ID</label>';
-  html+='<input type="text" id="emailjs-template-new" value="'+(EMAILJS_CONFIG.templateNewOrder||"").replace(/"/g,"&quot;")+'" placeholder="pl. template_xxxxxxx" style="margin-bottom:10px">';
-  html+='<label>"Státusz változás" Template ID</label>';
-  html+='<input type="text" id="emailjs-template-status" value="'+(EMAILJS_CONFIG.templateStatusChange||"").replace(/"/g,"&quot;")+'" placeholder="pl. template_xxxxxxx" style="margin-bottom:10px">';
+  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Regisztráció: <a href="https://www.emailjs.com" target="_blank" style="color:var(--gold)">emailjs.com</a> (ingyenes 200 email/hó).</p>';
+  html+='<label>EmailJS Public Key</label><input type="text" id="emailjs-public-key" value="'+(EMAILJS_CONFIG.publicKey||"").replace(/"/g,"&quot;")+'" placeholder="pl. user_xxxxxxxxxxxxxx" style="margin-bottom:10px">';
+  html+='<label>Service ID</label><input type="text" id="emailjs-service-id" value="'+(EMAILJS_CONFIG.serviceId||"").replace(/"/g,"&quot;")+'" placeholder="pl. service_xxxxxxx" style="margin-bottom:10px">';
+  html+='<label>"Új rendelés" Template ID</label><input type="text" id="emailjs-template-new" value="'+(EMAILJS_CONFIG.templateNewOrder||"").replace(/"/g,"&quot;")+'" placeholder="pl. template_xxxxxxx" style="margin-bottom:10px">';
+  html+='<label>"Státusz változás" Template ID</label><input type="text" id="emailjs-template-status" value="'+(EMAILJS_CONFIG.templateStatusChange||"").replace(/"/g,"&quot;")+'" placeholder="pl. template_xxxxxxx" style="margin-bottom:10px">';
   html+='<button class="btn btn-outline btn-sm" type="button" onclick="testEmail()" style="width:100%;margin-bottom:8px">✉️ Teszt email küldése magamnak</button>';
-  html+='<div id="emailjs-test-msg" style="margin-top:8px"></div>';
-  html+='</div>';
+  html+='<div id="emailjs-test-msg" style="margin-top:8px"></div></div>';
   html+='<div class="new-form" style="margin-top:14px"><h3>💰 Papírkép árak</h3>';
-  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:12px">Méretek és árak. Bővítheted új típussal.</p>';
   html+='<div id="price-print-list"></div>';
   html+='<button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%" onclick="addPrintSize()">+ Új méret hozzáadása</button>';
   html+='</div><div class="new-form" style="margin-top:14px"><h3>💾 Digitális kép ára</h3>';
   html+='<div style="display:flex;gap:10px;align-items:center"><span style="flex:1;font-weight:500">Digitális JPG fájl</span><input type="number" id="price-digital" value="'+DIGITAL_PRICE+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
   html+='</div><div class="new-form" style="margin-top:14px"><h3>🎁 Ajándéktárgy árak</h3>';
-  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:12px">Termékek és árak. Bővítheted új ajándéktárgyakkal.</p>';
   html+='<div id="price-gift-list"></div>';
   html+='<button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%" onclick="addGiftItem()">+ Új ajándéktárgy hozzáadása</button>';
   html+='</div><div id="save-prices-msg" style="margin-top:14px"></div><button class="btn btn-green" style="margin-top:14px" onclick="savePrices()">✓ Árak mentése</button>';
@@ -829,46 +784,13 @@ function renderPriceLists(){
 }
 
 function readCurrentPrices(){
-  PRINT_SIZES.forEach((s,i)=>{
-    const lbl=document.getElementById("print-label-"+i);
-    const pr=document.getElementById("print-price-"+i);
-    if(lbl)s.label=lbl.value.trim()||s.label;
-    if(pr){const v=parseInt(pr.value);if(!isNaN(v))s.price=v;}
-  });
-  GIFT_ITEMS.forEach((g,i)=>{
-    const lbl=document.getElementById("gift-label-"+i);
-    const pr=document.getElementById("gift-price-"+i);
-    if(lbl)g.label=lbl.value.trim()||g.label;
-    if(pr){const v=parseInt(pr.value);if(!isNaN(v))g.price=v;}
-  });
+  PRINT_SIZES.forEach((s,i)=>{const lbl=document.getElementById("print-label-"+i);const pr=document.getElementById("print-price-"+i);if(lbl)s.label=lbl.value.trim()||s.label;if(pr){const v=parseInt(pr.value);if(!isNaN(v))s.price=v;}});
+  GIFT_ITEMS.forEach((g,i)=>{const lbl=document.getElementById("gift-label-"+i);const pr=document.getElementById("gift-price-"+i);if(lbl)g.label=lbl.value.trim()||g.label;if(pr){const v=parseInt(pr.value);if(!isNaN(v))g.price=v;}});
 }
-
-function addPrintSize(){
-  readCurrentPrices();
-  PRINT_SIZES.push({id:"size"+Date.now(),label:"Új méret",price:1000});
-  renderPriceLists();
-}
-
-function removePrintSize(idx){
-  if(PRINT_SIZES.length<=1){alert("Legalább egy méretnek lennie kell!");return}
-  if(!confirm("Biztosan törlöd ezt a méretet?"))return;
-  readCurrentPrices();
-  PRINT_SIZES.splice(idx,1);
-  renderPriceLists();
-}
-
-function addGiftItem(){
-  readCurrentPrices();
-  GIFT_ITEMS.push({id:"gift"+Date.now(),label:"🎁 Új ajándéktárgy",price:1000});
-  renderPriceLists();
-}
-
-function removeGiftItem(idx){
-  if(!confirm("Biztosan törlöd ezt az ajándéktárgyat?"))return;
-  readCurrentPrices();
-  GIFT_ITEMS.splice(idx,1);
-  renderPriceLists();
-}
+function addPrintSize(){readCurrentPrices();PRINT_SIZES.push({id:"size"+Date.now(),label:"Új méret",price:1000});renderPriceLists()}
+function removePrintSize(idx){if(PRINT_SIZES.length<=1){alert("Legalább egy méretnek lennie kell!");return}if(!confirm("Biztosan törlöd ezt a méretet?"))return;readCurrentPrices();PRINT_SIZES.splice(idx,1);renderPriceLists()}
+function addGiftItem(){readCurrentPrices();GIFT_ITEMS.push({id:"gift"+Date.now(),label:"🎁 Új ajándéktárgy",price:1000});renderPriceLists()}
+function removeGiftItem(idx){if(!confirm("Biztosan törlöd ezt az ajándéktárgyat?"))return;readCurrentPrices();GIFT_ITEMS.splice(idx,1);renderPriceLists()}
 
 async function savePrices(){
   const msg=document.getElementById("save-prices-msg");
@@ -876,42 +798,20 @@ async function savePrices(){
   const newDigital=parseInt(document.getElementById("price-digital").value);
   const myPhone=document.getElementById("my-phone").value.trim();
   const myContactEmail=document.getElementById("my-contact-email").value.trim().toLowerCase();
-  const newEmailJS={
-    publicKey:document.getElementById("emailjs-public-key").value.trim(),
-    serviceId:document.getElementById("emailjs-service-id").value.trim(),
-    templateNewOrder:document.getElementById("emailjs-template-new").value.trim(),
-    templateStatusChange:document.getElementById("emailjs-template-status").value.trim()
-  };
+  const newEmailJS={publicKey:document.getElementById("emailjs-public-key").value.trim(),serviceId:document.getElementById("emailjs-service-id").value.trim(),templateNewOrder:document.getElementById("emailjs-template-new").value.trim(),templateStatusChange:document.getElementById("emailjs-template-status").value.trim()};
   try{
-    await db.collection("photographers").doc(currentUser.uid).update({
-      printSizes:PRINT_SIZES,
-      digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,
-      giftItems:GIFT_ITEMS,
-      phone:myPhone,
-      contactEmail:myContactEmail,
-      emailjsConfig:newEmailJS
-    });
-    window.MY_PROFILE=window.MY_PROFILE||{};
-    window.MY_PROFILE.phone=myPhone;
-    window.MY_PROFILE.contactEmail=myContactEmail;
+    await db.collection("photographers").doc(currentUser.uid).update({printSizes:PRINT_SIZES,digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,giftItems:GIFT_ITEMS,phone:myPhone,contactEmail:myContactEmail,emailjsConfig:newEmailJS});
+    window.MY_PROFILE=window.MY_PROFILE||{};window.MY_PROFILE.phone=myPhone;window.MY_PROFILE.contactEmail=myContactEmail;
     EMAILJS_CONFIG=newEmailJS;
-    if(EMAILJS_CONFIG.publicKey&&window.emailjs){
-      try{emailjs.init({publicKey:EMAILJS_CONFIG.publicKey})}catch(e){console.error(e)}
-    }
+    if(EMAILJS_CONFIG.publicKey&&window.emailjs){try{emailjs.init({publicKey:EMAILJS_CONFIG.publicKey})}catch(e){console.error(e)}}
     DIGITAL_PRICE=isNaN(newDigital)?DIGITAL_PRICE:newDigital;
     msg.innerHTML='<div class="success-msg">✓ Az árlistát sikeresen mentettük!</div>';
     setTimeout(()=>msg.innerHTML="",3000);
-  }catch(e){
-    msg.innerHTML='<div class="error-msg">Hiba történt a mentés során.</div>';
-    console.error(e);
-  }
+  }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt a mentés során.</div>';console.error(e)}
 }
 
-
-
 function toggleProductsForm(){
-  const form=document.getElementById("products-form");
-  form.classList.toggle("hidden");
+  const form=document.getElementById("products-form");form.classList.toggle("hidden");
   if(!form.classList.contains("hidden")){
     document.getElementById("edit-form").classList.add("hidden");
     const ep=currentDetailGallery.enabledProducts||{print:true,digital:true,gift:true};
@@ -921,382 +821,165 @@ function toggleProductsForm(){
     const wm=currentDetailGallery.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"};
     document.getElementById("edit-watermark-enabled").checked=wm.enabled!==false;
     document.getElementById("edit-watermark-text").value=(wm.text||"").replace(/\n/g,"\\n");
-    if(currentDetailGallery.expiresAt){
-      const d=new Date(currentDetailGallery.expiresAt);
-      document.getElementById("edit-expires-at").value=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-    }else{
-      document.getElementById("edit-expires-at").value="";
-    }
+    if(currentDetailGallery.expiresAt){const d=new Date(currentDetailGallery.expiresAt);document.getElementById("edit-expires-at").value=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}else{document.getElementById("edit-expires-at").value=""}
     document.getElementById("products-msg").innerHTML="";
   }
 }
 
 async function saveProducts(){
-  const newEP={
-    print:document.getElementById("edit-enable-print").checked,
-    digital:document.getElementById("edit-enable-digital").checked,
-    gift:document.getElementById("edit-enable-gift").checked
-  };
-  const newWM={
-    enabled:document.getElementById("edit-watermark-enabled").checked,
-    text:document.getElementById("edit-watermark-text").value.replace(/\\n/g,"\n")||"SpringMoonPhoto\nMINTA"
-  };
+  const newEP={print:document.getElementById("edit-enable-print").checked,digital:document.getElementById("edit-enable-digital").checked,gift:document.getElementById("edit-enable-gift").checked};
+  const newWM={enabled:document.getElementById("edit-watermark-enabled").checked,text:document.getElementById("edit-watermark-text").value.replace(/\\n/g,"\n")||"SpringMoonPhoto\nMINTA"};
   const expVal=document.getElementById("edit-expires-at").value;
   const newExpires=expVal?new Date(expVal+"T23:59:59").getTime():null;
   const msg=document.getElementById("products-msg");
-  if(!newEP.print&&!newEP.digital&&!newEP.gift){
-    msg.innerHTML='<div class="error-msg">Legalább egy terméktípust be kell kapcsolni!</div>';
-    return;
-  }
+  if(!newEP.print&&!newEP.digital&&!newEP.gift){msg.innerHTML='<div class="error-msg">Legalább egy terméktípust be kell kapcsolni!</div>';return}
   try{
     await db.collection("galleries").doc(currentDetailGallery.id).update({enabledProducts:newEP,watermarkConfig:newWM,expiresAt:newExpires});
-    currentDetailGallery.enabledProducts=newEP;
-    currentDetailGallery.watermarkConfig=newWM;
-    currentDetailGallery.expiresAt=newExpires;
-    const g=galleries.find(x=>x.id===currentDetailGallery.id);
-    if(g){g.enabledProducts=newEP;g.watermarkConfig=newWM;g.expiresAt=newExpires;}
-    msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';
-    setTimeout(()=>{document.getElementById("products-form").classList.add("hidden");msg.innerHTML=""},1500);
-  }catch(e){
-    msg.innerHTML='<div class="error-msg">Hiba történt!</div>';
-    console.error(e);
-  }
+    currentDetailGallery.enabledProducts=newEP;currentDetailGallery.watermarkConfig=newWM;currentDetailGallery.expiresAt=newExpires;
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.enabledProducts=newEP;g.watermarkConfig=newWM;g.expiresAt=newExpires}
+    msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';setTimeout(()=>{document.getElementById("products-form").classList.add("hidden");msg.innerHTML=""},1500);
+  }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt!</div>';console.error(e)}
 }
 
 function toggleGroupGallery(){
   const isGroup=document.getElementById("new-is-group").checked;
   document.getElementById("individual-gallery-fields").classList.toggle("hidden",isGroup);
   document.getElementById("group-gallery-fields").classList.toggle("hidden",!isGroup);
-  if(isGroup){updateGroupCode()}
-  else{updateCode()}
+  if(isGroup){updateGroupCode()}else{updateCode()}
 }
-
-function updateGroupCode(){
-  const name=document.getElementById("new-group-name").value.trim();
-  if(name){generatedCode=generateCode(name);document.getElementById("new-code").textContent=generatedCode;show("code-box")}
-  else hide("code-box");
-}
-
-function checkCodeType(){
-  const code=document.getElementById("inp-code").value.trim().toUpperCase();
-  if(!code){hide("group-info");show("individual-fields");return}
-  const found=galleries.find(g=>g.code===code);
-  if(found&&found.isGroup){
-    show("group-info");
-    hide("individual-fields");
-  }else{
-    hide("group-info");
-    show("individual-fields");
-  }
-}
-
-
+function updateGroupCode(){const name=document.getElementById("new-group-name").value.trim();if(name){generatedCode=generateCode(name);document.getElementById("new-code").textContent=generatedCode;show("code-box")}else hide("code-box")}
+function checkCodeType(){const code=document.getElementById("inp-code").value.trim().toUpperCase();if(!code){hide("group-info");show("individual-fields");return}const found=galleries.find(g=>g.code===code);if(found&&found.isGroup){show("group-info");hide("individual-fields")}else{hide("group-info");show("individual-fields")}}
 
 let copiedGallerySettings=null;
-
 function copyGallerySettings(){
   if(!currentDetailGallery)return;
-  copiedGallerySettings={
-    enabledProducts:currentDetailGallery.enabledProducts||{print:true,digital:true,gift:true},
-    watermarkConfig:currentDetailGallery.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"},
-    discounts:currentDetailGallery.discounts||[],
-    promoText:currentDetailGallery.promoText||"",
-    galleryMessage:currentDetailGallery.galleryMessage||"",
-    expiresAt:currentDetailGallery.expiresAt||null
-  };
+  copiedGallerySettings={enabledProducts:currentDetailGallery.enabledProducts||{print:true,digital:true,gift:true},watermarkConfig:currentDetailGallery.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"},discounts:currentDetailGallery.discounts||[],promoText:currentDetailGallery.promoText||"",galleryMessage:currentDetailGallery.galleryMessage||"",expiresAt:currentDetailGallery.expiresAt||null};
   try{localStorage.setItem("fotolux_copied_settings",JSON.stringify(copiedGallerySettings))}catch(e){}
-  alert("✓ A galéria beállításai átmásolva: termékek, vízjel, kedvezmények, üzenetek, lejárat.\n\nMost menj a + Új fülre, és kattints a Beállítások beillesztése gombra!");
+  alert("✓ A galéria beállításai átmásolva!\n\nMost menj a + Új fülre, és kattints a Beállítások beillesztése gombra!");
 }
 
 function pasteGallerySettings(){
   let settings=copiedGallerySettings;
-  if(!settings){
-    try{const s=localStorage.getItem("fotolux_copied_settings");if(s)settings=JSON.parse(s)}catch(e){}
-  }
+  if(!settings){try{const s=localStorage.getItem("fotolux_copied_settings");if(s)settings=JSON.parse(s)}catch(e){}}
   if(!settings){alert("Nincs másolt beállítás. Először egy meglévő galériánál kattints a Másolás gombra.");return}
-  // Apply enabled products
   document.getElementById("new-enable-print").checked=settings.enabledProducts.print!==false;
   document.getElementById("new-enable-digital").checked=settings.enabledProducts.digital!==false;
   document.getElementById("new-enable-gift").checked=settings.enabledProducts.gift!==false;
-  // Apply watermark
   document.getElementById("new-watermark-enabled").checked=settings.watermarkConfig.enabled!==false;
   document.getElementById("new-watermark-text").value=(settings.watermarkConfig.text||"").replace(/\n/g,"\\n");
-  // Apply promo and message
   document.getElementById("new-promo-text").value=settings.promoText||"";
   document.getElementById("new-gallery-message").value=settings.galleryMessage||"";
-  // Apply discounts
-  newDiscounts=JSON.parse(JSON.stringify(settings.discounts||[]));
-  renderNewDiscounts();
-  // Apply expiration
-  if(settings.expiresAt){
-    const d=new Date(settings.expiresAt);
-    document.getElementById("new-expires-at").value=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-  }
+  newDiscounts=JSON.parse(JSON.stringify(settings.discounts||[]));renderNewDiscounts();
+  if(settings.expiresAt){const d=new Date(settings.expiresAt);document.getElementById("new-expires-at").value=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
   const msg=document.getElementById("paste-settings-msg");
-  if(msg){msg.innerHTML='<div class="success-msg">✓ Beállítások beillesztve! Most töltsd ki a gyerek nevét és tölts fel képeket.</div>';setTimeout(()=>msg.innerHTML="",4000)}
+  if(msg){msg.innerHTML='<div class="success-msg">✓ Beállítások beillesztve!</div>';setTimeout(()=>msg.innerHTML="",4000)}
 }
-
-function getNewEnabledProducts(){
-  return {
-    print:document.getElementById("new-enable-print").checked,
-    digital:document.getElementById("new-enable-digital").checked,
-    gift:document.getElementById("new-enable-gift").checked
-  };
-}
-
-function getNewWatermarkConfig(){
-  return {
-    enabled:document.getElementById("new-watermark-enabled").checked,
-    text:document.getElementById("new-watermark-text").value.replace(/\\n/g,"\n")||"SpringMoonPhoto\nMINTA"
-  };
-}
-
-function getNewExpiresAt(){
-  const v=document.getElementById("new-expires-at").value;
-  return v?new Date(v+"T23:59:59").getTime():null;
-}
-
+function getNewEnabledProducts(){return{print:document.getElementById("new-enable-print").checked,digital:document.getElementById("new-enable-digital").checked,gift:document.getElementById("new-enable-gift").checked}}
+function getNewWatermarkConfig(){return{enabled:document.getElementById("new-watermark-enabled").checked,text:document.getElementById("new-watermark-text").value.replace(/\\n/g,"\n")||"SpringMoonPhoto\nMINTA"}}
+function getNewExpiresAt(){const v=document.getElementById("new-expires-at").value;return v?new Date(v+"T23:59:59").getTime():null}
 
 let newDiscounts=[];
-
-function addNewDiscount(){
-  newDiscounts.push({code:"",percent:10,minTotal:0});
-  renderNewDiscounts();
-}
-
-function removeNewDiscount(i){
-  newDiscounts.splice(i,1);
-  renderNewDiscounts();
-}
-
+function addNewDiscount(){newDiscounts.push({code:"",percent:10,minTotal:0});renderNewDiscounts()}
+function removeNewDiscount(i){newDiscounts.splice(i,1);renderNewDiscounts()}
 function renderNewDiscounts(){
   const div=document.getElementById("new-discounts-list");
   if(newDiscounts.length===0){div.innerHTML="";return}
   div.innerHTML=newDiscounts.map((d,i)=>'<div style="background:var(--cream);padding:10px;border-radius:8px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><input type="text" id="new-disc-code-'+i+'" value="'+(d.code||"").replace(/"/g,"&quot;")+'" placeholder="KÓD" style="flex:1;margin-bottom:0;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"><input type="number" id="new-disc-percent-'+i+'" value="'+d.percent+'" min="1" max="100" style="width:70px;margin-bottom:0;text-align:right"><span style="font-size:.85rem;color:var(--muted)">%</span><button class="regen-btn" style="color:#c0392b" onclick="removeNewDiscount('+i+')" title="Törlés">&#128465;&#65039;</button></div><div style="display:flex;gap:6px;align-items:center;font-size:.78rem;color:var(--muted)"><span>Min. rendelés:</span><input type="number" id="new-disc-min-'+i+'" value="'+d.minTotal+'" min="0" step="500" style="width:90px;margin-bottom:0;text-align:right;padding:6px 10px"><span>Ft</span></div></div>').join("");
 }
-
 function readNewDiscounts(){
-  return newDiscounts.map((d,i)=>{
-    const code=document.getElementById("new-disc-code-"+i);
-    const pct=document.getElementById("new-disc-percent-"+i);
-    const min=document.getElementById("new-disc-min-"+i);
-    return {
-      code:code?code.value.trim().toUpperCase():"",
-      percent:pct?parseInt(pct.value)||10:10,
-      minTotal:min?parseInt(min.value)||0:0
-    };
-  }).filter(d=>d.code);
+  return newDiscounts.map((d,i)=>{const code=document.getElementById("new-disc-code-"+i);const pct=document.getElementById("new-disc-percent-"+i);const min=document.getElementById("new-disc-min-"+i);return{code:code?code.value.trim().toUpperCase():"",percent:pct?parseInt(pct.value)||10:10,minTotal:min?parseInt(min.value)||0:0}}).filter(d=>d.code);
 }
 
 let activeDiscount=null;
-
 function applyDiscount(){
-  const code=document.getElementById("discount-code-input").value.trim().toUpperCase();
-  const msg=document.getElementById("discount-msg");
+  const code=document.getElementById("discount-code-input").value.trim().toUpperCase();const msg=document.getElementById("discount-msg");
   if(!code){msg.innerHTML='<div class="error-msg">Kérjük adja meg a kedvezménykódot.</div>';return}
   if(!currentGallery||!currentGallery.discounts){msg.innerHTML='<div class="error-msg">Ehhez a galériához nincs kedvezménykód.</div>';return}
   const found=currentGallery.discounts.find(d=>d.code===code);
   if(!found){msg.innerHTML='<div class="error-msg">Érvénytelen kedvezménykód.</div>';return}
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-  if(found.minTotal&&total<found.minTotal){
-    msg.innerHTML='<div class="error-msg">Ezzel a kóddal min. '+fmt(found.minTotal)+' értékben kell rendelni (jelenleg: '+fmt(total)+').</div>';
-    return;
-  }
-  activeDiscount=found;
-  msg.innerHTML='<div class="success-msg">✓ Kedvezmény aktiválva: -'+found.percent+'% ('+fmt(Math.round(total*found.percent/100))+')</div>';
-  document.getElementById("discount-code-input").disabled=true;
-  renderCartItems();
+  if(found.minTotal&&total<found.minTotal){msg.innerHTML='<div class="error-msg">Ezzel a kóddal min. '+fmt(found.minTotal)+' értékben kell rendelni (jelenleg: '+fmt(total)+').</div>';return}
+  activeDiscount=found;msg.innerHTML='<div class="success-msg">✓ Kedvezmény aktiválva: -'+found.percent+'% ('+fmt(Math.round(total*found.percent/100))+')</div>';
+  document.getElementById("discount-code-input").disabled=true;renderCartItems();
 }
-
-function clearDiscount(){
-  activeDiscount=null;
-  document.getElementById("discount-code-input").value="";
-  document.getElementById("discount-code-input").disabled=false;
-  document.getElementById("discount-msg").innerHTML="";
-}
-
+function clearDiscount(){activeDiscount=null;document.getElementById("discount-code-input").value="";document.getElementById("discount-code-input").disabled=false;document.getElementById("discount-msg").innerHTML=""}
 
 async function testEmail(){
   const msg=document.getElementById("emailjs-test-msg");
   if(!window.emailjs){msg.innerHTML='<div class="error-msg">Az EmailJS könyvtár nem töltődött be.</div>';return}
-  const pk=document.getElementById("emailjs-public-key").value.trim();
-  const sid=document.getElementById("emailjs-service-id").value.trim();
-  const tid=document.getElementById("emailjs-template-new").value.trim();
+  const pk=document.getElementById("emailjs-public-key").value.trim();const sid=document.getElementById("emailjs-service-id").value.trim();const tid=document.getElementById("emailjs-template-new").value.trim();
   if(!pk||!sid||!tid){msg.innerHTML='<div class="error-msg">Először töltsd ki a Public Key, Service ID és Template ID mezőket!</div>';return}
   msg.innerHTML='<div style="font-size:.85rem;color:var(--muted)">Küldés...</div>';
   try{
-    emailjs.init({publicKey:pk});
-    const to=document.getElementById("my-contact-email").value.trim()||currentUser.email;
-    await emailjs.send(sid,tid,{
-      to_email:to,
-      to_name:"Fotós",
-      child_name:"TESZT Gyerek",
-      parent_name:"TESZT Szülő",
-      parent_email:"teszt@email.com",
-      parent_phone:"+36 30 123 4567",
-      order_total:"1500 Ft",
-      order_date:new Date().toLocaleString("hu-HU"),
-      order_items:"1x Papírkép 10×15 - 1500 Ft (TESZT)",
-      photographer_name:currentUser.name||""
-    });
-    msg.innerHTML='<div class="success-msg">✓ Teszt email elküldve! Ellenőrizd a postafiókodat.</div>';
-  }catch(e){
-    msg.innerHTML='<div class="error-msg">Hiba: '+(e.text||e.message||"Ismeretlen hiba")+'</div>';
-    console.error(e);
-  }
+    emailjs.init({publicKey:pk});const to=document.getElementById("my-contact-email").value.trim()||currentUser.email;
+    await emailjs.send(sid,tid,{to_email:to,to_name:"Fotós",child_name:"TESZT Gyerek",parent_name:"TESZT Szülő",parent_email:"teszt@email.com",parent_phone:"+36 30 123 4567",order_total:"1500 Ft",order_date:new Date().toLocaleString("hu-HU"),order_items:"1x Papírkép 10×15 - 1500 Ft (TESZT)",photographer_name:currentUser.name||""});
+    msg.innerHTML='<div class="success-msg">✓ Teszt email elküldve!</div>';
+  }catch(e){msg.innerHTML='<div class="error-msg">Hiba: '+(e.text||e.message||"Ismeretlen hiba")+'</div>';console.error(e)}
 }
 
 async function sendNewOrderEmail(order){
-  if(!window.PHOTOGRAPHER_CONTACT||!window.emailjs)return;
-  if(!order.photographerId)return;
+  if(!window.PHOTOGRAPHER_CONTACT||!window.emailjs)return;if(!order.photographerId)return;
   try{
-    // Need to fetch EmailJS config for the gallery owner
-    const doc=await db.collection("photographers").doc(order.photographerId).get();
-    if(!doc.exists)return;
-    const data=doc.data();
-    const cfg=data.emailjsConfig;
-    if(!cfg||!cfg.publicKey||!cfg.serviceId||!cfg.templateNewOrder)return;
+    const doc=await db.collection("photographers").doc(order.photographerId).get();if(!doc.exists)return;
+    const data=doc.data();const cfg=data.emailjsConfig;if(!cfg||!cfg.publicKey||!cfg.serviceId||!cfg.templateNewOrder)return;
     emailjs.init({publicKey:cfg.publicKey});
-    const itemsList=(order.items||[]).map(i=>{
-      let lbl;
-      if(i.type==="digital")lbl="Digitális";
-      else if(i.type==="gift")lbl=i.giftLabel||"Ajándék";
-      else lbl="Papírkép ("+i.sizeLabel+")";
-      return i.qty+"x "+i.photoName+" - "+lbl+" - "+fmt(i.totalPrice);
-    }).join("\n");
-    await emailjs.send(cfg.serviceId,cfg.templateNewOrder,{
-      to_email:data.contactEmail||data.email,
-      to_name:"Fotós",
-      child_name:order.child,
-      parent_name:order.parentName||"-",
-      parent_email:order.parentEmail||"-",
-      parent_phone:order.phone||"-",
-      order_total:fmt(order.total),
-      order_date:order.date,
-      order_items:itemsList,
-      photographer_name:data.name||""
-    });
+    const itemsList=(order.items||[]).map(i=>{let lbl;if(i.type==="digital")lbl="Digitális";else if(i.type==="gift")lbl=i.giftLabel||"Ajándék";else lbl="Papírkép ("+i.sizeLabel+")";return i.qty+"x "+i.photoName+" - "+lbl+" - "+fmt(i.totalPrice)}).join("\n");
+    await emailjs.send(cfg.serviceId,cfg.templateNewOrder,{to_email:data.contactEmail||data.email,to_name:"Fotós",child_name:order.child,parent_name:order.parentName||"-",parent_email:order.parentEmail||"-",parent_phone:order.phone||"-",order_total:fmt(order.total),order_date:order.date,order_items:itemsList,photographer_name:data.name||""});
   }catch(e){console.error("Email send error:",e)}
 }
 
 async function sendStatusChangeEmail(order,newStatus){
-  if(!window.emailjs)return;
-  if(!order.parentEmail||!order.photographerId)return;
+  if(!window.emailjs)return;if(!order.parentEmail||!order.photographerId)return;
   try{
-    const doc=await db.collection("photographers").doc(order.photographerId).get();
-    if(!doc.exists)return;
-    const data=doc.data();
-    const cfg=data.emailjsConfig;
-    if(!cfg||!cfg.publicKey||!cfg.serviceId||!cfg.templateStatusChange)return;
+    const doc=await db.collection("photographers").doc(order.photographerId).get();if(!doc.exists)return;
+    const data=doc.data();const cfg=data.emailjsConfig;if(!cfg||!cfg.publicKey||!cfg.serviceId||!cfg.templateStatusChange)return;
     emailjs.init({publicKey:cfg.publicKey});
-    await emailjs.send(cfg.serviceId,cfg.templateStatusChange,{
-      to_email:order.parentEmail,
-      to_name:order.parentName||"Szülő",
-      child_name:order.child,
-      new_status:STATUS_LABELS[newStatus]||newStatus,
-      order_total:fmt(order.total),
-      order_date:order.date,
-      photographer_name:data.name||""
-    });
+    await emailjs.send(cfg.serviceId,cfg.templateStatusChange,{to_email:order.parentEmail,to_name:order.parentName||"Szülő",child_name:order.child,new_status:STATUS_LABELS[newStatus]||newStatus,order_total:fmt(order.total),order_date:order.date,photographer_name:data.name||""});
   }catch(e){console.error("Email send error:",e)}
 }
-
 function fmt(n){return n.toLocaleString("hu-HU")+" Ft"}
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
 function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail"].forEach(p=>hide(p));show(id)}
 function generateCode(name){const base=name.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"").slice(0,6);return base+Math.floor(1000+Math.random()*9000)}
 function getStatusBadge(status){const s=status||"pending";return '<span class="status-badge '+STATUS_CLASSES[s]+'">'+STATUS_LABELS[s]+'</span>'}
-
 function saveCart(){try{localStorage.setItem("fotolux_cart_"+(currentGallery?currentGallery.id:""),JSON.stringify(cart))}catch(e){}}
 function loadCart(){try{const s=localStorage.getItem("fotolux_cart_"+(currentGallery?currentGallery.id:""));cart=s?JSON.parse(s):[]}catch(e){cart=[]}}
 
 async function loadData(){
-  try{
-    const gs=await db.collection("galleries").orderBy("createdAt","desc").get();
-    galleries=gs.docs.map(d=>({id:d.id,...d.data()}));
-  }catch(e){console.error(e)}
-  orders=[];
-  showPage("page-login");
+  try{const gs=await db.collection("galleries").orderBy("createdAt","desc").get();galleries=gs.docs.map(d=>({id:d.id,...d.data()}))}catch(e){console.error(e)}
+  orders=[];showPage("page-login");
 }
 
-// On page load, check if photographer is already logged in
 firebase.auth().onAuthStateChanged(async function(user){
-  if(user){
-    const doc=await db.collection("photographers").doc(user.uid).get();
-    const data=doc.exists?doc.data():{name:user.email,email:user.email};
-    currentUser={uid:user.uid,email:data.email,name:data.name};
-  }
+  if(user){const doc=await db.collection("photographers").doc(user.uid).get();const data=doc.exists?doc.data():{name:user.email,email:user.email};currentUser={uid:user.uid,email:data.email,name:data.name}}
 });
 
 async function compressImage(file,maxSizeMB){
-  const maxBytes=maxSizeMB*1024*1024;
-  if(file.size<=maxBytes)return file;
-  // Load image
-  const img=await new Promise((resolve,reject)=>{
-    const im=new Image();
-    im.onload=()=>resolve(im);
-    im.onerror=reject;
-    im.src=URL.createObjectURL(file);
-  });
-  // Calculate new dimensions - max 3000px on long side
-  let w=img.width,h=img.height;
-  const maxDim=3000;
-  if(w>maxDim||h>maxDim){
-    if(w>h){h=Math.round(h*maxDim/w);w=maxDim;}
-    else{w=Math.round(w*maxDim/h);h=maxDim;}
-  }
-  // Try different qualities
-  for(let quality=0.92;quality>=0.5;quality-=0.1){
-    const canvas=document.createElement("canvas");
-    canvas.width=w;canvas.height=h;
-    const ctx=canvas.getContext("2d");
-    ctx.drawImage(img,0,0,w,h);
-    const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",quality));
-    if(blob.size<=maxBytes){
-      URL.revokeObjectURL(img.src);
-      return new File([blob],file.name.replace(/\.(png|webp|heic)$/i,".jpg"),{type:"image/jpeg"});
-    }
-  }
-  // If still too big, reduce dimensions further
-  for(let scale=0.8;scale>=0.3;scale-=0.1){
-    const canvas=document.createElement("canvas");
-    canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
-    const ctx=canvas.getContext("2d");
-    ctx.drawImage(img,0,0,canvas.width,canvas.height);
-    const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.85));
-    if(blob.size<=maxBytes){
-      URL.revokeObjectURL(img.src);
-      return new File([blob],file.name.replace(/\.(png|webp|heic)$/i,".jpg"),{type:"image/jpeg"});
-    }
-  }
-  URL.revokeObjectURL(img.src);
-  throw new Error("A kép túl nagy a tömörítés után is.");
+  const maxBytes=maxSizeMB*1024*1024;if(file.size<=maxBytes)return file;
+  const img=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=URL.createObjectURL(file)});
+  let w=img.width,h=img.height;const maxDim=3000;
+  if(w>maxDim||h>maxDim){if(w>h){h=Math.round(h*maxDim/w);w=maxDim}else{w=Math.round(w*maxDim/h);h=maxDim}}
+  for(let quality=0.92;quality>=0.5;quality-=0.1){const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;const ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,w,h);const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",quality));if(blob.size<=maxBytes){URL.revokeObjectURL(img.src);return new File([blob],file.name.replace(/\.(png|webp|heic)$/i,".jpg"),{type:"image/jpeg"})}}
+  for(let scale=0.8;scale>=0.3;scale-=0.1){const canvas=document.createElement("canvas");canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);const ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,canvas.width,canvas.height);const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",0.85));if(blob.size<=maxBytes){URL.revokeObjectURL(img.src);return new File([blob],file.name.replace(/\.(png|webp|heic)$/i,".jpg"),{type:"image/jpeg"})}}
+  URL.revokeObjectURL(img.src);throw new Error("A kép túl nagy a tömörítés után is.");
 }
 
 async function uploadPhoto(file,i,total,progressId,statusId){
-  // Compress if larger than 9.5MB (safety margin under 10MB limit)
   document.getElementById(statusId).textContent="Tömörítés: "+(i+1)+"/"+total+" kép...";
   const optimizedFile=await compressImage(file,9.5);
   document.getElementById(statusId).textContent="Feltöltés: "+(i+1)+"/"+total+" kép...";
-  const fd=new FormData();
-  fd.append("file",optimizedFile);
-  fd.append("upload_preset",UPLOAD_PRESET);
+  const fd=new FormData();fd.append("file",optimizedFile);fd.append("upload_preset",UPLOAD_PRESET);
   const res=await fetch("https://api.cloudinary.com/v1_1/"+CLOUD_NAME+"/image/upload",{method:"POST",body:fd});
   const data=await res.json();
-  if(data.secure_url){
-    document.getElementById(progressId).style.width=Math.round(((i+1)/total)*100)+"%";
-    return data.secure_url;
-  }
-  console.error("Cloudinary error response:",data);
-  throw new Error(data.error?data.error.message:"Feltöltési hiba");
+  if(data.secure_url){document.getElementById(progressId).style.width=Math.round(((i+1)/total)*100)+"%";return data.secure_url}
+  console.error("Cloudinary error response:",data);throw new Error(data.error?data.error.message:"Feltöltési hiba");
 }
 
 async function handleFileSelectNew(event){
   const files=Array.from(event.target.files);if(!files.length)return;
   show("upload-progress-new");document.getElementById("progress-fill-new").style.width="0%";document.getElementById("upload-status-new").textContent="Előkészítés...";
-  try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-new","upload-status-new");uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1)})}
-  document.getElementById("upload-status-new").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsNew()}
+  try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-new","upload-status-new");uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1)})}document.getElementById("upload-status-new").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsNew()}
   catch(e){console.error("Upload error:",e);document.getElementById("upload-status-new").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
 }
 function renderPreviewsNew(){document.getElementById("photo-previews-new").innerHTML=uploadedPhotosNew.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosNew.splice('+i+',1);uploadedPhotosNew.forEach((x,j)=>x.name=\'Portré \'+(j+1));renderPreviewsNew()">×</button></div>').join("")}
@@ -1304,11 +987,11 @@ function renderPreviewsNew(){document.getElementById("photo-previews-new").inner
 async function handleFileSelectDetail(event){
   const files=Array.from(event.target.files);if(!files.length)return;
   show("upload-progress-detail");document.getElementById("progress-fill-detail").style.width="0%";document.getElementById("upload-status-detail").textContent="Előkészítés...";
-  try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-detail","upload-status-detail");uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:"Portré "+((currentDetailGallery.photos||[]).length+uploadedPhotosDetail.length+1)})}
-  document.getElementById("upload-status-detail").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsDetail();show("save-photos-btn")}
+  try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-detail","upload-status-detail");uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:"Portré "+((currentDetailGallery.photos||[]).length+uploadedPhotosDetail.length+1)})}document.getElementById("upload-status-detail").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsDetail();show("save-photos-btn")}
   catch(e){console.error("Upload error:",e);document.getElementById("upload-status-detail").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
 }
 function renderPreviewsDetail(){document.getElementById("photo-previews-detail").innerHTML=uploadedPhotosDetail.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosDetail.splice('+i+',1);renderPreviewsDetail()">×</button></div>').join("")}
+
 async function saveDetailPhotos(){
   if(!uploadedPhotosDetail.length)return;
   const btn=document.getElementById("save-photos-btn");btn.textContent="Mentés...";btn.disabled=true;
@@ -1320,40 +1003,27 @@ async function saveDetailPhotos(){
 
 function showAdminLogin(){hide("parent-login-card");show("admin-login-card");showAuthMain()}
 function showParentLogin(){show("parent-login-card");hide("admin-login-card");showAuthMain()}
+
 async function handleLogin(){
   const code=document.getElementById("inp-code").value.trim().toUpperCase();
   const err=document.getElementById("login-error");hide("login-error");
   if(!code){err.textContent="Kérjük adja meg a belépési kódot.";show("login-error");return}
   const found=galleries.find(g=>g.code===code);
   if(!found){err.textContent="Érvénytelen belépési kód.";show("login-error");return}
-  if(found.expiresAt&&found.expiresAt<Date.now()){
-    const expDate=new Date(found.expiresAt).toLocaleDateString("hu-HU");
-    err.textContent="Sajnáljuk, ez a galéria lejárt "+expDate+"-án/én. Kérjük vegye fel a kapcsolatot a fotóssal.";
-    show("login-error");
-    return;
-  }
+  if(found.expiresAt&&found.expiresAt<Date.now()){const expDate=new Date(found.expiresAt).toLocaleDateString("hu-HU");err.textContent="Sajnáljuk, ez a galéria lejárt "+expDate+"-án/én. Kérjük vegye fel a kapcsolatot a fotóssal.";show("login-error");return}
   if(found.isGroup){
-    // Group gallery - only code needed
-    currentGallery=found;
-    await loadGalleryPrices(found);
-    // Track visit for reminder system
-    try{db.collection("galleries").doc(found.id).update({lastVisitAt:Date.now()});}catch(e){}
+    currentGallery=found;await loadGalleryPrices(found);try{db.collection("galleries").doc(found.id).update({lastVisitAt:Date.now()})}catch(e){}
     loadCart();loadFavorites();renderGallery();showPage("page-gallery");
   }else{
-    // Individual gallery - need email and child name
-    const email=document.getElementById("inp-email").value.trim().toLowerCase();
-    const child=document.getElementById("inp-child").value.trim().toLowerCase();
+    const email=document.getElementById("inp-email").value.trim().toLowerCase();const child=document.getElementById("inp-child").value.trim().toLowerCase();
     if(!email||!child){err.textContent="Kérjük töltse ki az email címet és a gyermek nevét.";show("login-error");return}
     if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email cím vagy a gyerek neve nem egyezik.";show("login-error");return}
-    currentGallery=found;
-    await loadGalleryPrices(found);
-    // Track visit
-    try{db.collection("galleries").doc(found.id).update({lastVisitAt:Date.now()});}catch(e){}
+    currentGallery=found;await loadGalleryPrices(found);try{db.collection("galleries").doc(found.id).update({lastVisitAt:Date.now()})}catch(e){}
     loadCart();loadFavorites();renderGallery();showPage("page-gallery");
   }
 }
-let authMode="login";
-let currentUser=null;
+
+let authMode="login";let currentUser=null;
 
 function switchAuthMode(mode){
   authMode=mode;
@@ -1362,40 +1032,29 @@ function switchAuthMode(mode){
   document.getElementById("auth-title").textContent=mode==="login"?"Fotós bejelentkezés":"Fotós regisztráció";
   document.getElementById("auth-sub").textContent=mode==="login"?"Üdvözöljük a SpringMoon Gallery fotós felületén":"Hozzon létre egy új fotós fiókot";
   document.getElementById("auth-submit-btn").textContent=mode==="login"?"Bejelentkezés →":"Regisztráció →";
-  document.getElementById("auth-name-wrap").classList.toggle("hidden",mode!=="register");
-  hide("auth-error");
+  document.getElementById("auth-name-wrap").classList.toggle("hidden",mode!=="register");hide("auth-error");
 }
 
 async function handleAuth(){
-  const email=document.getElementById("inp-auth-email").value.trim().toLowerCase();
-  const pass=document.getElementById("inp-auth-pass").value;
-  const err=document.getElementById("auth-error");
-  hide("auth-error");
+  const email=document.getElementById("inp-auth-email").value.trim().toLowerCase();const pass=document.getElementById("inp-auth-pass").value;
+  const err=document.getElementById("auth-error");hide("auth-error");
   if(!email||!pass){err.textContent="Kérjük töltse ki az email címet és jelszót.";show("auth-error");return}
   if(pass.length<6){err.textContent="A jelszónak legalább 6 karakter hosszúnak kell lennie.";show("auth-error");return}
-  const btn=document.getElementById("auth-submit-btn");
-  btn.disabled=true;
+  const btn=document.getElementById("auth-submit-btn");btn.disabled=true;
   try{
     if(authMode==="register"){
       const name=document.getElementById("inp-auth-name").value.trim();
       if(!name){err.textContent="Kérjük adja meg a fotós/cég nevét.";show("auth-error");btn.disabled=false;return}
       const cred=await firebase.auth().createUserWithEmailAndPassword(email,pass);
       await db.collection("photographers").doc(cred.user.uid).set({name,email,createdAt:Date.now()});
-      currentUser={uid:cred.user.uid,email,name};
-      await loadPhotographerData();
-      await loadMyPrices();
-      document.getElementById("success-email").textContent=email;
-      document.getElementById("success-name").textContent=name;
+      currentUser={uid:cred.user.uid,email,name};await loadPhotographerData();await loadMyPrices();
+      document.getElementById("success-email").textContent=email;document.getElementById("success-name").textContent=name;
       hide("auth-main");show("auth-success");
     }else{
       const cred=await firebase.auth().signInWithEmailAndPassword(email,pass);
-      const doc=await db.collection("photographers").doc(cred.user.uid).get();
-      const data=doc.exists?doc.data():{name:email,email};
+      const doc=await db.collection("photographers").doc(cred.user.uid).get();const data=doc.exists?doc.data():{name:email,email};
       currentUser={uid:cred.user.uid,email:data.email,name:data.name};
-      await loadPhotographerData();
-      await loadMyPrices();
-      showPage("page-admin");
-      renderAdmin();
+      await loadPhotographerData();await loadMyPrices();showPage("page-admin");renderAdmin();
     }
   }catch(e){
     let msg="Hiba történt a bejelentkezés során.";
@@ -1409,43 +1068,15 @@ async function handleAuth(){
   btn.disabled=false;
 }
 
-function goToAdminAfterRegister(){
-  hide("auth-success");
-  show("auth-main");
-  showPage("page-admin");
-  renderAdmin();
-}
-
-function showForgotPassword(){
-  hide("auth-main");
-  show("auth-forgot");
-  hide("forgot-error");
-  hide("forgot-success");
-  document.getElementById("inp-forgot-email").value=document.getElementById("inp-auth-email").value||"";
-}
-
-function showAuthMain(){
-  show("auth-main");
-  hide("auth-forgot");
-  hide("auth-success");
-}
+function goToAdminAfterRegister(){hide("auth-success");show("auth-main");showPage("page-admin");renderAdmin()}
+function showForgotPassword(){hide("auth-main");show("auth-forgot");hide("forgot-error");hide("forgot-success");document.getElementById("inp-forgot-email").value=document.getElementById("inp-auth-email").value||""}
+function showAuthMain(){show("auth-main");hide("auth-forgot");hide("auth-success")}
 
 async function sendPasswordReset(){
-  const email=document.getElementById("inp-forgot-email").value.trim().toLowerCase();
-  const err=document.getElementById("forgot-error");
-  const succ=document.getElementById("forgot-success");
-  hide("forgot-error");hide("forgot-success");
+  const email=document.getElementById("inp-forgot-email").value.trim().toLowerCase();const err=document.getElementById("forgot-error");const succ=document.getElementById("forgot-success");hide("forgot-error");hide("forgot-success");
   if(!email){err.textContent="Kérjük adja meg az email címét.";show("forgot-error");return}
-  try{
-    await firebase.auth().sendPasswordResetEmail(email);
-    succ.textContent="✓ Az új jelszó beállítási linket elküldtük a "+email+" címre. Ellenőrizze a postafiókját (esetleg a Spam mappát is)!";
-    show("forgot-success");
-  }catch(e){
-    let msg="Hiba történt.";
-    if(e.code==="auth/user-not-found")msg="Nincs ilyen email című fiók.";
-    else if(e.code==="auth/invalid-email")msg="Érvénytelen email cím.";
-    err.textContent=msg;show("forgot-error");
-  }
+  try{await firebase.auth().sendPasswordResetEmail(email);succ.textContent="✓ Az új jelszó beállítási linket elküldtük a "+email+" címre.";show("forgot-success")}
+  catch(e){let msg="Hiba történt.";if(e.code==="auth/user-not-found")msg="Nincs ilyen email című fiók.";else if(e.code==="auth/invalid-email")msg="Érvénytelen email cím.";err.textContent=msg;show("forgot-error")}
 }
 
 async function loadPhotographerData(){
@@ -1457,411 +1088,151 @@ async function loadPhotographerData(){
     orders=os.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   }catch(e){console.error("Adatbetöltési hiba:",e);galleries=[];orders=[]}
 }
+
 async function logout(){
   cart=[];currentGallery=null;
   if(currentUser){await firebase.auth().signOut();currentUser=null;orders=[]}
   await loadData();
 }
 
-// Image protection - only on parent gallery pages
-document.addEventListener("contextmenu",function(e){
-  if(currentGallery&&!currentUser&&(e.target.tagName==="IMG"||e.target.closest(".photo-card")||e.target.closest(".sheet-photo-wrap")||e.target.closest("#lightbox"))){
-    e.preventDefault();
-    return false;
-  }
-});
-document.addEventListener("dragstart",function(e){
-  if(currentGallery&&!currentUser&&e.target.tagName==="IMG"){
-    e.preventDefault();
-    return false;
-  }
-});
+document.addEventListener("contextmenu",function(e){if(currentGallery&&!currentUser&&(e.target.tagName==="IMG"||e.target.closest(".photo-card")||e.target.closest(".sheet-photo-wrap")||e.target.closest("#lightbox"))){e.preventDefault();return false}});
+document.addEventListener("dragstart",function(e){if(currentGallery&&!currentUser&&e.target.tagName==="IMG"){e.preventDefault();return false}});
 document.addEventListener("keydown",function(e){
-  // Lightbox navigation
-  if(!document.getElementById("lightbox").classList.contains("hidden")){
-    if(e.key==="ArrowLeft")lightboxNav(-1);
-    else if(e.key==="ArrowRight")lightboxNav(1);
-    else if(e.key==="Escape")closeLightbox();
-  }
+  if(!document.getElementById("lightbox").classList.contains("hidden")){if(e.key==="ArrowLeft")lightboxNav(-1);else if(e.key==="ArrowRight")lightboxNav(1);else if(e.key==="Escape")closeLightbox()}
   if(currentGallery&&!currentUser){
-    // Block Ctrl+S, Ctrl+P, Ctrl+Shift+S
-    if((e.ctrlKey||e.metaKey)&&(e.key==="s"||e.key==="S"||e.key==="p"||e.key==="P")){
-      e.preventDefault();
-      showCopyrightWarning();
-      return false;
-    }
-    // Detect Print Screen key
-    if(e.key==="PrintScreen"||e.keyCode===44){
-      // Try to clear clipboard (some browsers allow this)
-      try{navigator.clipboard.writeText("")}catch(err){}
-      showCopyrightWarning();
-    }
-    // Detect F12 (developer tools)
-    if(e.key==="F12"||(e.ctrlKey&&e.shiftKey&&(e.key==="I"||e.key==="i"||e.key==="J"||e.key==="j"||e.key==="C"||e.key==="c"))){
-      showCopyrightWarning();
-    }
-    // Detect Ctrl+U (view source)
-    if((e.ctrlKey||e.metaKey)&&(e.key==="u"||e.key==="U")){
-      e.preventDefault();
-      showCopyrightWarning();
-      return false;
-    }
+    if((e.ctrlKey||e.metaKey)&&(e.key==="s"||e.key==="S"||e.key==="p"||e.key==="P")){e.preventDefault();showCopyrightWarning();return false}
+    if(e.key==="PrintScreen"||e.keyCode===44){try{navigator.clipboard.writeText("")}catch(err){}showCopyrightWarning()}
+    if(e.key==="F12"||(e.ctrlKey&&e.shiftKey&&(e.key==="I"||e.key==="i"||e.key==="J"||e.key==="j"||e.key==="C"||e.key==="c")))showCopyrightWarning();
+    if((e.ctrlKey||e.metaKey)&&(e.key==="u"||e.key==="U")){e.preventDefault();showCopyrightWarning();return false}
   }
 });
-
-// Detect when window loses focus (might indicate screenshot tool)
 let lastFocusTime=Date.now();
-window.addEventListener("blur",function(){
-  if(currentGallery&&!currentUser){
-    lastFocusTime=Date.now();
-  }
-});
-
-function showCopyrightWarning(){
-  const modal=document.getElementById("copyright-warning");
-  if(modal)modal.classList.remove("hidden");
-}
-
-function closeCopyrightWarning(e){
-  if(!e||e.target===document.getElementById("copyright-warning")||e.target.tagName==="BUTTON"){
-    document.getElementById("copyright-warning").classList.add("hidden");
-  }
-}
-
+window.addEventListener("blur",function(){if(currentGallery&&!currentUser)lastFocusTime=Date.now()});
+function showCopyrightWarning(){const modal=document.getElementById("copyright-warning");if(modal)modal.classList.remove("hidden")}
+function closeCopyrightWarning(e){if(!e||e.target===document.getElementById("copyright-warning")||e.target.tagName==="BUTTON")document.getElementById("copyright-warning").classList.add("hidden")}
 function renderGallery(){
   document.getElementById("gallery-title").textContent=currentGallery.isGroup?currentGallery.name+" - összes kép":currentGallery.child+" képei";
-  // Show promo banner if exists
   let promoBanner=document.getElementById("promo-banner");
   if(currentGallery.promoText){
-    if(!promoBanner){
-      promoBanner=document.createElement("div");
-      promoBanner.id="promo-banner";
-      promoBanner.style.cssText="background:linear-gradient(135deg,#fff8ee,#ffe4b5);border:2px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:18px;font-size:.92rem;color:var(--brown);line-height:1.5;white-space:pre-wrap";
-      const wrap=document.querySelector("#page-gallery .wrap");
-      wrap.insertBefore(promoBanner,document.getElementById("photo-grid"));
-    }
-    promoBanner.innerHTML='<strong style="display:block;margin-bottom:4px;font-family:Playfair Display,serif;font-size:1rem">🎁 Csomagajánlat</strong>'+currentGallery.promoText.replace(/</g,"&lt;");
-    promoBanner.style.display="block";
-  }else if(promoBanner){
-    promoBanner.style.display="none";
-  }
-  // Show photographer message
+    if(!promoBanner){promoBanner=document.createElement("div");promoBanner.id="promo-banner";promoBanner.style.cssText="background:linear-gradient(135deg,#fff8ee,#ffe4b5);border:2px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:18px;font-size:.92rem;color:var(--brown);line-height:1.5;white-space:pre-wrap";const wrap=document.querySelector("#page-gallery .wrap");wrap.insertBefore(promoBanner,document.getElementById("photo-grid"))}
+    promoBanner.innerHTML='<strong style="display:block;margin-bottom:4px;font-family:Playfair Display,serif;font-size:1rem">🎁 Csomagajánlat</strong>'+currentGallery.promoText.replace(/</g,"&lt;");promoBanner.style.display="block";
+  }else if(promoBanner){promoBanner.style.display="none"}
   let msgBanner=document.getElementById("msg-banner");
   if(currentGallery.galleryMessage){
-    if(!msgBanner){
-      msgBanner=document.createElement("div");
-      msgBanner.id="msg-banner";
-      msgBanner.style.cssText="background:var(--white);border-left:4px solid var(--brown);border-radius:8px;padding:14px 16px;margin-bottom:18px;font-size:.92rem;color:var(--dark);line-height:1.5;white-space:pre-wrap;box-shadow:var(--shadow-sm)";
-      const wrap=document.querySelector("#page-gallery .wrap");
-      wrap.insertBefore(msgBanner,document.getElementById("photo-grid"));
-    }
-    msgBanner.innerHTML='<strong style="display:block;margin-bottom:4px;font-family:Playfair Display,serif;font-size:.95rem;color:var(--brown)">💬 A fotóstól</strong>'+currentGallery.galleryMessage.replace(/</g,"&lt;");
-    msgBanner.style.display="block";
-  }else if(msgBanner){
-    msgBanner.style.display="none";
-  }
-  // Show expiration warning if applicable
+    if(!msgBanner){msgBanner=document.createElement("div");msgBanner.id="msg-banner";msgBanner.style.cssText="background:var(--white);border-left:4px solid var(--brown);border-radius:8px;padding:14px 16px;margin-bottom:18px;font-size:.92rem;color:var(--dark);line-height:1.5;white-space:pre-wrap;box-shadow:var(--shadow-sm)";const wrap=document.querySelector("#page-gallery .wrap");wrap.insertBefore(msgBanner,document.getElementById("photo-grid"))}
+    msgBanner.innerHTML='<strong style="display:block;margin-bottom:4px;font-family:Playfair Display,serif;font-size:.95rem;color:var(--brown)">💬 A fotóstól</strong>'+currentGallery.galleryMessage.replace(/</g,"&lt;");msgBanner.style.display="block";
+  }else if(msgBanner){msgBanner.style.display="none"}
   let expBanner=document.getElementById("exp-banner");
   if(currentGallery.expiresAt){
     const daysLeft=Math.ceil((currentGallery.expiresAt-Date.now())/(1000*60*60*24));
-    if(!expBanner){
-      expBanner=document.createElement("div");
-      expBanner.id="exp-banner";
-      expBanner.style.cssText="background:#fff8e1;border:1.5px solid #f57c00;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.88rem;color:#e65100;text-align:center;font-weight:500";
-      const wrap=document.querySelector("#page-gallery .wrap");
-      wrap.insertBefore(expBanner,document.getElementById("photo-grid"));
-    }
-    if(daysLeft<=7&&daysLeft>0){
-      expBanner.innerHTML="⏰ Figyelem! Ez a galéria <strong>"+daysLeft+" nap</strong> múlva lejár ("+new Date(currentGallery.expiresAt).toLocaleDateString("hu-HU")+"). Rendeljen még a határidőn belül!";
-      expBanner.style.display="block";
-    }else{
-      expBanner.style.display="none";
-    }
-  }else if(expBanner){
-    expBanner.style.display="none";
-  }
+    if(!expBanner){expBanner=document.createElement("div");expBanner.id="exp-banner";expBanner.style.cssText="background:#fff8e1;border:1.5px solid #f57c00;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.88rem;color:#e65100;text-align:center;font-weight:500";const wrap=document.querySelector("#page-gallery .wrap");wrap.insertBefore(expBanner,document.getElementById("photo-grid"))}
+    if(daysLeft<=7&&daysLeft>0){expBanner.innerHTML="⏰ Figyelem! Ez a galéria <strong>"+daysLeft+" nap</strong> múlva lejár ("+new Date(currentGallery.expiresAt).toLocaleDateString("hu-HU")+"). Rendeljen még a határidőn belül!";expBanner.style.display="block"}else{expBanner.style.display="none"}
+  }else if(expBanner){expBanner.style.display="none"}
   const grid=document.getElementById("photo-grid");grid.innerHTML="";
   let allPhotos=currentGallery.photos||[];
   const countLabel=document.getElementById("photo-count-label");
   if(countLabel)countLabel.textContent=showingFavoritesOnly?("Kedvenceim ("+favorites.length+" kép)"):("Összes fotó ("+allPhotos.length+" kép)");
   let photos=showingFavoritesOnly?allPhotos.filter(p=>favorites.includes(p.id)):allPhotos;
-  // Update favorites toggle button
   let favBtn=document.getElementById("fav-toggle-btn");
-  if(favBtn){
-    favBtn.textContent=showingFavoritesOnly?"← Összes kép":"❤️ Kedvenceim ("+favorites.length+")";
-    favBtn.classList.toggle("active",showingFavoritesOnly);
-  }
-  if(showingFavoritesOnly&&photos.length===0){
-    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:10px">🤍</div><p style="margin-bottom:18px">Még nincs kedvenc képed.<br>Koppints a szívre a képeken!</p><button class="btn btn-outline" style="width:auto;padding:10px 24px" onclick="toggleFavView()">← Vissza az összes képhez</button></div>';
-    updateCartUI();return;
-  }
+  if(favBtn){favBtn.textContent=showingFavoritesOnly?"← Összes kép":"❤️ Kedvenceim ("+favorites.length+")";favBtn.classList.toggle("active",showingFavoritesOnly)}
+  if(showingFavoritesOnly&&photos.length===0){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:10px">🤍</div><p style="margin-bottom:18px">Még nincs kedvenc képed.<br>Koppints a szívre a képeken!</p><button class="btn btn-outline" style="width:auto;padding:10px 24px" onclick="toggleFavView()">← Vissza az összes képhez</button></div>';updateCartUI();return}
   photos.forEach((photo)=>{
-    const realIdx=allPhotos.indexOf(photo);
-    const div=document.createElement("div");
-    div.className="photo-card";
+    const realIdx=allPhotos.indexOf(photo);const div=document.createElement("div");div.className="photo-card";
     const wmHtml=WATERMARK_CONFIG.enabled?'<div class="watermark-overlay"><span class="watermark-text">'+(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")+'</span></div>':'';
     const zoomBtn='<button class="photo-zoom-btn" onclick="event.stopPropagation();openLightbox('+realIdx+')" title="Nagyítás">&#128269;</button>';
     const isFav=favorites.includes(photo.id);
     const favBtnHtml='<button class="photo-fav-btn'+(isFav?" active":"")+'" onclick="event.stopPropagation();toggleFavorite(\''+photo.id+'\')" title="Kedvenc">'+(isFav?"❤️":"🤍")+'</button>';
     div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false">'+wmHtml+zoomBtn+favBtnHtml;
-    div.onclick=()=>openSheet(photo);
-    grid.appendChild(div);
+    div.onclick=()=>openSheet(photo);grid.appendChild(div);
   });
   updateCartUI();
 }
 
-
-
 function openLightbox(idx){
-  const photos=currentGallery.photos||[];
-  lightboxIndex=(typeof idx==="number")?idx:photos.findIndex(p=>p.id===idx.id);
-  if(lightboxIndex<0)lightboxIndex=0;
-  renderLightbox();
-  show("lightbox");
+  const photos=currentGallery.photos||[];lightboxIndex=(typeof idx==="number")?idx:photos.findIndex(p=>p.id===idx.id);if(lightboxIndex<0)lightboxIndex=0;renderLightbox();show("lightbox");
 }
-
 function renderLightbox(){
-  const photos=currentGallery.photos||[];
-  if(!photos.length)return;
-  const photo=photos[lightboxIndex];
-  document.getElementById("lb-img").src=photo.url;
-  document.getElementById("lb-name").textContent=photo.name;
-  document.getElementById("lb-counter").textContent=(lightboxIndex+1)+" / "+photos.length;
-  // Watermark
-  const wm=document.getElementById("lb-watermark");
-  if(WATERMARK_CONFIG.enabled){
-    wm.style.display="flex";
-    wm.querySelector(".watermark-text").innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>");
-  }else{
-    wm.style.display="none";
-  }
-  // Show/hide nav buttons
-  document.getElementById("lb-prev").style.visibility=lightboxIndex>0?"visible":"hidden";
-  document.getElementById("lb-next").style.visibility=lightboxIndex<photos.length-1?"visible":"hidden";
+  const photos=currentGallery.photos||[];if(!photos.length)return;const photo=photos[lightboxIndex];
+  document.getElementById("lb-img").src=photo.url;document.getElementById("lb-name").textContent=photo.name;document.getElementById("lb-counter").textContent=(lightboxIndex+1)+" / "+photos.length;
+  const wm=document.getElementById("lb-watermark");if(WATERMARK_CONFIG.enabled){wm.style.display="flex";wm.querySelector(".watermark-text").innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")}else{wm.style.display="none"}
+  document.getElementById("lb-prev").style.visibility=lightboxIndex>0?"visible":"hidden";document.getElementById("lb-next").style.visibility=lightboxIndex<photos.length-1?"visible":"hidden";
 }
-
-function lightboxNav(dir){
-  const photos=currentGallery.photos||[];
-  const newIdx=lightboxIndex+dir;
-  if(newIdx>=0&&newIdx<photos.length){
-    lightboxIndex=newIdx;
-    renderLightbox();
-  }
-}
-
+function lightboxNav(dir){const photos=currentGallery.photos||[];const newIdx=lightboxIndex+dir;if(newIdx>=0&&newIdx<photos.length){lightboxIndex=newIdx;renderLightbox()}}
 function closeLightbox(){hide("lightbox")}
+function orderFromLightbox(){const photos=currentGallery.photos||[];const photo=photos[lightboxIndex];closeLightbox();openSheet(photo)}
 
-function orderFromLightbox(){
-  const photos=currentGallery.photos||[];
-  const photo=photos[lightboxIndex];
-  closeLightbox();
-  openSheet(photo);
-}
-
-// Swipe support for lightbox
 let lbTouchStartX=0;
-document.addEventListener("touchstart",function(e){
-  if(!document.getElementById("lightbox").classList.contains("hidden")){
-    lbTouchStartX=e.touches[0].clientX;
-  }
-},{passive:true});
-document.addEventListener("touchend",function(e){
-  if(!document.getElementById("lightbox").classList.contains("hidden")){
-    const diff=e.changedTouches[0].clientX-lbTouchStartX;
-    if(Math.abs(diff)>50){
-      if(diff>0)lightboxNav(-1);
-      else lightboxNav(1);
-    }
-  }
-},{passive:true});
-
-// Keyboard navigation for lightbox
-document.addEventListener("keydown",function(e){
-  if(!document.getElementById("lightbox").classList.contains("hidden")){
-    if(e.key==="ArrowLeft")lightboxNav(-1);
-    else if(e.key==="ArrowRight")lightboxNav(1);
-    else if(e.key==="Escape")closeLightbox();
-  }
-});
-
-
+document.addEventListener("touchstart",function(e){if(!document.getElementById("lightbox").classList.contains("hidden"))lbTouchStartX=e.touches[0].clientX},{passive:true});
+document.addEventListener("touchend",function(e){if(!document.getElementById("lightbox").classList.contains("hidden")){const diff=e.changedTouches[0].clientX-lbTouchStartX;if(Math.abs(diff)>50){if(diff>0)lightboxNav(-1);else lightboxNav(1)}}},{passive:true});
 
 function saveFavorites(){try{localStorage.setItem("fotolux_favs_"+(currentGallery?currentGallery.id:""),JSON.stringify(favorites))}catch(e){}}
 function loadFavorites(){try{const s=localStorage.getItem("fotolux_favs_"+(currentGallery?currentGallery.id:""));favorites=s?JSON.parse(s):[]}catch(e){favorites=[]}}
-function toggleFavorite(photoId){
-  const idx=favorites.indexOf(photoId);
-  if(idx>=0)favorites.splice(idx,1);
-  else favorites.push(photoId);
-  saveFavorites();
-  renderGallery();
-}
+function toggleFavorite(photoId){const idx=favorites.indexOf(photoId);if(idx>=0)favorites.splice(idx,1);else favorites.push(photoId);saveFavorites();renderGallery()}
 
-function toggleDarkMode(){
-  document.body.classList.toggle("dark-mode");
-  const isDark=document.body.classList.contains("dark-mode");
-  try{localStorage.setItem("fotolux_dark_mode",isDark?"1":"0")}catch(e){}
-}
-
-function loadDarkMode(){
-  try{
-    if(localStorage.getItem("fotolux_dark_mode")==="1"){
-      document.body.classList.add("dark-mode");
-    }
-  }catch(e){}
-}
+function toggleDarkMode(){document.body.classList.toggle("dark-mode");const isDark=document.body.classList.contains("dark-mode");try{localStorage.setItem("fotolux_dark_mode",isDark?"1":"0")}catch(e){}}
+function loadDarkMode(){try{if(localStorage.getItem("fotolux_dark_mode")==="1")document.body.classList.add("dark-mode")}catch(e){}}
 loadDarkMode();
+function toggleFavView(){showingFavoritesOnly=!showingFavoritesOnly;renderGallery()}
 
-function toggleFavView(){
-  showingFavoritesOnly=!showingFavoritesOnly;
-  renderGallery();
-}
+let lightboxIndex=0;let sheetIndex=0;
 
-let lightboxIndex=0;
-
-let sheetIndex=0;
-
-function sheetNav(dir){
-  const photos=currentGallery.photos||[];
-  if(!photos.length)return;
-  sheetIndex+=dir;
-  if(sheetIndex<0)sheetIndex=photos.length-1;
-  if(sheetIndex>=photos.length)sheetIndex=0;
-  openSheet(photos[sheetIndex]);
-}
-
+function sheetNav(dir){const photos=currentGallery.photos||[];if(!photos.length)return;sheetIndex+=dir;if(sheetIndex<0)sheetIndex=photos.length-1;if(sheetIndex>=photos.length)sheetIndex=0;openSheet(photos[sheetIndex])}
 function updateSheetNav(){
-  const photos=currentGallery.photos||[];
-  const counter=document.getElementById("sheet-counter");
+  const photos=currentGallery.photos||[];const counter=document.getElementById("sheet-counter");
   if(counter)counter.textContent=(sheetIndex+1)+" / "+photos.length;
-  const prev=document.querySelector(".sheet-nav-prev");
-  const next=document.querySelector(".sheet-nav-next");
-  if(photos.length<=1){
-    if(prev)prev.style.display="none";
-    if(next)next.style.display="none";
-    if(counter)counter.style.display="none";
-  }else{
-    if(prev)prev.style.display="flex";
-    if(next)next.style.display="flex";
-    if(counter)counter.style.display="block";
-  }
+  const prev=document.querySelector(".sheet-nav-prev");const next=document.querySelector(".sheet-nav-next");
+  if(photos.length<=1){if(prev)prev.style.display="none";if(next)next.style.display="none";if(counter)counter.style.display="none"}
+  else{if(prev)prev.style.display="flex";if(next)next.style.display="flex";if(counter)counter.style.display="block"}
 }
 
 function openSheet(photo){
-  activePhoto=photo;
-  sheetIndex=(currentGallery.photos||[]).findIndex(p=>p.id===photo.id);
-  updateSheetNav();
-  // Show/hide tabs based on enabled products
+  activePhoto=photo;sheetIndex=(currentGallery.photos||[]).findIndex(p=>p.id===photo.id);updateSheetNav();
   document.getElementById("tab-print").style.display=ENABLED_PRODUCTS.print?"block":"none";
   document.getElementById("tab-digital").style.display=ENABLED_PRODUCTS.digital?"block":"none";
   document.getElementById("tab-gift").style.display=ENABLED_PRODUCTS.gift?"block":"none";
-  // Set default order type to first enabled
-  if(ENABLED_PRODUCTS.print)orderType="print";
-  else if(ENABLED_PRODUCTS.digital)orderType="digital";
-  else if(ENABLED_PRODUCTS.gift)orderType="gift";
-  selectedSize=PRINT_SIZES[0];qty=1;
-  selectedGift=GIFT_ITEMS[0];
-  document.getElementById("sheet-img").src=photo.url;
-  document.getElementById("sheet-name").textContent=photo.name;
-  // Apply watermark settings
-  const sw=document.getElementById("sheet-watermark");
-  const swt=document.getElementById("sheet-watermark-text");
-  if(WATERMARK_CONFIG.enabled){
-    sw.style.display="flex";
-    swt.innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>");
-  }else{
-    sw.style.display="none";
-  }
+  if(ENABLED_PRODUCTS.print)orderType="print";else if(ENABLED_PRODUCTS.digital)orderType="digital";else if(ENABLED_PRODUCTS.gift)orderType="gift";
+  selectedSize=PRINT_SIZES[0];qty=1;selectedGift=GIFT_ITEMS[0];
+  document.getElementById("sheet-img").src=photo.url;document.getElementById("sheet-name").textContent=photo.name;
+  const sw=document.getElementById("sheet-watermark");const swt=document.getElementById("sheet-watermark-text");
+  if(WATERMARK_CONFIG.enabled){sw.style.display="flex";swt.innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")}else{sw.style.display="none"}
   document.getElementById("qty-num").textContent=1;
   document.getElementById("tab-print").classList.toggle("active",orderType==="print");
   document.getElementById("tab-digital").classList.toggle("active",orderType==="digital");
   document.getElementById("tab-gift").classList.toggle("active",orderType==="gift");
-  document.getElementById("mug-text").value="";
-  renderSizes();renderGifts();updateSheetType();updateSheetTotal();show("overlay");
+  document.getElementById("mug-text").value="";renderSizes();renderGifts();updateSheetType();updateSheetTotal();show("overlay");
 }
 function closeOverlay(e){if(e.target===document.getElementById("overlay"))closeSheet()}
 function closeSheet(){hide("overlay")}
-function setType(t){
-  orderType=t;
-  document.getElementById("tab-print").classList.toggle("active",t==="print");
-  document.getElementById("tab-digital").classList.toggle("active",t==="digital");
-  document.getElementById("tab-gift").classList.toggle("active",t==="gift");
-  updateSheetType();updateSheetTotal();
-}
+function setType(t){orderType=t;document.getElementById("tab-print").classList.toggle("active",t==="print");document.getElementById("tab-digital").classList.toggle("active",t==="digital");document.getElementById("tab-gift").classList.toggle("active",t==="gift");updateSheetType();updateSheetTotal()}
 function updateSheetType(){
   hide("size-section");hide("digital-section");hide("gift-section");hide("mug-text-wrap");
   const qtyRow=document.querySelector(".qty-row");
   if(orderType==="print"){show("size-section");if(qtyRow)qtyRow.style.display="flex"}
-  else if(orderType==="digital"){
-    show("digital-section");
-    if(qtyRow)qtyRow.style.display="none";
-    qty=1;
-    document.getElementById("qty-num").textContent=1;
-  }
-  else if(orderType==="gift"){
-    show("gift-section");
-    if(qtyRow)qtyRow.style.display="flex";
-    if(selectedGift&&selectedGift.id==="mug")show("mug-text-wrap");
-  }
+  else if(orderType==="digital"){show("digital-section");if(qtyRow)qtyRow.style.display="none";qty=1;document.getElementById("qty-num").textContent=1}
+  else if(orderType==="gift"){show("gift-section");if(qtyRow)qtyRow.style.display="flex";if(selectedGift&&selectedGift.id==="mug")show("mug-text-wrap")}
 }
-function renderSizes(){
-  const list=document.getElementById("size-list");list.innerHTML="";
-  PRINT_SIZES.forEach(s=>{const div=document.createElement("div");div.className="size-row"+(s.id===selectedSize.id?" active":"");div.innerHTML='<span style="font-weight:500;color:var(--dark)">'+s.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(s.price)+'</span>';div.onclick=()=>{selectedSize=s;renderSizes();updateSheetTotal()};list.appendChild(div)});
+function renderSizes(){const list=document.getElementById("size-list");list.innerHTML="";PRINT_SIZES.forEach(s=>{const div=document.createElement("div");div.className="size-row"+(s.id===selectedSize.id?" active":"");div.innerHTML='<span style="font-weight:500;color:var(--dark)">'+s.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(s.price)+'</span>';div.onclick=()=>{selectedSize=s;renderSizes();updateSheetTotal()};list.appendChild(div)})}
+function renderGifts(){const list=document.getElementById("gift-list");list.innerHTML="";GIFT_ITEMS.forEach(g=>{const div=document.createElement("div");div.className="size-row"+(selectedGift&&g.id===selectedGift.id?" active":"");div.innerHTML='<span style="font-weight:500;color:var(--dark)">'+g.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(g.price)+'</span>';div.onclick=()=>{selectedGift=g;renderGifts();if(g.id==="mug")show("mug-text-wrap");else hide("mug-text-wrap");updateSheetTotal()};list.appendChild(div)})}
+function changeQty(d){qty=Math.max(1,qty+d);document.getElementById("qty-num").textContent=qty;updateSheetTotal()}
+function updateSheetTotal(){let price=0;if(orderType==="digital")price=DIGITAL_PRICE;else if(orderType==="gift"&&selectedGift)price=selectedGift.price;else price=selectedSize.price;document.getElementById("sheet-total").textContent="Összesen: "+fmt(price*qty)}
+
+function addToCart(){
+  let unitPrice=0;let itemData={id:Date.now()+Math.random(),photo:activePhoto,type:orderType,qty};
+  if(orderType==="digital"){unitPrice=DIGITAL_PRICE;itemData.size=null}
+  else if(orderType==="gift"){unitPrice=selectedGift.price;itemData.giftId=selectedGift.id;itemData.giftLabel=selectedGift.label;if(selectedGift.id==="mug"){const text=document.getElementById("mug-text").value.trim();if(text)itemData.mugText=text}itemData.size=null}
+  else{unitPrice=selectedSize.price;itemData.size=selectedSize}
+  itemData.unitPrice=unitPrice;itemData.totalPrice=unitPrice*qty;cart.push(itemData);saveCart();closeSheet();updateCartUI();
 }
 
-function renderGifts(){
-  const list=document.getElementById("gift-list");list.innerHTML="";
-  GIFT_ITEMS.forEach(g=>{
-    const div=document.createElement("div");
-    div.className="size-row"+(selectedGift&&g.id===selectedGift.id?" active":"");
-    div.innerHTML='<span style="font-weight:500;color:var(--dark)">'+g.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(g.price)+'</span>';
-    div.onclick=()=>{
-      selectedGift=g;
-      renderGifts();
-      if(g.id==="mug")show("mug-text-wrap");else hide("mug-text-wrap");
-      updateSheetTotal();
-    };
-    list.appendChild(div);
-  });
-}
-function changeQty(d){qty=Math.max(1,qty+d);document.getElementById("qty-num").textContent=qty;updateSheetTotal()}
-function updateSheetTotal(){
-  let price=0;
-  if(orderType==="digital")price=DIGITAL_PRICE;
-  else if(orderType==="gift"&&selectedGift)price=selectedGift.price;
-  else price=selectedSize.price;
-  document.getElementById("sheet-total").textContent="Összesen: "+fmt(price*qty);
-}
-function addToCart(){
-  let unitPrice=0;
-  let itemData={id:Date.now()+Math.random(),photo:activePhoto,type:orderType,qty};
-  if(orderType==="digital"){
-    unitPrice=DIGITAL_PRICE;
-    itemData.size=null;
-  }else if(orderType==="gift"){
-    unitPrice=selectedGift.price;
-    itemData.giftId=selectedGift.id;
-    itemData.giftLabel=selectedGift.label;
-    if(selectedGift.id==="mug"){
-      const text=document.getElementById("mug-text").value.trim();
-      if(text)itemData.mugText=text;
-    }
-    itemData.size=null;
-  }else{
-    unitPrice=selectedSize.price;
-    itemData.size=selectedSize;
-  }
-  itemData.unitPrice=unitPrice;
-  itemData.totalPrice=unitPrice*qty;
-  cart.push(itemData);
-  saveCart();closeSheet();updateCartUI();
-}
 function updateCartUI(){
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
   if(cart.length>0){document.getElementById("cart-badge").textContent=cart.length;show("cart-badge");document.getElementById("cart-float-btn").textContent="🛒 Kosár ("+cart.length+" tétel – "+fmt(total)+")";show("cart-float-btn")}
   else{hide("cart-badge");hide("cart-float-btn")}
 }
+
 function showGallery(){showPage("page-gallery");renderGallery()}
 function showCart(){showPage("page-cart");hide("cart-success");renderCartItems()}
+
 function renderCartItems(){
   const itemsDiv=document.getElementById("cart-items");
   if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("social-consent-box");hide("order-contact-form");hide("discount-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
@@ -1869,33 +1240,23 @@ function renderCartItems(){
   itemsDiv.innerHTML=cart.map(item=>{
     let detail;
     if(item.type==="digital")detail="💾 Digitális fájl";
-    else if(item.type==="gift"){detail=item.giftLabel||"Ajándéktárgy";if(item.mugText)detail+=" - "+item.mugText;}
+    else if(item.type==="gift"){detail=item.giftLabel||"Ajándéktárgy";if(item.mugText)detail+=" - "+item.mugText}
     else detail="🖼️ Papírkép – "+item.size.label;
     const qtySuffix=item.qty>1?" · "+item.qty+" db":"";
     return '<div class="cart-item"><img src="'+item.photo.url+'" alt=""><div class="cart-item-info"><div class="cart-item-name">'+item.photo.name+'</div><div class="cart-item-detail">'+detail+qtySuffix+'</div><div class="cart-item-price">'+fmt(item.totalPrice)+'</div></div><button class="cart-item-remove" onclick="removeFromCart(\''+item.id+'\')">×</button></div>';
   }).join("");
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-  document.getElementById("cart-total-rows").innerHTML=cart.map(i=>{
-    let lbl;
-    if(i.type==="digital")lbl="Digitális";
-    else if(i.type==="gift")lbl=i.giftLabel;
-    else lbl=i.size.label;
-    return '<div class="cart-total-row"><span>'+i.photo.name+' ('+lbl+') × '+i.qty+'</span><span>'+fmt(i.totalPrice)+'</span></div>';
-  }).join("");
-  if(activeDiscount){
-    const discAmount=Math.round(total*activeDiscount.percent/100);
-    const finalTotal=total-discAmount;
-    document.getElementById("cart-total-rows").innerHTML+='<div class="cart-total-row" style="border-top:1px solid rgba(255,255,255,.2);padding-top:6px;margin-top:6px;opacity:1"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span style="color:#90ee90">-'+fmt(discAmount)+'</span></div>';
-    document.getElementById("cart-grand-total").textContent=fmt(finalTotal);
-  }else{
-    document.getElementById("cart-grand-total").textContent=fmt(total);
-  }
+  document.getElementById("cart-total-rows").innerHTML=cart.map(i=>{let lbl;if(i.type==="digital")lbl="Digitális";else if(i.type==="gift")lbl=i.giftLabel;else lbl=i.size.label;return '<div class="cart-total-row"><span>'+i.photo.name+' ('+lbl+') × '+i.qty+'</span><span>'+fmt(i.totalPrice)+'</span></div>'}).join("");
+  if(activeDiscount){const discAmount=Math.round(total*activeDiscount.percent/100);const finalTotal=total-discAmount;document.getElementById("cart-total-rows").innerHTML+='<div class="cart-total-row" style="border-top:1px solid rgba(255,255,255,.2);padding-top:6px;margin-top:6px;opacity:1"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span style="color:#90ee90">-'+fmt(discAmount)+'</span></div>';document.getElementById("cart-grand-total").textContent=fmt(finalTotal)}
+  else{document.getElementById("cart-grand-total").textContent=fmt(total)}
   show("cart-total-box");show("social-consent-box");show("order-btn");show("back-btn");
   show("order-contact-form");if(currentGallery&&currentGallery.isGroup)show("group-only-fields");else hide("group-only-fields");
   if(currentGallery&&currentGallery.discounts&&currentGallery.discounts.length>0)show("discount-box");else hide("discount-box");
   updateConsentUI();
 }
+
 function removeFromCart(id){cart=cart.filter(i=>i.id!=id);if(cart.length===0)clearDiscount();saveCart();renderCartItems();updateCartUI()}
+
 function updateConsent(value){
   socialConsent=value;
   document.getElementById("consent-yes-label").style.borderColor=value==="yes"?"var(--green)":"var(--warm)";
@@ -1904,127 +1265,57 @@ function updateConsent(value){
   document.getElementById("consent-no-label").style.background=value==="no"?"var(--warm)":"var(--cream)";
   document.getElementById("consent-warning").style.display=value?"none":"block";
 }
-
 function updateConsentUI(){
-  socialConsent=null;
-  document.querySelectorAll('input[name="social-consent"]').forEach(r=>r.checked=false);
-  document.getElementById("consent-yes-label").style.borderColor="var(--warm)";
-  document.getElementById("consent-yes-label").style.background="var(--cream)";
-  document.getElementById("consent-no-label").style.borderColor="var(--warm)";
-  document.getElementById("consent-no-label").style.background="var(--cream)";
+  socialConsent=null;document.querySelectorAll('input[name="social-consent"]').forEach(r=>r.checked=false);
+  document.getElementById("consent-yes-label").style.borderColor="var(--warm)";document.getElementById("consent-yes-label").style.background="var(--cream)";
+  document.getElementById("consent-no-label").style.borderColor="var(--warm)";document.getElementById("consent-no-label").style.background="var(--cream)";
   document.getElementById("consent-warning").style.display="block";
 }
-
 async function sendOrder(){
-  const parentName=document.getElementById("order-parent-name").value.trim();
-  const phone=document.getElementById("order-phone").value.trim();
-  if(!parentName||!phone){
-    alert("Kérjük adja meg a szülő nevét és a telefonszámot!");
-    document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});
-    return;
-  }
-  if(!socialConsent){
-    alert("Kérjük válaszoljon a képek közzétételére vonatkozó kérdésre!");
-    document.getElementById("consent-warning").style.color="#c0392b";
-    document.getElementById("social-consent-box").scrollIntoView({behavior:"smooth"});
-    return;
-  }
-  let orderEmail=currentGallery.parentEmail;
-  let orderChild=currentGallery.child;
+  const parentName=document.getElementById("order-parent-name").value.trim();const phone=document.getElementById("order-phone").value.trim();
+  if(!parentName||!phone){alert("Kérjük adja meg a szülő nevét és a telefonszámot!");document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});return}
+  if(!socialConsent){alert("Kérjük válaszoljon a képek közzétételére vonatkozó kérdésre!");document.getElementById("consent-warning").style.color="#c0392b";document.getElementById("social-consent-box").scrollIntoView({behavior:"smooth"});return}
+  let orderEmail=currentGallery.parentEmail;let orderChild=currentGallery.child;
   if(currentGallery.isGroup){
-    const groupEmail=document.getElementById("group-order-email").value.trim().toLowerCase();
-    const groupChild=document.getElementById("group-order-child").value.trim();
-    if(!groupEmail||!groupChild){
-      alert("Kérjük adja meg az email címét és a gyermek nevét a rendelés leadásához!");
-      document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});
-      return;
-    }
-    orderEmail=groupEmail;
-    orderChild=groupChild;
+    const groupEmail=document.getElementById("group-order-email").value.trim().toLowerCase();const groupChild=document.getElementById("group-order-child").value.trim();
+    if(!groupEmail||!groupChild){alert("Kérjük adja meg az email címét és a gyermek nevét a rendelés leadásához!");document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});return}
+    orderEmail=groupEmail;orderChild=groupChild;
   }
   const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;
   try{
-    const subtotal=cart.reduce((s,i)=>s+i.totalPrice,0);
-    let total=subtotal;
-    let discountInfo=null;
-    if(activeDiscount){
-      const discAmount=Math.round(subtotal*activeDiscount.percent/100);
-      total=subtotal-discAmount;
-      discountInfo={code:activeDiscount.code,percent:activeDiscount.percent,amount:discAmount};
-    }
+    const subtotal=cart.reduce((s,i)=>s+i.totalPrice,0);let total=subtotal;let discountInfo=null;
+    if(activeDiscount){const discAmount=Math.round(subtotal*activeDiscount.percent/100);total=subtotal-discAmount;discountInfo={code:activeDiscount.code,percent:activeDiscount.percent,amount:discAmount}}
     await db.collection("orders").add({child:orderChild,parentName,parentEmail:orderEmail,phone,discount:discountInfo,subtotal,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",socialConsent,fromGroupGallery:currentGallery.isGroup||false,photographerId:currentGallery.photographerId||null,photographerName:currentGallery.photographerName||null,items:cart.map(i=>({photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,giftId:i.giftId||null,giftLabel:i.giftLabel||null,mugText:i.mugText||null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
-    // Send email notification to photographer about new order
-    sendNewOrderEmail({
-      photographerId:currentGallery.photographerId,
-      child:orderChild,
-      parentName,
-      parentEmail:orderEmail,
-      phone,
-      total,
-      date:new Date().toLocaleString("hu-HU"),
-      items:cart.map(i=>({photoName:i.photo.name,type:i.type,sizeLabel:i.size?i.size.label:null,giftLabel:i.giftLabel,qty:i.qty,totalPrice:i.totalPrice}))
-    }).catch(e=>console.error(e));
+    sendNewOrderEmail({photographerId:currentGallery.photographerId,child:orderChild,parentName,parentEmail:orderEmail,phone,total,date:new Date().toLocaleString("hu-HU"),items:cart.map(i=>({photoName:i.photo.name,type:i.type,sizeLabel:i.size?i.size.label:null,giftLabel:i.giftLabel,qty:i.qty,totalPrice:i.totalPrice}))}).catch(e=>console.error(e));
     document.getElementById("success-child-name").textContent=(currentGallery.isGroup?orderChild:currentGallery.child)+" képei";
     document.getElementById("success-total").textContent=fmt(total);
-    // Show contact buttons
-    const cb=document.getElementById("contact-buttons");
-    const pc=window.PHOTOGRAPHER_CONTACT||{};
-    let buttons="";
-    if(pc.phone){
-      const cleanPhone=pc.phone.replace(/\D/g,"");
-      const waMsg=encodeURIComponent("Szia! Most adtam le egy rendelést ("+(orderChild)+" - "+fmt(total)+"). Köszönöm!");
-      buttons+='<a href="https://wa.me/'+cleanPhone+'?text='+waMsg+'" target="_blank" class="btn btn-green" style="width:auto;padding:10px 22px;text-decoration:none;display:inline-block">📱 WhatsApp üzenet</a>';
-      const smsMsg=encodeURIComponent("Szia! Most adtam le egy rendelést. Köszönöm!");
-      buttons+='<a href="sms:'+pc.phone+'?body='+smsMsg+'" class="btn btn-outline btn-sm" style="width:auto;padding:8px 18px;text-decoration:none;display:inline-block">💬 SMS küldése</a>';
-    }
-    if(pc.email){
-      buttons+='<a href="mailto:'+pc.email+'?subject=Rendelés visszaigazolás" class="btn btn-outline btn-sm" style="width:auto;padding:8px 18px;text-decoration:none;display:inline-block">📧 Email küldése</a>';
-    }
-    cb.innerHTML=buttons;
-    cart=[];saveCart();updateCartUI();clearDiscount();
+    const cb=document.getElementById("contact-buttons");const pc=window.PHOTOGRAPHER_CONTACT||{};let buttons="";
+    if(pc.phone){const cleanPhone=pc.phone.replace(/\D/g,"");const waMsg=encodeURIComponent("Szia! Most adtam le egy rendelést ("+(orderChild)+" - "+fmt(total)+"). Köszönöm!");buttons+='<a href="https://wa.me/'+cleanPhone+'?text='+waMsg+'" target="_blank" class="btn btn-green" style="width:auto;padding:10px 22px;text-decoration:none;display:inline-block">📱 WhatsApp üzenet</a>';const smsMsg=encodeURIComponent("Szia! Most adtam le egy rendelést. Köszönöm!");buttons+='<a href="sms:'+pc.phone+'?body='+smsMsg+'" class="btn btn-outline btn-sm" style="width:auto;padding:8px 18px;text-decoration:none;display:inline-block">💬 SMS küldése</a>'}
+    if(pc.email){buttons+='<a href="mailto:'+pc.email+'?subject=Rendelés visszaigazolás" class="btn btn-outline btn-sm" style="width:auto;padding:8px 18px;text-decoration:none;display:inline-block">📧 Email küldése</a>'}
+    cb.innerHTML=buttons;cart=[];saveCart();updateCartUI();clearDiscount();
     hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");hide("discount-box");show("cart-success");
-    const os=await db.collection("orders").orderBy("createdAt","desc").get();
-    orders=os.docs.map(d=>({id:d.id,...d.data()}));
+    const os=await db.collection("orders").orderBy("createdAt","desc").get();orders=os.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){console.error(e);btn.textContent="Rendelés leadása →";btn.disabled=false}
 }
+
 function backToGallery(){hide("cart-success");showGallery()}
 
 async function showMyOrders(){
   let email;
-  if(currentGallery.isGroup){
-    email=prompt("Adja meg azt az email címet, amellyel rendelt:");
-    if(!email)return;
-    email=email.trim().toLowerCase();
-    if(!email)return;
-  }else{
-    email=currentGallery.parentEmail.toLowerCase();
-  }
-  const list=document.getElementById("my-orders-list");
-  list.innerHTML='<div class="empty-msg">Betöltés...</div>';
+  if(currentGallery.isGroup){email=prompt("Adja meg azt az email címet, amellyel rendelt:");if(!email)return;email=email.trim().toLowerCase();if(!email)return}
+  else{email=currentGallery.parentEmail.toLowerCase()}
+  const list=document.getElementById("my-orders-list");list.innerHTML='<div class="empty-msg">Betöltés...</div>';
   document.getElementById("my-orders-modal").classList.remove("hidden");
   try{
     const os=await db.collection("orders").where("parentEmail","==",email).get();
     const myOrders=os.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-    if(myOrders.length===0){
-      list.innerHTML='<div class="empty-msg">Még nincs rendelésed.</div>';
-      return;
-    }
+    if(myOrders.length===0){list.innerHTML='<div class="empty-msg">Még nincs rendelésed.</div>';return}
     list.innerHTML=myOrders.map(o=>{
-      const itemsHtml=(o.items||[]).map(i=>{
-        let typeLabel;
-        if(i.type==="digital")typeLabel="Digitális";
-        else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText;}
-        else typeLabel="Papírkép ("+i.sizeLabel+")";
-        return '<div style="font-size:.82rem;color:var(--text);padding:3px 0">'+i.photoName+' – '+typeLabel+' × '+i.qty+' = '+fmt(i.totalPrice)+'</div>';
-      }).join("");
+      const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div style="font-size:.82rem;color:var(--text);padding:3px 0">'+i.photoName+' – '+typeLabel+' × '+i.qty+' = '+fmt(i.totalPrice)+'</div>'}).join("");
       return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="font-size:.78rem;color:var(--text);margin-top:2px">&#128100; '+(o.parentName||"-")+' &#183; &#128222; '+(o.phone||"-")+'</div><div style="margin-top:6px">'+getStatusBadge(o.status)+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div><div style="border-top:1px solid var(--warm);padding-top:8px">'+itemsHtml+'</div></div>';
     }).join("");
-  }catch(e){
-    console.error("Rendelések betöltési hiba:",e);
-    list.innerHTML='<div class="empty-msg">Nem sikerült betölteni a rendeléseket.</div>';
-  }
+  }catch(e){console.error("Rendelések betöltési hiba:",e);list.innerHTML='<div class="empty-msg">Nem sikerült betölteni a rendeléseket.</div>'}
 }
-
 function closeMyOrdersModal(e){if(e.target===document.getElementById("my-orders-modal"))document.getElementById("my-orders-modal").classList.add("hidden")}
 
 function getOrderType(order){const items=order.items||[];const hD=items.some(i=>i.type==="digital");const hP=items.some(i=>i.type==="print");if(hD&&!hP)return"digital";if(hP&&!hD)return"print";return"mixed"}
@@ -2039,38 +1330,23 @@ function getStatusOptions(order){
 }
 
 async function deleteOrder(orderId){
-  if(!confirm("Biztosan törölni szeretnéd ezt a megrendelést? Ez a művelet nem visszavonható."))return;
-  try{
-    await db.collection("orders").doc(orderId).delete();
-    orders=orders.filter(o=>o.id!==orderId);
-    renderAdminOrders();
-    renderCompletedOrders();
-    renderAdmin();
-  }catch(e){
-    alert("Hiba történt a törlés során!");
-    console.error(e);
-  }
+  if(!confirm("Biztosan törölni szeretnéd ezt a megrendelést?"))return;
+  try{await db.collection("orders").doc(orderId).delete();orders=orders.filter(o=>o.id!==orderId);renderAdminOrders();renderCompletedOrders();renderAdmin()}
+  catch(e){alert("Hiba történt a törlés során!");console.error(e)}
 }
 
 async function updateSingleStatus(orderId,status){
   try{
     await db.collection("orders").doc(orderId).update({status});
     const o=orders.find(x=>x.id===orderId);
-    if(o){
-      const oldStatus=o.status;
-      o.status=status;
-      // Send notification if status really changed and is not "pending"
-      if(oldStatus!==status&&status!=="pending"){
-        sendStatusChangeEmail(o,status).catch(e=>console.error(e));
-      }
-    }
+    if(o){const oldStatus=o.status;o.status=status;if(oldStatus!==status&&status!=="pending")sendStatusChangeEmail(o,status).catch(e=>console.error(e))}
     renderAdminOrders();renderCompletedOrders();
   }catch(e){alert("Hiba történt!");console.error(e)}
 }
+
 function updateBulkStatusOptions(){
   const sel=Array.from(selectedOrderIds);if(!sel.length)return;
-  const selOrders=orders.filter(o=>sel.includes(o.id));
-  const types=[...new Set(selOrders.map(o=>getOrderType(o)))];
+  const selOrders=orders.filter(o=>sel.includes(o.id));const types=[...new Set(selOrders.map(o=>getOrderType(o)))];
   const select=document.getElementById("bulk-status");const hint=document.getElementById("bulk-type-hint");
   let opts='<option value="">– Státusz kiválasztása –</option><option value="pending">⏳ Függőben</option>';
   if(types.length===1&&types[0]==="digital"){opts+='<option value="digital">&#128231; Digitális elküldve</option>';hint.textContent="(digitális rendelések)"}
@@ -2080,221 +1356,67 @@ function updateBulkStatusOptions(){
   select.innerHTML=opts;
 }
 
-
 function renderStats(){
   const div=document.getElementById("admin-stats");
   if(orders.length===0&&galleries.length===0){div.innerHTML='<div class="empty-msg">Még nincs adat a statisztikához.</div>';return}
-  
-  // Calculate stats
-  const totalRevenue=orders.reduce((s,o)=>s+o.total,0);
-  const totalOrders=orders.length;
-  const avgOrder=Math.round(totalRevenue/totalOrders);
-  const completedRev=orders.filter(o=>o.status==="completed"||o.status==="paid"||o.status==="delivered"||o.status==="digital").reduce((s,o)=>s+o.total,0);
-  const pendingRev=orders.filter(o=>o.status==="pending"||o.status==="printing").reduce((s,o)=>s+o.total,0);
-  
-  // Monthly breakdown
+  const totalRevenue=orders.reduce((s,o)=>s+o.total,0);const totalOrders=orders.length;const avgOrder=totalOrders>0?Math.round(totalRevenue/totalOrders):0;
+  const completedRev=orders.filter(o=>["completed","paid","delivered","digital"].includes(o.status)).reduce((s,o)=>s+o.total,0);
+  const pendingRev=orders.filter(o=>["pending","printing"].includes(o.status)).reduce((s,o)=>s+o.total,0);
   const monthlyData={};
-  orders.forEach(o=>{
-    const d=new Date(o.createdAt||0);
-    const key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if(!monthlyData[key])monthlyData[key]={revenue:0,count:0,label:d.toLocaleDateString("hu-HU",{year:"numeric",month:"long"})};
-    monthlyData[key].revenue+=o.total;
-    monthlyData[key].count++;
-  });
-  const months=Object.keys(monthlyData).sort().reverse().slice(0,12);
-  const maxMonthRev=Math.max(...months.map(k=>monthlyData[k].revenue),1);
-  
-  // Product type breakdown
-  let printCount=0,digitalCount=0,giftCount=0;
-  let printRev=0,digitalRev=0,giftRev=0;
-  orders.forEach(o=>{
-    (o.items||[]).forEach(i=>{
-      if(i.type==="print"){printCount+=i.qty;printRev+=i.totalPrice}
-      else if(i.type==="digital"){digitalCount+=i.qty;digitalRev+=i.totalPrice}
-      else if(i.type==="gift"){giftCount+=i.qty;giftRev+=i.totalPrice}
-    });
-  });
-  
-  // Top products
+  orders.forEach(o=>{const d=new Date(o.createdAt||0);const key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");if(!monthlyData[key])monthlyData[key]={revenue:0,count:0,label:d.toLocaleDateString("hu-HU",{year:"numeric",month:"long"})};monthlyData[key].revenue+=o.total;monthlyData[key].count++});
+  const months=Object.keys(monthlyData).sort().reverse().slice(0,12);const maxMonthRev=Math.max(...months.map(k=>monthlyData[k].revenue),1);
+  let printCount=0,digitalCount=0,giftCount=0,printRev=0,digitalRev=0,giftRev=0;
+  orders.forEach(o=>{(o.items||[]).forEach(i=>{if(i.type==="print"){printCount+=i.qty;printRev+=i.totalPrice}else if(i.type==="digital"){digitalCount+=i.qty;digitalRev+=i.totalPrice}else if(i.type==="gift"){giftCount+=i.qty;giftRev+=i.totalPrice}})});
   const productCounts={};
-  orders.forEach(o=>{
-    (o.items||[]).forEach(i=>{
-      let key;
-      if(i.type==="digital")key="💾 Digitális kép";
-      else if(i.type==="gift")key=i.giftLabel||"🎁 Ajándék";
-      else key="🖼️ "+(i.sizeLabel||"Papírkép");
-      if(!productCounts[key])productCounts[key]={count:0,revenue:0};
-      productCounts[key].count+=i.qty;
-      productCounts[key].revenue+=i.totalPrice;
-    });
-  });
+  orders.forEach(o=>{(o.items||[]).forEach(i=>{let key;if(i.type==="digital")key="💾 Digitális kép";else if(i.type==="gift")key=i.giftLabel||"🎁 Ajándék";else key="🖼️ "+(i.sizeLabel||"Papírkép");if(!productCounts[key])productCounts[key]={count:0,revenue:0};productCounts[key].count+=i.qty;productCounts[key].revenue+=i.totalPrice})});
   const topProducts=Object.entries(productCounts).sort((a,b)=>b[1].count-a[1].count).slice(0,10);
-  
-  // Status breakdown
-  const statusCounts={};
-  orders.forEach(o=>{
-    const s=o.status||"pending";
-    statusCounts[s]=(statusCounts[s]||0)+1;
-  });
-  
-  // Top customers (by total spent)
-  const customers={};
-  orders.forEach(o=>{
-    if(!o.parentEmail)return;
-    const key=o.parentEmail.toLowerCase();
-    if(!customers[key])customers[key]={name:o.parentName||o.child||o.parentEmail,email:o.parentEmail,total:0,count:0};
-    customers[key].total+=o.total;
-    customers[key].count++;
-  });
+  const statusCounts={};orders.forEach(o=>{const s=o.status||"pending";statusCounts[s]=(statusCounts[s]||0)+1});
+  const customers={};orders.forEach(o=>{if(!o.parentEmail)return;const key=o.parentEmail.toLowerCase();if(!customers[key])customers[key]={name:o.parentName||o.child||o.parentEmail,email:o.parentEmail,total:0,count:0};customers[key].total+=o.total;customers[key].count++});
   const topCustomers=Object.values(customers).sort((a,b)=>b.total-a.total).slice(0,5);
-  
-  // Social consent stats
-  const consentYes=orders.filter(o=>o.socialConsent==="yes").length;
-  const consentNo=orders.filter(o=>o.socialConsent==="no").length;
-  
-  // Build HTML
-  let html='';
-  
-  // Top KPIs
-  html+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px">';
+  const consentYes=orders.filter(o=>o.socialConsent==="yes").length;const consentNo=orders.filter(o=>o.socialConsent==="no").length;
+  let html='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px">';
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem">'+fmt(totalRevenue)+'</div><div class="stat-label">Teljes bevétel</div></div>';
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem">'+fmt(avgOrder)+'</div><div class="stat-label">Átlag rendelés</div></div>';
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:var(--green)">'+fmt(completedRev)+'</div><div class="stat-label">Teljesített/Fizetett</div></div>';
-  html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:#856404">'+fmt(pendingRev)+'</div><div class="stat-label">Folyamatban</div></div>';
-  html+='</div>';
-  
-  // Monthly chart
+  html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:#856404">'+fmt(pendingRev)+'</div><div class="stat-label">Folyamatban</div></div></div>';
   html+='<div class="new-form"><h3>📈 Havi bevétel (utolsó 12 hónap)</h3>';
-  if(months.length===0){
-    html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>';
-  }else{
-    html+='<div style="display:flex;flex-direction:column;gap:8px">';
-    months.forEach(k=>{
-      const m=monthlyData[k];
-      const pct=(m.revenue/maxMonthRev)*100;
-      html+='<div><div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:3px"><span style="color:var(--dark);font-weight:500">'+m.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(m.revenue)+' ('+m.count+' rendelés)</span></div>';
-      html+='<div style="background:var(--warm);height:10px;border-radius:5px;overflow:hidden"><div style="background:var(--gold);height:100%;width:'+pct+'%;transition:width .3s"></div></div></div>';
-    });
-    html+='</div>';
-  }
+  if(months.length===0){html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>'}
+  else{html+='<div style="display:flex;flex-direction:column;gap:8px">';months.forEach(k=>{const m=monthlyData[k];const pct=(m.revenue/maxMonthRev)*100;html+='<div><div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:3px"><span style="color:var(--dark);font-weight:500">'+m.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(m.revenue)+' ('+m.count+' rendelés)</span></div><div style="background:var(--warm);height:10px;border-radius:5px;overflow:hidden"><div style="background:var(--gold);height:100%;width:'+pct+'%;transition:width .3s"></div></div></div>'});html+='</div>'}
   html+='</div>';
-  
-  // Product types
-  html+='<div class="new-form" style="margin-top:14px"><h3>📦 Termékek típus szerint</h3>';
-  const totalProducts=printCount+digitalCount+giftCount;
-  if(totalProducts===0){
-    html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>';
-  }else{
-    const types=[{label:"🖼️ Papírkép",count:printCount,rev:printRev,color:"#2980b9"},{label:"💾 Digitális",count:digitalCount,rev:digitalRev,color:"#27ae60"},{label:"🎁 Ajándéktárgy",count:giftCount,rev:giftRev,color:"#e67e22"}];
-    html+='<div style="display:flex;flex-direction:column;gap:10px">';
-    types.forEach(t=>{
-      const pct=totalProducts>0?(t.count/totalProducts*100).toFixed(1):0;
-      html+='<div><div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:4px"><span style="font-weight:500;color:var(--dark)">'+t.label+'</span><span style="color:var(--muted)">'+t.count+' db &middot; '+fmt(t.rev)+' &middot; '+pct+'%</span></div>';
-      html+='<div style="background:var(--warm);height:8px;border-radius:4px;overflow:hidden"><div style="background:'+t.color+';height:100%;width:'+pct+'%"></div></div></div>';
-    });
-    html+='</div>';
-  }
-  html+='</div>';
-  
-  // Top products
-  html+='<div class="new-form" style="margin-top:14px"><h3>🏆 TOP 10 legnépszerűbb termék</h3>';
-  if(topProducts.length===0){
-    html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>';
-  }else{
-    html+='<div style="display:flex;flex-direction:column;gap:8px">';
-    topProducts.forEach(([name,d],i)=>{
-      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--cream);border-radius:8px;font-size:.88rem"><span><strong style="color:var(--gold);margin-right:8px">#'+(i+1)+'</strong>'+name+'</span><span style="color:var(--dark);font-weight:500">'+d.count+' db &middot; '+fmt(d.revenue)+'</span></div>';
-    });
-    html+='</div>';
-  }
-  html+='</div>';
-  
-  // Top customers
-  if(topCustomers.length>0){
-    html+='<div class="new-form" style="margin-top:14px"><h3>⭐ Legjobb vásárlók (TOP 5)</h3>';
-    html+='<div style="display:flex;flex-direction:column;gap:8px">';
-    topCustomers.forEach((c,i)=>{
-      html+='<div style="padding:10px;background:var(--cream);border-radius:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:500;color:var(--dark)">'+(i+1)+'. '+c.name+'</div><div style="font-size:.77rem;color:var(--muted)">'+c.email+'</div></div><div style="text-align:right"><div style="font-weight:600;color:var(--gold)">'+fmt(c.total)+'</div><div style="font-size:.77rem;color:var(--muted)">'+c.count+' rendelés</div></div></div></div>';
-    });
-    html+='</div></div>';
-  }
-  
-  // Status breakdown
-  html+='<div class="new-form" style="margin-top:14px"><h3>📋 Státusz megoszlás</h3>';
-  html+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">';
-  Object.keys(STATUS_LABELS).forEach(s=>{
-    const c=statusCounts[s]||0;
-    html+='<div style="padding:10px;background:var(--cream);border-radius:8px;display:flex;justify-content:space-between;align-items:center;font-size:.85rem"><span>'+STATUS_LABELS[s]+'</span><strong>'+c+'</strong></div>';
-  });
-  html+='</div></div>';
-  
-  // Social consent
-  html+='<div class="new-form" style="margin-top:14px"><h3>📸 Közzétételi hozzájárulás</h3>';
-  const totalConsent=consentYes+consentNo;
-  if(totalConsent===0){
-    html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>';
-  }else{
-    const yesPct=(consentYes/totalConsent*100).toFixed(1);
-    const noPct=(consentNo/totalConsent*100).toFixed(1);
-    html+='<div style="display:flex;flex-direction:column;gap:10px">';
-    html+='<div><div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:4px"><span style="font-weight:500;color:#155724">✅ Hozzájárult</span><span style="color:var(--muted)">'+consentYes+' rendelés &middot; '+yesPct+'%</span></div>';
-    html+='<div style="background:var(--warm);height:8px;border-radius:4px;overflow:hidden"><div style="background:#2e7d50;height:100%;width:'+yesPct+'%"></div></div></div>';
-    html+='<div><div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:4px"><span style="font-weight:500;color:#c0392b">❌ Nem járult hozzá</span><span style="color:var(--muted)">'+consentNo+' rendelés &middot; '+noPct+'%</span></div>';
-    html+='<div style="background:var(--warm);height:8px;border-radius:4px;overflow:hidden"><div style="background:#c0392b;height:100%;width:'+noPct+'%"></div></div></div>';
-    html+='</div>';
-  }
-  html+='</div>';
-  
-  // Gift items breakdown (if any gift orders exist)
-  if(giftCount>0){
-    const giftStats={};
-    orders.forEach(o=>{
-      (o.items||[]).forEach(i=>{
-        if(i.type==="gift"&&i.giftLabel){
-          if(!giftStats[i.giftLabel])giftStats[i.giftLabel]={count:0,revenue:0};
-          giftStats[i.giftLabel].count+=i.qty;
-          giftStats[i.giftLabel].revenue+=i.totalPrice;
-        }
-      });
-    });
-    const sortedGifts=Object.entries(giftStats).sort((a,b)=>b[1].count-a[1].count);
-    html+='<div class="new-form" style="margin-top:14px"><h3>🎁 Ajándéktárgyak részletesen</h3>';
-    html+='<div style="display:flex;flex-direction:column;gap:6px">';
-    sortedGifts.forEach(([name,d])=>{
-      html+='<div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--cream);border-radius:8px;font-size:.88rem"><span>'+name+'</span><span style="color:var(--gold);font-weight:500">'+d.count+' db &middot; '+fmt(d.revenue)+'</span></div>';
-    });
-    html+='</div></div>';
-  }
-  
-  // Reminder section - galleries with visits but no orders
-  const orderedGalleryIds=new Set(orders.map(o=>o.galleryId));
-  const needReminder=galleries.filter(g=>{
-    if(g.isGroup)return false;
-    if(orderedGalleryIds.has(g.id))return false;
-    if(!g.lastVisitAt)return false;
-    const daysSinceVisit=(Date.now()-g.lastVisitAt)/(1000*60*60*24);
-    return daysSinceVisit>=2;
-  });
-  if(needReminder.length>0){
-    html+='<div class="new-form" style="margin-top:14px;border-color:#f57c00"><h3>🔔 Emlékeztetést igényel ('+needReminder.length+')</h3>';
-    html+='<p style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Megnyitották a galériát, de még nem rendeltek (legalább 2 napja).</p>';
-    html+='<div style="display:flex;flex-direction:column;gap:8px">';
-    needReminder.forEach(g=>{
-      const days=Math.floor((Date.now()-g.lastVisitAt)/(1000*60*60*24));
-      html+='<div style="padding:10px;background:#fff8e1;border-radius:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:500;color:var(--dark)">'+g.child+'</div><div style="font-size:.77rem;color:var(--muted)">📧 '+g.parentEmail+'</div><div style="font-size:.77rem;color:#e65100">Megnyitva '+days+' napja, még nem rendelt</div></div><a href="mailto:'+g.parentEmail+'?subject=Emlékeztető a fotók megrendelésére&body=Kedves Szülő!%0A%0AEmlékeztetni szeretném, hogy '+g.child+' képei elérhetők a galériájában. A megrendeléshez használja a következő kódot: '+g.code+'%0A%0AÜdvözlettel:%0A'+(currentUser?currentUser.name:'')+'" class="btn btn-outline btn-sm" style="white-space:nowrap;text-decoration:none;display:inline-block;line-height:1">📧 Email</a></div></div>';
-    });
-    html+='</div></div>';
-  }
-  
-  div.innerHTML=html;
+  div.innerHTML=html+renderStatsExtra(topProducts,topCustomers,statusCounts,consentYes,consentNo,printCount,digitalCount,giftCount,printRev,digitalRev,giftRev,orders,galleries);
 }
 
+function renderStatsExtra(topProducts,topCustomers,statusCounts,consentYes,consentNo,printCount,digitalCount,giftCount,printRev,digitalRev,giftRev,orders,galleries){
+  const totalProducts=printCount+digitalCount+giftCount;let html='';
+  html+='<div class="new-form" style="margin-top:14px"><h3>📦 Termékek típus szerint</h3>';
+  if(totalProducts===0){html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>'}
+  else{const types=[{label:"🖼️ Papírkép",count:printCount,rev:printRev,color:"#2980b9"},{label:"💾 Digitális",count:digitalCount,rev:digitalRev,color:"#27ae60"},{label:"🎁 Ajándéktárgy",count:giftCount,rev:giftRev,color:"#e67e22"}];html+='<div style="display:flex;flex-direction:column;gap:10px">';types.forEach(t=>{const pct=totalProducts>0?(t.count/totalProducts*100).toFixed(1):0;html+='<div><div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:4px"><span style="font-weight:500;color:var(--dark)">'+t.label+'</span><span style="color:var(--muted)">'+t.count+' db &middot; '+fmt(t.rev)+' &middot; '+pct+'%</span></div><div style="background:var(--warm);height:8px;border-radius:4px;overflow:hidden"><div style="background:'+t.color+';height:100%;width:'+pct+'%"></div></div></div>'});html+='</div>'}
+  html+='</div>';
+  html+='<div class="new-form" style="margin-top:14px"><h3>🏆 TOP 10 legnépszerűbb termék</h3>';
+  if(topProducts.length===0){html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>'}
+  else{html+='<div style="display:flex;flex-direction:column;gap:8px">';topProducts.forEach(([name,d],i)=>{html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--cream);border-radius:8px;font-size:.88rem"><span><strong style="color:var(--gold);margin-right:8px">#'+(i+1)+'</strong>'+name+'</span><span style="color:var(--dark);font-weight:500">'+d.count+' db &middot; '+fmt(d.revenue)+'</span></div>'});html+='</div>'}
+  html+='</div>';
+  if(topCustomers.length>0){html+='<div class="new-form" style="margin-top:14px"><h3>⭐ Legjobb vásárlók (TOP 5)</h3><div style="display:flex;flex-direction:column;gap:8px">';topCustomers.forEach((c,i)=>{html+='<div style="padding:10px;background:var(--cream);border-radius:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:500;color:var(--dark)">'+(i+1)+'. '+c.name+'</div><div style="font-size:.77rem;color:var(--muted)">'+c.email+'</div></div><div style="text-align:right"><div style="font-weight:600;color:var(--gold)">'+fmt(c.total)+'</div><div style="font-size:.77rem;color:var(--muted)">'+c.count+' rendelés</div></div></div></div>'});html+='</div></div>'}
+  html+='<div class="new-form" style="margin-top:14px"><h3>📋 Státusz megoszlás</h3><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">';
+  Object.keys(STATUS_LABELS).forEach(s=>{const c=statusCounts[s]||0;html+='<div style="padding:10px;background:var(--cream);border-radius:8px;display:flex;justify-content:space-between;align-items:center;font-size:.85rem"><span>'+STATUS_LABELS[s]+'</span><strong>'+c+'</strong></div>'});
+  html+='</div></div>';
+  const totalConsent=consentYes+consentNo;
+  html+='<div class="new-form" style="margin-top:14px"><h3>📸 Közzétételi hozzájárulás</h3>';
+  if(totalConsent===0){html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>'}
+  else{const yesPct=(consentYes/totalConsent*100).toFixed(1);const noPct=(consentNo/totalConsent*100).toFixed(1);html+='<div style="display:flex;flex-direction:column;gap:10px"><div><div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:4px"><span style="font-weight:500;color:#155724">✅ Hozzájárult</span><span style="color:var(--muted)">'+consentYes+' rendelés &middot; '+yesPct+'%</span></div><div style="background:var(--warm);height:8px;border-radius:4px;overflow:hidden"><div style="background:#2e7d50;height:100%;width:'+yesPct+'%"></div></div></div><div><div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:4px"><span style="font-weight:500;color:#c0392b">❌ Nem járult hozzá</span><span style="color:var(--muted)">'+consentNo+' rendelés &middot; '+noPct+'%</span></div><div style="background:var(--warm);height:8px;border-radius:4px;overflow:hidden"><div style="background:#c0392b;height:100%;width:'+noPct+'%"></div></div></div></div>'}
+  html+='</div>';
+  const orderedGalleryIds=new Set(orders.map(o=>o.galleryId));
+  const needReminder=galleries.filter(g=>{if(g.isGroup)return false;if(orderedGalleryIds.has(g.id))return false;if(!g.lastVisitAt)return false;return(Date.now()-g.lastVisitAt)/(1000*60*60*24)>=2});
+  if(needReminder.length>0){html+='<div class="new-form" style="margin-top:14px;border-color:#f57c00"><h3>🔔 Emlékeztetést igényel ('+needReminder.length+')</h3><p style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Megnyitották a galériát, de még nem rendeltek (legalább 2 napja).</p><div style="display:flex;flex-direction:column;gap:8px">';needReminder.forEach(g=>{const days=Math.floor((Date.now()-g.lastVisitAt)/(1000*60*60*24));html+='<div style="padding:10px;background:#fff8e1;border-radius:8px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><div style="font-weight:500;color:var(--dark)">'+g.child+'</div><div style="font-size:.77rem;color:var(--muted)">📧 '+g.parentEmail+'</div><div style="font-size:.77rem;color:#e65100">Megnyitva '+days+' napja, még nem rendelt</div></div><a href="mailto:'+g.parentEmail+'?subject=Emlékeztető a fotók megrendelésére" class="btn btn-outline btn-sm" style="white-space:nowrap;text-decoration:none;display:inline-block;line-height:1">📧 Email</a></div></div>'});html+='</div></div>'}
+  return html;
+}
 function renderAdmin(){
   document.getElementById("stat-galleries").textContent=galleries.length;
   document.getElementById("stat-orders").textContent=orders.length;
   document.getElementById("stat-revenue").textContent=fmt(orders.reduce((s,o)=>s+o.total,0));
   renderAdminOrders();renderAdminGalleries();
 }
+
 function setAdminTab(tab){
   ["orders","completed","galleries","stats","prices","new"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
   document.getElementById("admin-orders-wrap").classList.toggle("hidden",tab!=="orders");
@@ -2308,33 +1430,23 @@ function setAdminTab(tab){
   if(tab==="prices")renderPricesEditor();
   if(tab==="stats")renderStats();
 }
+
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
   const activeOrders=orders.filter(o=>o.status!=="completed");
   if(activeOrders.length===0){div.innerHTML='<div class="empty-msg">Nincs aktív rendelés.</div>';return}
   div.innerHTML=activeOrders.map(o=>{
-    const itemsHtml=(o.items||[]).map(i=>{
-      let typeLabel;
-      if(i.type==="digital")typeLabel="Digitális";
-      else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText;}
-      else typeLabel="Papírkép ("+i.sizeLabel+")";
-      return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>';
-    }).join("");
+    const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div><div style="margin-top:6px;display:flex;align-items:center;gap:8px">'+getStatusBadge(o.status)+'<select class="order-status-select" onchange="updateSingleStatus(\''+o.id+'\',this.value)">'+getStatusOptions(o)+'</select></div></div><div class="order-card-total">'+fmt(o.total)+(o.discount?' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>':'')+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
   }).join("");
 }
+
 function renderCompletedOrders(){
   const div=document.getElementById("admin-completed");
   const completedOrders=orders.filter(o=>o.status==="completed");
   if(completedOrders.length===0){div.innerHTML='<div class="empty-msg">Még nincs teljesített rendelés.</div>';return}
   div.innerHTML=completedOrders.map(o=>{
-    const itemsHtml=(o.items||[]).map(i=>{
-      let typeLabel;
-      if(i.type==="digital")typeLabel="Digitális";
-      else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText;}
-      else typeLabel="Papírkép ("+i.sizeLabel+")";
-      return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>';
-    }).join("");
+    const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div><div style="margin-top:6px;display:flex;align-items:center;gap:8px">'+getStatusBadge(o.status)+'<select class="order-status-select" onchange="updateSingleStatus(\''+o.id+'\',this.value)">'+getStatusOptions(o)+'</select></div></div><div class="order-card-total">'+fmt(o.total)+(o.discount?' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>':'')+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Törlés</button></div></div></div></div>';
   }).join("");
 }
@@ -2352,6 +1464,7 @@ function toggleSelectAll(checked){document.querySelectorAll("[data-id]").forEach
 function toggleOrderSelect(id,checked){checked?selectedOrderIds.add(id):selectedOrderIds.delete(id);updateBulkBar()}
 function updateBulkBar(){document.getElementById("bulk-count").textContent=selectedOrderIds.size+" kijelölve";selectedOrderIds.size>0?show("bulk-bar"):hide("bulk-bar");if(selectedOrderIds.size>0)updateBulkStatusOptions()}
 function clearSelection(){selectedOrderIds.clear();document.querySelectorAll("[data-id]").forEach(cb=>cb.checked=false);const sa=document.getElementById("select-all-cb");if(sa)sa.checked=false;updateBulkBar()}
+
 async function applyBulkStatus(){
   const status=document.getElementById("bulk-status").value;
   if(!status){alert("Kérjük válassz státuszt!");return}
@@ -2360,19 +1473,11 @@ async function applyBulkStatus(){
     const batch=db.batch();
     selectedOrderIds.forEach(id=>batch.update(db.collection("orders").doc(id),{status}));
     await batch.commit();
-    // Send emails for status change
     const updatedOrders=[];
-    orders.forEach(o=>{
-      if(selectedOrderIds.has(o.id)){
-        if(o.status!==status&&status!=="pending")updatedOrders.push({...o,status});
-        o.status=status;
-      }
-    });
+    orders.forEach(o=>{if(selectedOrderIds.has(o.id)){if(o.status!==status&&status!=="pending")updatedOrders.push({...o,status});o.status=status}});
     updatedOrders.forEach(o=>sendStatusChangeEmail(o,status).catch(e=>console.error(e)));
-    clearSelection();renderAdminOrders();renderCompletedOrders();
-    document.getElementById("bulk-status").value=""
-  }
-  catch(e){alert("Hiba történt!");console.error(e)}
+    clearSelection();renderAdminOrders();renderCompletedOrders();document.getElementById("bulk-status").value="";
+  }catch(e){alert("Hiba történt!");console.error(e)}
 }
 
 function openGalleryDetail(galleryId){
@@ -2380,33 +1485,32 @@ function openGalleryDetail(galleryId){
   uploadedPhotosDetail=[];document.getElementById("photo-previews-detail").innerHTML="";hide("upload-progress-detail");hide("save-photos-btn");document.getElementById("detail-upload-msg").innerHTML="";
   document.getElementById("detail-name").textContent=currentDetailGallery.child+" galériája";
   let metaText=currentDetailGallery.parentEmail||"";
-  if(currentDetailGallery.expiresAt){
-    const expDate=new Date(currentDetailGallery.expiresAt);
-    const isExpired=currentDetailGallery.expiresAt<Date.now();
-    metaText+=(metaText?" · ":"")+(isExpired?"⚠️ Lejárt: ":"⏰ Lejár: ")+expDate.toLocaleDateString("hu-HU");
-  }
+  if(currentDetailGallery.expiresAt){const expDate=new Date(currentDetailGallery.expiresAt);const isExpired=currentDetailGallery.expiresAt<Date.now();metaText+=(metaText?" · ":"")+(isExpired?"⚠️ Lejárt: ":"⏰ Lejár: ")+expDate.toLocaleDateString("hu-HU")}
   document.getElementById("detail-meta").textContent=metaText;
   document.getElementById("detail-code").textContent=currentDetailGallery.code+" 📋";
   hide("edit-form");renderDetailPhotos();showPage("page-gallery-detail");
 }
+
 function renderDetailPhotos(){
-  const grid=document.getElementById("detail-photo-grid");
-  const photos=currentDetailGallery.photos||[];
+  const grid=document.getElementById("detail-photo-grid");const photos=currentDetailGallery.photos||[];
   if(photos.length===0){grid.innerHTML="";show("detail-empty");return}
   hide("detail-empty");
   grid.innerHTML=photos.map((p,i)=>'<div class="admin-photo-card"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy"><button class="delete-photo-btn" onclick="deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div></div>').join("");
 }
+
 async function deletePhoto(index){
   if(!confirm("Biztosan törli ezt a képet?"))return;
   const photos=[...(currentDetailGallery.photos||[])];photos.splice(index,1);photos.forEach((p,i)=>p.name="Portré "+(i+1));
   try{await db.collection("galleries").doc(currentDetailGallery.id).update({photos});currentDetailGallery.photos=photos;const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g)g.photos=photos;renderDetailPhotos()}
   catch(e){alert("Hiba történt a törlés során!")}
 }
+
 async function deleteCurrentGallery(){
   if(!confirm("Biztosan törli az egész galériát?"))return;
   try{await db.collection("galleries").doc(currentDetailGallery.id).delete();galleries=galleries.filter(g=>g.id!==currentDetailGallery.id);currentDetailGallery=null;backToAdminGalleries()}
   catch(e){alert("Hiba történt!")}
 }
+
 function toggleEditForm(){
   const form=document.getElementById("edit-form");form.classList.toggle("hidden");
   if(!form.classList.contains("hidden")){
@@ -2419,20 +1523,27 @@ function toggleEditForm(){
 }
 function updateEditCode(){const name=document.getElementById("edit-child").value.trim();if(name)document.getElementById("edit-code").value=generateCode(name)}
 function regenEditCode(){document.getElementById("edit-code").value=generateCode(document.getElementById("edit-child").value.trim()||"X")}
+
 async function saveEdit(){
   const child=document.getElementById("edit-child").value.trim();const email=document.getElementById("edit-email").value.trim().toLowerCase();const code=document.getElementById("edit-code").value.trim().toUpperCase();const msg=document.getElementById("edit-msg");
   if(!child||!email){msg.innerHTML='<div class="error-msg">Töltsd ki mindkét mezőt!</div>';return}
-  try{await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,code,name:child+" – Iskolai fotók 2025"});currentDetailGallery.child=child;currentDetailGallery.parentEmail=email;currentDetailGallery.code=code;const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.child=child;g.parentEmail=email;g.code=code}document.getElementById("detail-name").textContent=child+" galériája";document.getElementById("detail-meta").textContent=email;document.getElementById("detail-code").textContent=code+" 📋";msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';setTimeout(()=>{document.getElementById("edit-form").classList.add("hidden");msg.innerHTML=""},1500)}
-  catch(e){msg.innerHTML='<div class="error-msg">Hiba történt!</div>'}
+  try{
+    await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,code,name:child+" – Iskolai fotók 2025"});
+    currentDetailGallery.child=child;currentDetailGallery.parentEmail=email;currentDetailGallery.code=code;
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.child=child;g.parentEmail=email;g.code=code}
+    document.getElementById("detail-name").textContent=child+" galériája";document.getElementById("detail-meta").textContent=email;document.getElementById("detail-code").textContent=code+" 📋";
+    msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';setTimeout(()=>{document.getElementById("edit-form").classList.add("hidden");msg.innerHTML=""},1500);
+  }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt!</div>'}
 }
+
 function copyDetailCode(){navigator.clipboard?.writeText(currentDetailGallery.code);alert("Kód másolva: "+currentDetailGallery.code)}
 function copyCode(code){navigator.clipboard?.writeText(code);alert("Kód másolva: "+code)}
 function backToAdminGalleries(){renderAdmin();showPage("page-admin");setAdminTab("galleries")}
 function updateCode(){const name=document.getElementById("new-child").value.trim();if(name){generatedCode=generateCode(name);document.getElementById("new-code").textContent=generatedCode;show("code-box")}else hide("code-box")}
 function regenCode(){const name=document.getElementById("new-child").value.trim();if(name){generatedCode=generateCode(name);document.getElementById("new-code").textContent=generatedCode}}
+
 async function createGallery(){
-  const isGroup=document.getElementById("new-is-group").checked;
-  const errDiv=document.getElementById("new-form-error");hide("new-form-error");
+  const isGroup=document.getElementById("new-is-group").checked;const errDiv=document.getElementById("new-form-error");hide("new-form-error");
   let galleryData={};
   if(isGroup){
     const groupName=document.getElementById("new-group-name").value.trim();
@@ -2440,8 +1551,7 @@ async function createGallery(){
     const finalCode=generatedCode||generateCode(groupName);
     galleryData={name:groupName,code:finalCode,child:groupName,parentEmail:"",isGroup:true,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim()};
   }else{
-    const child=document.getElementById("new-child").value.trim();
-    const email=document.getElementById("new-email").value.trim().toLowerCase();
+    const child=document.getElementById("new-child").value.trim();const email=document.getElementById("new-email").value.trim().toLowerCase();
     if(!child||!email){errDiv.textContent="A gyerek neve és az email cím kötelező.";show("new-form-error");return}
     const existing=galleries.find(g=>!g.isGroup&&g.parentEmail&&g.parentEmail.toLowerCase()===email);
     const finalCode=existing?existing.code:(generatedCode||generateCode(child));
@@ -2449,31 +1559,17 @@ async function createGallery(){
   }
   const btn=document.getElementById("create-btn");btn.disabled=true;btn.textContent="Mentés...";
   try{
-    await db.collection("galleries").add(galleryData);
-    await loadPhotographerData();
-    document.getElementById("new-child").value="";
-    document.getElementById("new-email").value="";
-    document.getElementById("new-group-name").value="";
-    document.getElementById("new-is-group").checked=false;
-    document.getElementById("new-enable-print").checked=true;
-    document.getElementById("new-enable-digital").checked=true;
-    document.getElementById("new-enable-gift").checked=true;
-    document.getElementById("new-watermark-enabled").checked=true;
-    document.getElementById("new-watermark-text").value="SpringMoonPhoto\\nMINTA";
-    document.getElementById("new-expires-at").value="";
-    document.getElementById("new-promo-text").value="";
-    document.getElementById("new-gallery-message").value="";
-    newDiscounts=[];renderNewDiscounts();
-    toggleGroupGallery();
+    await db.collection("galleries").add(galleryData);await loadPhotographerData();
+    document.getElementById("new-child").value="";document.getElementById("new-email").value="";document.getElementById("new-group-name").value="";
+    document.getElementById("new-is-group").checked=false;document.getElementById("new-enable-print").checked=true;document.getElementById("new-enable-digital").checked=true;document.getElementById("new-enable-gift").checked=true;
+    document.getElementById("new-watermark-enabled").checked=true;document.getElementById("new-watermark-text").value="SpringMoonPhoto\\nMINTA";
+    document.getElementById("new-expires-at").value="";document.getElementById("new-promo-text").value="";document.getElementById("new-gallery-message").value="";
+    newDiscounts=[];renderNewDiscounts();toggleGroupGallery();
     uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");hide("code-box");
     renderAdmin();setAdminTab("galleries");
-  }
-  catch(e){errDiv.textContent="Hiba történt. Próbáld újra.";show("new-form-error");console.error(e)}
+  }catch(e){errDiv.textContent="Hiba történt. Próbáld újra.";show("new-form-error");console.error(e)}
   finally{btn.disabled=false;btn.textContent="✓ Galéria létrehozása"}
 }
-
-
-
 
 loadData();
 </script>
