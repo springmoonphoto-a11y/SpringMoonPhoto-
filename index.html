@@ -223,6 +223,17 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .lightbox-name{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;margin-top:6px}
 .lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
 .lightbox-order-btn:hover{background:#b8922e}
+/* ===== INTELLIGENS KOSÁR ===== */
+.smart-progress,.smart-ok{margin-top:12px;border-radius:14px;padding:14px 16px}
+.smart-progress{background:linear-gradient(135deg,#fff8ee,#ffe9c4);border:1.5px solid var(--gold)}
+.smart-text{font-size:.9rem;color:var(--brown);margin-bottom:9px;line-height:1.4}
+.smart-bar{height:9px;background:rgba(92,61,46,.12);border-radius:5px;overflow:hidden}
+.smart-fill{height:100%;background:linear-gradient(90deg,var(--gold),#e0b84c);border-radius:5px;transition:width .4s}
+.smart-ok{background:linear-gradient(135deg,#fff4d6,#ffe18a);border:1.5px solid var(--gold);text-align:center;color:var(--brown);font-size:.95rem;font-weight:500}
+body.dark-mode .smart-progress{background:linear-gradient(135deg,#241a0a,#3a2c10);border-color:#9a7018}
+body.dark-mode .smart-text{color:#f5e2a8}
+body.dark-mode .smart-bar{background:rgba(255,255,255,.1)}
+body.dark-mode .smart-ok{background:linear-gradient(135deg,#2e2208,#3d2e12);border-color:#9a7018;color:#f8e880}
 /* ===== NYOMTATÁSI ÖSSZESÍTŐ ===== */
 .ps-head{text-align:center;margin-bottom:16px}
 .ps-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--dark)}
@@ -446,6 +457,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <div id="cart-total-rows"></div>
       <div class="cart-total-big"><span>Összesen</span><strong id="cart-grand-total"></strong></div>
     </div>
+    <div id="smart-cart-banner" style="display:none"></div>
     <div id="order-contact-form" class="hidden" style="background:var(--white);border:2px solid var(--gold);border-radius:14px;padding:18px;margin-top:18px;box-shadow:var(--shadow-sm)">
       <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">👤 Kapcsolattartási adatok</h3>
       <p style="font-size:.88rem;color:var(--text);margin-bottom:14px">Kérjük adja meg az alábbi adatokat a rendelés leadásához.</p>
@@ -941,10 +953,10 @@ function removeNewDiscount(i){newDiscounts.splice(i,1);renderNewDiscounts()}
 function renderNewDiscounts(){
   const div=document.getElementById("new-discounts-list");
   if(newDiscounts.length===0){div.innerHTML="";return}
-  div.innerHTML=newDiscounts.map((d,i)=>'<div style="background:var(--cream);padding:10px;border-radius:8px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><input type="text" id="new-disc-code-'+i+'" value="'+(d.code||"").replace(/"/g,"&quot;")+'" placeholder="KÓD" style="flex:1;margin-bottom:0;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"><input type="number" id="new-disc-percent-'+i+'" value="'+d.percent+'" min="1" max="100" style="width:70px;margin-bottom:0;text-align:right"><span style="font-size:.85rem;color:var(--muted)">%</span><button class="regen-btn" style="color:#c0392b" onclick="removeNewDiscount('+i+')" title="Törlés">&#128465;&#65039;</button></div><div style="display:flex;gap:6px;align-items:center;font-size:.78rem;color:var(--muted)"><span>Min. rendelés:</span><input type="number" id="new-disc-min-'+i+'" value="'+d.minTotal+'" min="0" step="500" style="width:90px;margin-bottom:0;text-align:right;padding:6px 10px"><span>Ft</span></div></div>').join("");
+  div.innerHTML=newDiscounts.map((d,i)=>'<div style="background:var(--cream);padding:10px;border-radius:8px;margin-bottom:8px"><div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><input type="text" id="new-disc-code-'+i+'" value="'+(d.code||"").replace(/"/g,"&quot;")+'" placeholder="KÓD" style="flex:1;margin-bottom:0;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"><input type="number" id="new-disc-percent-'+i+'" value="'+d.percent+'" min="1" max="100" style="width:70px;margin-bottom:0;text-align:right"><span style="font-size:.85rem;color:var(--muted)">%</span><button class="regen-btn" style="color:#c0392b" onclick="removeNewDiscount('+i+')" title="Törlés">&#128465;&#65039;</button></div><div style="display:flex;gap:6px;align-items:center;font-size:.78rem;color:var(--muted)"><span>Min. rendelés:</span><input type="number" id="new-disc-min-'+i+'" value="'+d.minTotal+'" min="0" step="500" style="width:80px;margin-bottom:0;text-align:right;padding:6px 10px"><span>Ft</span><span style="margin-left:6px">vagy min.</span><input type="number" id="new-disc-minqty-'+i+'" value="'+(d.minQty||0)+'" min="0" step="1" style="width:60px;margin-bottom:0;text-align:right;padding:6px 10px"><span>kép</span></div></div>').join("");
 }
 function readNewDiscounts(){
-  return newDiscounts.map((d,i)=>{const code=document.getElementById("new-disc-code-"+i);const pct=document.getElementById("new-disc-percent-"+i);const min=document.getElementById("new-disc-min-"+i);return{code:code?code.value.trim().toUpperCase():"",percent:pct?parseInt(pct.value)||10:10,minTotal:min?parseInt(min.value)||0:0}}).filter(d=>d.code);
+  return newDiscounts.map((d,i)=>{const code=document.getElementById("new-disc-code-"+i);const pct=document.getElementById("new-disc-percent-"+i);const min=document.getElementById("new-disc-min-"+i);const mq=document.getElementById("new-disc-minqty-"+i);return{code:code?code.value.trim().toUpperCase():"",percent:pct?parseInt(pct.value)||10:10,minTotal:min?parseInt(min.value)||0:0,minQty:mq?parseInt(mq.value)||0:0}}).filter(d=>d.code);
 }
 
 let activeDiscount=null;
@@ -960,6 +972,45 @@ function applyDiscount(){
   document.getElementById("discount-code-input").disabled=true;renderCartItems();
 }
 function clearDiscount(){activeDiscount=null;document.getElementById("discount-code-input").value="";document.getElementById("discount-code-input").disabled=false;document.getElementById("discount-msg").innerHTML=""}
+
+function renderSmartCart(){
+  const banner=document.getElementById("smart-cart-banner");
+  if(!banner)return;
+  const discs=(currentGallery&&currentGallery.discounts)||[];
+  if(discs.length===0||activeDiscount||cart.length===0){banner.style.display="none";return}
+  const total=cart.reduce((s,i)=>s+i.totalPrice,0);
+  const count=cart.reduce((s,i)=>s+i.qty,0);
+  // Mar jaro kedvezmenyek (nincs meg ervenyesitve)
+  const qualified=discs.filter(d=>total>=(d.minTotal||0)&&count>=(d.minQty||0));
+  if(qualified.length>0){
+    const best=qualified.reduce((a,b)=>b.percent>a.percent?b:a);
+    banner.innerHTML='<div class="smart-ok">\ud83c\udf89 Jár a <strong>-'+best.percent+'%</strong> kedvezmény! <br><button class="btn btn-gold btn-sm" style="margin-top:9px;width:auto;padding:10px 24px" onclick="applySmartDiscount(\''+best.code+'\')">\u2713 Érvényesítés most</button></div>';
+    banner.style.display="block";return;
+  }
+  // Legkozelebbi el nem ert kedvezmeny
+  let best=null,bestProg=-1,bestMsg="";
+  discs.forEach(d=>{
+    const minT=d.minTotal||0,minQ=d.minQty||0;
+    if(minT===0&&minQ===0)return;
+    const parts=[];const msgs=[];
+    if(minT>0){parts.push(Math.min(1,total/minT));if(total<minT)msgs.push("még "+fmt(minT-total));}
+    if(minQ>0){parts.push(Math.min(1,count/minQ));if(count<minQ){const n=minQ-count;msgs.push("még "+n+" kép");}}
+    if(parts.length===0||msgs.length===0)return;
+    const prog=Math.min.apply(null,parts);
+    if(prog>bestProg){bestProg=prog;best=d;bestMsg=msgs.join(" és ");}
+  });
+  if(best&&bestMsg){
+    const cap=bestMsg.charAt(0).toUpperCase()+bestMsg.slice(1);
+    banner.innerHTML='<div class="smart-progress"><div class="smart-text">\ud83d\uded2 <strong>'+cap+'</strong> és máris jár a <strong>-'+best.percent+'%</strong> kedvezmény!</div><div class="smart-bar"><div class="smart-fill" style="width:'+Math.round(bestProg*100)+'%"></div></div></div>';
+    banner.style.display="block";
+  }else{banner.style.display="none";}
+}
+
+function applySmartDiscount(code){
+  const inp=document.getElementById("discount-code-input");
+  if(inp){inp.disabled=false;inp.value=code;}
+  applyDiscount();
+}
 
 async function testEmail(){
   const msg=document.getElementById("emailjs-test-msg");
@@ -1310,6 +1361,7 @@ function renderCartItems(){
   show("cart-total-box");show("social-consent-box");show("order-btn");show("back-btn");
   show("order-contact-form");if(currentGallery&&currentGallery.isGroup)show("group-only-fields");else hide("group-only-fields");
   if(currentGallery&&currentGallery.discounts&&currentGallery.discounts.length>0)show("discount-box");else hide("discount-box");
+  renderSmartCart();
   updateConsentUI();
 }
 
