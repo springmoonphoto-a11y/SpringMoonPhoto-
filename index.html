@@ -797,6 +797,7 @@ async function loadGalleryPrices(gallery){
     if(gallery.watermarkConfig)WATERMARK_CONFIG=gallery.watermarkConfig;
     else WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
   }catch(e){console.error("Árlista betöltési hiba:",e)}
+  await prepareWm();
 }
 
 async function loadMyPrices(){
@@ -819,6 +820,7 @@ async function loadMyPrices(){
       }
     }
   }catch(e){console.error("Árlista betöltési hiba:",e)}
+  await prepareWm();
 }
 function renderPricesEditor(){
   const div=document.getElementById("admin-prices");
@@ -1052,14 +1054,33 @@ async function sendStatusChangeEmail(order,newStatus){
 }
 function fmt(n){return n.toLocaleString("hu-HU")+" Ft"}
 function lowQ(url){if(!url||url.indexOf("/upload/")<0)return url;return url.replace("/upload/","/upload/q_25,w_750/")}
-function wmBg(){
-  if(!WATERMARK_CONFIG.enabled)return "";
-  let text=(WATERMARK_CONFIG.text||"SpringMoonPhoto MINTA").replace(/\n/g," \u2022 ").replace(/[<>&"']/g,"").trim().slice(0,80);
+let _wmCache="",_wmCacheKey="";
+async function prepareWm(){
+  if(!WATERMARK_CONFIG.enabled){_wmCache="";_wmCacheKey="";return}
+  let text=(WATERMARK_CONFIG.text||"SpringMoonPhoto").split('\n')[0].trim().slice(0,40);
   if(!text)text="SpringMoonPhoto";
-  text=text.toUpperCase();
-  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="220" height="120" viewBox="0 0 220 120"><g transform="rotate(-26 110 60)"><text x="110" y="60" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,0.45)" stroke="rgba(0,0,0,0.2)" stroke-width="0.6" stroke-linejoin="round" font-family="Playfair Display,Georgia,serif" font-size="14" font-weight="600" letter-spacing="1.2">'+text+'</text></g></svg>';
-  return "url(\"data:image/svg+xml;utf8,"+encodeURIComponent(svg)+"\")";
+  if(text===_wmCacheKey&&_wmCache)return;
+  try{await document.fonts.load("42px 'Great Vibes'");await document.fonts.ready;}catch(e){}
+  const w=300,h=140;
+  const c=document.createElement("canvas");
+  c.width=w*2;c.height=h*2;
+  const ctx=c.getContext("2d");
+  ctx.scale(2,2);
+  ctx.translate(w/2,h/2);
+  ctx.rotate(-22*Math.PI/180);
+  ctx.font="42px 'Great Vibes',cursive";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.strokeStyle="rgba(0,0,0,0.35)";
+  ctx.lineWidth=2.2;
+  ctx.lineJoin="round";
+  ctx.strokeText(text,0,0);
+  ctx.fillStyle="rgba(255,255,255,0.65)";
+  ctx.fillText(text,0,0);
+  _wmCache='url("'+c.toDataURL()+'")';
+  _wmCacheKey=text;
 }
+function wmBg(){return _wmCache}
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
 function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail"].forEach(p=>hide(p));show(id)}
