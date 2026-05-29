@@ -202,8 +202,8 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .photo-fav-btn.active{background:rgba(192,57,43,.9)}
 .fav-toggle-btn{background:var(--cream);border:1.5px solid var(--warm);border-radius:50px;padding:9px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--brown);font-weight:500;transition:background .2s;white-space:nowrap}
 .fav-toggle-btn.active{background:#fdeaea;border-color:#c0392b;color:#c0392b}
-.watermark-overlay{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden;z-index:2}
-.watermark-text{font-family:'Playfair Display',serif;color:rgba(255,255,255,.55);font-size:1rem;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.4);transform:rotate(-30deg);text-align:center;letter-spacing:.08em;white-space:nowrap;text-transform:uppercase}
+.watermark-overlay{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:2;background-repeat:repeat}
+.watermark-text{display:none}
 .sheet-photo-wrap{position:relative;overflow:hidden;border-radius:12px;margin-bottom:12px}
 .sheet-photo-wrap .watermark-overlay{align-items:center;justify-content:center}
 .sheet-photo-wrap .watermark-text{font-size:1.3rem}
@@ -224,6 +224,11 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
 .lightbox-order-btn:hover{background:#b8922e}
 /* ===== INTELLIGENS KOSÁR ===== */
+#cart-float-btn{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);width:auto;max-width:calc(100% - 24px);padding:13px 26px;box-shadow:0 6px 24px rgba(201,168,76,.5);z-index:90;border-radius:50px;font-weight:500;font-size:.93rem;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;animation:cartPop .3s ease-out}
+@supports(padding:max(0px)){#cart-float-btn{bottom:max(14px,env(safe-area-inset-bottom))}}
+@keyframes cartPop{from{transform:translate(-50%,20px);opacity:0}to{transform:translateX(-50%);opacity:1}}
+#page-gallery .wrap{padding-bottom:90px}
+body.dark-mode #cart-float-btn{box-shadow:0 6px 24px rgba(201,168,76,.35),0 0 0 1px rgba(201,168,76,.3)}
 .smart-progress,.smart-ok{margin-top:12px;border-radius:14px;padding:14px 16px}
 .smart-progress{background:linear-gradient(135deg,#fff8ee,#ffe9c4);border:1.5px solid var(--gold)}
 .smart-text{font-size:.9rem;color:var(--brown);margin-bottom:9px;line-height:1.4}
@@ -1047,6 +1052,14 @@ async function sendStatusChangeEmail(order,newStatus){
 }
 function fmt(n){return n.toLocaleString("hu-HU")+" Ft"}
 function lowQ(url){if(!url||url.indexOf("/upload/")<0)return url;return url.replace("/upload/","/upload/q_25,w_750/")}
+function wmBg(){
+  if(!WATERMARK_CONFIG.enabled)return "";
+  let text=(WATERMARK_CONFIG.text||"SpringMoonPhoto MINTA").replace(/\n/g," \u2022 ").replace(/[<>&"']/g,"").trim().slice(0,80);
+  if(!text)text="SpringMoonPhoto";
+  text=text.toUpperCase();
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="220" height="120" viewBox="0 0 220 120"><g transform="rotate(-26 110 60)"><text x="110" y="60" text-anchor="middle" dominant-baseline="middle" fill="rgba(255,255,255,0.45)" stroke="rgba(0,0,0,0.2)" stroke-width="0.6" stroke-linejoin="round" font-family="Playfair Display,Georgia,serif" font-size="14" font-weight="600" letter-spacing="1.2">'+text+'</text></g></svg>';
+  return "url(\"data:image/svg+xml;utf8,"+encodeURIComponent(svg)+"\")";
+}
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
 function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail"].forEach(p=>hide(p));show(id)}
@@ -1247,7 +1260,7 @@ function renderGallery(){
   if(showingFavoritesOnly&&photos.length===0){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:10px">🤍</div><p style="margin-bottom:18px">Még nincs kedvenc képed.<br>Koppints a szívre a képeken!</p><button class="btn btn-outline" style="width:auto;padding:10px 24px" onclick="toggleFavView()">← Vissza az összes képhez</button></div>';updateCartUI();return}
   photos.forEach((photo)=>{
     const realIdx=allPhotos.indexOf(photo);const div=document.createElement("div");div.className="photo-card";
-    const wmHtml=WATERMARK_CONFIG.enabled?'<div class="watermark-overlay"><span class="watermark-text">'+(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")+'</span></div>':'';
+    const wmHtml=WATERMARK_CONFIG.enabled?'<div class="watermark-overlay" style="background-image:'+wmBg()+'"></div>':'';
     const zoomBtn='<button class="photo-zoom-btn" onclick="event.stopPropagation();openLightbox('+realIdx+')" title="Nagyítás">&#128269;</button>';
     const isFav=favorites.includes(photo.id);
     const favBtnHtml='<button class="photo-fav-btn'+(isFav?" active":"")+'" onclick="event.stopPropagation();toggleFavorite(\''+photo.id+'\')" title="Kedvenc">'+(isFav?"❤️":"🤍")+'</button>';
@@ -1263,7 +1276,7 @@ function openLightbox(idx){
 function renderLightbox(){
   const photos=currentGallery.photos||[];if(!photos.length)return;const photo=photos[lightboxIndex];
   document.getElementById("lb-img").src=lowQ(photo.url);document.getElementById("lb-name").textContent=photo.name;document.getElementById("lb-counter").textContent=(lightboxIndex+1)+" / "+photos.length;
-  const wm=document.getElementById("lb-watermark");if(WATERMARK_CONFIG.enabled){wm.style.display="flex";wm.querySelector(".watermark-text").innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")}else{wm.style.display="none"}
+  const wm=document.getElementById("lb-watermark");if(WATERMARK_CONFIG.enabled){wm.style.display="block";wm.style.backgroundImage=wmBg()}else{wm.style.display="none"}
   document.getElementById("lb-prev").style.visibility=lightboxIndex>0?"visible":"hidden";document.getElementById("lb-next").style.visibility=lightboxIndex<photos.length-1?"visible":"hidden";
 }
 function lightboxNav(dir){const photos=currentGallery.photos||[];const newIdx=lightboxIndex+dir;if(newIdx>=0&&newIdx<photos.length){lightboxIndex=newIdx;renderLightbox()}}
@@ -1273,6 +1286,9 @@ function orderFromLightbox(){const photos=currentGallery.photos||[];const photo=
 let lbTouchStartX=0;
 document.addEventListener("touchstart",function(e){if(!document.getElementById("lightbox").classList.contains("hidden"))lbTouchStartX=e.touches[0].clientX},{passive:true});
 document.addEventListener("touchend",function(e){if(!document.getElementById("lightbox").classList.contains("hidden")){const diff=e.changedTouches[0].clientX-lbTouchStartX;if(Math.abs(diff)>50){if(diff>0)lightboxNav(-1);else lightboxNav(1)}}},{passive:true});
+let sheetTouchStartX=0,sheetTouchStartY=0,sheetTouchActive=false;
+document.addEventListener("touchstart",function(e){if(!document.getElementById("overlay").classList.contains("hidden")&&e.target.closest(".sheet-photo-wrap")){sheetTouchStartX=e.touches[0].clientX;sheetTouchStartY=e.touches[0].clientY;sheetTouchActive=true}},{passive:true});
+document.addEventListener("touchend",function(e){if(sheetTouchActive){const dx=e.changedTouches[0].clientX-sheetTouchStartX;const dy=e.changedTouches[0].clientY-sheetTouchStartY;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.4){if(dx>0)sheetNav(-1);else sheetNav(1)}sheetTouchActive=false}},{passive:true});
 
 function saveFavorites(){try{localStorage.setItem("fotolux_favs_"+(currentGallery?currentGallery.id:""),JSON.stringify(favorites))}catch(e){}}
 function loadFavorites(){try{const s=localStorage.getItem("fotolux_favs_"+(currentGallery?currentGallery.id:""));favorites=s?JSON.parse(s):[]}catch(e){favorites=[]}}
@@ -1302,8 +1318,8 @@ function openSheet(photo){
   if(ENABLED_PRODUCTS.print)orderType="print";else if(ENABLED_PRODUCTS.digital)orderType="digital";else if(ENABLED_PRODUCTS.gift)orderType="gift";
   selectedSize=PRINT_SIZES[0];qty=1;selectedGift=GIFT_ITEMS[0];
   document.getElementById("sheet-img").src=lowQ(photo.url);document.getElementById("sheet-name").textContent=photo.name;
-  const sw=document.getElementById("sheet-watermark");const swt=document.getElementById("sheet-watermark-text");
-  if(WATERMARK_CONFIG.enabled){sw.style.display="flex";swt.innerHTML=(WATERMARK_CONFIG.text||"").replace(/\n/g,"<br>")}else{sw.style.display="none"}
+  const sw=document.getElementById("sheet-watermark");
+  if(WATERMARK_CONFIG.enabled){sw.style.display="block";sw.style.backgroundImage=wmBg()}else{sw.style.display="none"}
   document.getElementById("qty-num").textContent=1;
   document.getElementById("tab-print").classList.toggle("active",orderType==="print");
   document.getElementById("tab-digital").classList.toggle("active",orderType==="digital");
