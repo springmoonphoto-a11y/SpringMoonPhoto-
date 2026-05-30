@@ -223,6 +223,26 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .lightbox-name{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;margin-top:6px}
 .lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
 .lightbox-order-btn:hover{background:#b8922e}
+/* ===== POLISH: ANIMÁCIÓK, SPINNEREK, ÜRES ÁLLAPOTOK ===== */
+@keyframes pageFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page:not(.hidden){animation:pageFade .32s ease-out}
+@keyframes cartBounce{0%,100%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.18)}70%{transform:translateX(-50%) scale(.95)}}
+.cart-bounce{animation:cartBounce .45s ease-out!important}
+.cart-fly{position:fixed;border-radius:8px;z-index:9999;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.35);object-fit:cover;transition:left .75s cubic-bezier(.55,0,.2,1),top .75s cubic-bezier(.55,0,.2,1),width .75s cubic-bezier(.55,0,.2,1),height .75s cubic-bezier(.55,0,.2,1),opacity .6s ease-out,transform .75s cubic-bezier(.55,0,.2,1)}
+.photo-card{transition:transform .26s ease,box-shadow .26s ease}
+.photo-card:hover{transform:translateY(-3px);box-shadow:0 8px 22px rgba(0,0,0,.13)}
+body.dark-mode .photo-card:hover{box-shadow:0 8px 22px rgba(201,168,76,.22)}
+.gallery-admin-card{transition:transform .22s ease,box-shadow .22s ease}
+.gallery-admin-card:hover{transform:translateY(-2px)}
+.btn-loading{pointer-events:none;opacity:.82;position:relative}
+.btn-loading::before{content:"";display:inline-block;width:14px;height:14px;margin-right:9px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.inline-spinner{display:inline-block;width:18px;height:18px;border:2.5px solid var(--gold);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state-icon{font-size:3.6rem;margin-bottom:14px;opacity:.55;display:block}
+.empty-state-title{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--dark);margin-bottom:6px;font-weight:500}
+.empty-state-text{font-size:.9rem;line-height:1.55;max-width:300px;margin:0 auto 16px;color:var(--muted)}
+.loading-inline{display:flex;flex-direction:column;align-items:center;gap:12px;padding:60px 20px;color:var(--muted);font-size:.9rem}
 /* ===== INTELLIGENS KOSÁR ===== */
 #cart-float-btn{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);width:auto;max-width:calc(100% - 24px);padding:13px 26px;box-shadow:0 6px 24px rgba(201,168,76,.5);z-index:90;border-radius:50px;font-weight:500;font-size:.93rem;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;animation:cartPop .3s ease-out}
 @supports(padding:max(0px)){#cart-float-btn{bottom:max(14px,env(safe-area-inset-bottom))}}
@@ -452,10 +472,11 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <div id="contact-buttons" style="margin-bottom:14px;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
       <button class="btn" style="width:auto;padding:12px 28px" onclick="backToGallery()">Vissza a galériához</button>
     </div>
-    <div id="cart-empty" class="hidden" style="text-align:center;padding:50px 20px;color:var(--muted)">
-      <div style="font-size:2.8rem;margin-bottom:12px">&#128722;</div>
-      <p style="margin-bottom:18px">A kosár üres.</p>
-      <button class="btn btn-outline" style="width:auto;padding:12px 26px" onclick="showGallery()">← Galéria</button>
+    <div id="cart-empty" class="hidden empty-state">
+      <span class="empty-state-icon">&#128722;</span>
+      <div class="empty-state-title">Üres a kosarad</div>
+      <div class="empty-state-text">Válassz képet a galériából, kattints a megfelelő méretre, és tedd a kosárba!</div>
+      <button class="btn btn-outline" style="width:auto;padding:12px 26px" onclick="showGallery()">← Vissza a galériához</button>
     </div>
     <div id="cart-items"></div>
     <div id="cart-total-box" class="cart-total-box hidden">
@@ -1083,7 +1104,7 @@ async function prepareWm(){
 function wmBg(){return _wmCache}
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
-function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail"].forEach(p=>hide(p));show(id)}
+function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail"].forEach(p=>hide(p));const el=document.getElementById(id);el.classList.remove("hidden");void el.offsetWidth;window.scrollTo({top:0,behavior:"smooth"})}
 function generateCode(name){const base=name.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"").slice(0,6);return base+Math.floor(1000+Math.random()*9000)}
 function getStatusBadge(status){const s=status||"pending";return '<span class="status-badge '+STATUS_CLASSES[s]+'">'+STATUS_LABELS[s]+'</span>'}
 function saveCart(){try{localStorage.setItem("fotolux_cart_"+(currentGallery?currentGallery.id:""),JSON.stringify(cart))}catch(e){}}
@@ -1154,15 +1175,19 @@ async function handleLogin(){
   const found=galleries.find(g=>g.code===code);
   if(!found){err.textContent="Érvénytelen belépési kód.";show("login-error");return}
   if(found.expiresAt&&found.expiresAt<Date.now()){const expDate=new Date(found.expiresAt).toLocaleDateString("hu-HU");err.textContent="Sajnáljuk, ez a galéria lejárt "+expDate+"-án/én. Kérjük vegye fel a kapcsolatot a fotóssal.";show("login-error");return}
-  if(found.isGroup){
-    currentGallery=found;await loadGalleryPrices(found);try{db.collection("galleries").doc(found.id).update({lastVisitAt:Date.now()})}catch(e){}
-    loadCart();loadFavorites();renderGallery();showPage("page-gallery");
-  }else{
+  if(!found.isGroup){
     const email=document.getElementById("inp-email").value.trim().toLowerCase();const child=document.getElementById("inp-child").value.trim().toLowerCase();
     if(!email||!child){err.textContent="Kérjük töltse ki az email címet és a gyermek nevét.";show("login-error");return}
     if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email cím vagy a gyerek neve nem egyezik.";show("login-error");return}
+  }
+  const btn=document.querySelector('button.btn[onclick="handleLogin()"]');
+  const origTxt=btn?btn.textContent:"";
+  if(btn){btn.classList.add("btn-loading");btn.textContent="Belépés...";}
+  try{
     currentGallery=found;await loadGalleryPrices(found);try{db.collection("galleries").doc(found.id).update({lastVisitAt:Date.now()})}catch(e){}
     loadCart();loadFavorites();renderGallery();showPage("page-gallery");
+  }finally{
+    if(btn){btn.classList.remove("btn-loading");btn.textContent=origTxt;}
   }
 }
 
@@ -1363,11 +1388,49 @@ function changeQty(d){qty=Math.max(1,qty+d);document.getElementById("qty-num").t
 function updateSheetTotal(){let price=0;if(orderType==="digital")price=DIGITAL_PRICE;else if(orderType==="gift"&&selectedGift)price=selectedGift.price;else price=selectedSize.price;document.getElementById("sheet-total").textContent="Összesen: "+fmt(price*qty)}
 
 function addToCart(){
+  const srcImg=document.getElementById("sheet-img");
   let unitPrice=0;let itemData={id:Date.now()+Math.random(),photo:activePhoto,type:orderType,qty};
   if(orderType==="digital"){unitPrice=DIGITAL_PRICE;itemData.size=null}
   else if(orderType==="gift"){unitPrice=selectedGift.price;itemData.giftId=selectedGift.id;itemData.giftLabel=selectedGift.label;if(selectedGift.id==="mug"){const text=document.getElementById("mug-text").value.trim();if(text)itemData.mugText=text}itemData.size=null}
   else{unitPrice=selectedSize.price;itemData.size=selectedSize}
-  itemData.unitPrice=unitPrice;itemData.totalPrice=unitPrice*qty;cart.push(itemData);saveCart();closeSheet();updateCartUI();
+  itemData.unitPrice=unitPrice;itemData.totalPrice=unitPrice*qty;cart.push(itemData);saveCart();
+  flyToCart(srcImg);
+  closeSheet();updateCartUI();
+}
+
+function flyToCart(srcImg){
+  const btn=document.getElementById("cart-float-btn");
+  if(!srcImg||!srcImg.src||!btn)return;
+  const src=srcImg.getBoundingClientRect();
+  if(src.width===0)return;
+  const fly=document.createElement("img");
+  fly.src=srcImg.src;
+  fly.className="cart-fly";
+  fly.style.left=src.left+"px";
+  fly.style.top=src.top+"px";
+  fly.style.width=src.width+"px";
+  fly.style.height=src.height+"px";
+  document.body.appendChild(fly);
+  requestAnimationFrame(()=>{
+    setTimeout(()=>{
+      const tgt=btn.getBoundingClientRect();
+      fly.style.left=(tgt.left+tgt.width/2-22)+"px";
+      fly.style.top=(tgt.top+tgt.height/2-22)+"px";
+      fly.style.width="44px";
+      fly.style.height="44px";
+      fly.style.opacity="0";
+      fly.style.transform="rotate(18deg)";
+    },10);
+  });
+  setTimeout(()=>{fly.remove();bounceCart()},800);
+}
+
+function bounceCart(){
+  const btn=document.getElementById("cart-float-btn");
+  if(!btn||btn.classList.contains("hidden"))return;
+  btn.classList.remove("cart-bounce");
+  void btn.offsetWidth;
+  btn.classList.add("cart-bounce");
 }
 
 function updateCartUI(){
@@ -1428,7 +1491,7 @@ async function sendOrder(){
     if(!groupEmail||!groupChild){alert("Kérjük adja meg az email címét és a gyermek nevét a rendelés leadásához!");document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});return}
     orderEmail=groupEmail;orderChild=groupChild;
   }
-  const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;
+  const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;btn.classList.add("btn-loading");
   try{
     const subtotal=cart.reduce((s,i)=>s+i.totalPrice,0);let total=subtotal;let discountInfo=null;
     if(activeDiscount){const discAmount=Math.round(subtotal*activeDiscount.percent/100);total=subtotal-discAmount;discountInfo={code:activeDiscount.code,percent:activeDiscount.percent,amount:discAmount}}
@@ -1442,7 +1505,7 @@ async function sendOrder(){
     cb.innerHTML=buttons;cart=[];saveCart();updateCartUI();clearDiscount();
     hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");hide("discount-box");show("cart-success");
     const os=await db.collection("orders").orderBy("createdAt","desc").get();orders=os.docs.map(d=>({id:d.id,...d.data()}));
-  }catch(e){console.error(e);btn.textContent="Rendelés leadása →";btn.disabled=false}
+  }catch(e){console.error(e);btn.textContent="Rendelés leadása →";btn.disabled=false;btn.classList.remove("btn-loading")}
 }
 
 function backToGallery(){hide("cart-success");showGallery()}
@@ -1451,17 +1514,17 @@ async function showMyOrders(){
   let email;
   if(currentGallery.isGroup){email=prompt("Adja meg azt az email címet, amellyel rendelt:");if(!email)return;email=email.trim().toLowerCase();if(!email)return}
   else{email=currentGallery.parentEmail.toLowerCase()}
-  const list=document.getElementById("my-orders-list");list.innerHTML='<div class="empty-msg">Betöltés...</div>';
+  const list=document.getElementById("my-orders-list");list.innerHTML='<div class="loading-inline"><span class="inline-spinner"></span>Rendelések betöltése...</div>';
   document.getElementById("my-orders-modal").classList.remove("hidden");
   try{
     const os=await db.collection("orders").where("parentEmail","==",email).get();
     const myOrders=os.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-    if(myOrders.length===0){list.innerHTML='<div class="empty-msg">Még nincs rendelésed.</div>';return}
+    if(myOrders.length===0){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">📦</span><div class="empty-state-title">Még nincs rendelésed</div><div class="empty-state-text">Itt fogod látni a leadott rendeléseidet, amint elkészülnek.</div></div>';return}
     list.innerHTML=myOrders.map(o=>{
       const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div style="font-size:.82rem;color:var(--text);padding:3px 0">'+i.photoName+' – '+typeLabel+' × '+i.qty+' = '+fmt(i.totalPrice)+'</div>'}).join("");
       return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="font-size:.78rem;color:var(--text);margin-top:2px">&#128100; '+(o.parentName||"-")+' &#183; &#128222; '+(o.phone||"-")+'</div><div style="margin-top:6px">'+getStatusBadge(o.status)+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div><div style="border-top:1px solid var(--warm);padding-top:8px">'+itemsHtml+'</div></div>';
     }).join("");
-  }catch(e){console.error("Rendelések betöltési hiba:",e);list.innerHTML='<div class="empty-msg">Nem sikerült betölteni a rendeléseket.</div>'}
+  }catch(e){console.error("Rendelések betöltési hiba:",e);list.innerHTML='<div class="empty-state"><span class="empty-state-icon">⚠️</span><div class="empty-state-title">Hiba történt</div><div class="empty-state-text">Nem sikerült betölteni a rendeléseket. Próbáld újra később.</div></div>'}
 }
 function closeMyOrdersModal(e){if(e.target===document.getElementById("my-orders-modal"))document.getElementById("my-orders-modal").classList.add("hidden")}
 
@@ -1505,7 +1568,7 @@ function updateBulkStatusOptions(){
 
 function renderStats(){
   const div=document.getElementById("admin-stats");
-  if(orders.length===0&&galleries.length===0){div.innerHTML='<div class="empty-msg">Még nincs adat a statisztikához.</div>';return}
+  if(orders.length===0&&galleries.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📊</span><div class="empty-state-title">Még nincs adat</div><div class="empty-state-text">A statisztikák akkor jelennek meg, ha lesznek galériák és rendelések.</div></div>';return}
   const totalRevenue=orders.reduce((s,o)=>s+o.total,0);const totalOrders=orders.length;const avgOrder=totalOrders>0?Math.round(totalRevenue/totalOrders):0;
   const completedRev=orders.filter(o=>["completed","paid","delivered","digital"].includes(o.status)).reduce((s,o)=>s+o.total,0);
   const pendingRev=orders.filter(o=>["pending","printing"].includes(o.status)).reduce((s,o)=>s+o.total,0);
@@ -1581,7 +1644,7 @@ function setAdminTab(tab){
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
   const activeOrders=orders.filter(o=>o.status!=="completed");
-  if(activeOrders.length===0){div.innerHTML='<div class="empty-msg">Nincs aktív rendelés.</div>';return}
+  if(activeOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📭</span><div class="empty-state-title">Nincs aktív rendelés</div><div class="empty-state-text">Az új rendelések itt fognak megjelenni, amint a szülők leadják.</div></div>';return}
   div.innerHTML=activeOrders.map(o=>{
     const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div><div style="margin-top:6px;display:flex;align-items:center;gap:8px">'+getStatusBadge(o.status)+'<select class="order-status-select" onchange="updateSingleStatus(\''+o.id+'\',this.value)">'+getStatusOptions(o)+'</select></div></div><div class="order-card-total">'+fmt(o.total)+(o.discount?' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>':'')+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
@@ -1591,7 +1654,7 @@ function renderAdminOrders(){
 function renderCompletedOrders(){
   const div=document.getElementById("admin-completed");
   const completedOrders=orders.filter(o=>o.status==="completed");
-  if(completedOrders.length===0){div.innerHTML='<div class="empty-msg">Még nincs teljesített rendelés.</div>';return}
+  if(completedOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">✅</span><div class="empty-state-title">Még nincs teljesített rendelés</div><div class="empty-state-text">Az "Aktív" fülön lévő rendeléseket "Teljesítve" státuszra állítva itt jelennek majd meg.</div></div>';return}
   div.innerHTML=completedOrders.map(o=>{
     const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt=""><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div><div style="margin-top:6px;display:flex;align-items:center;gap:8px">'+getStatusBadge(o.status)+'<select class="order-status-select" onchange="updateSingleStatus(\''+o.id+'\',this.value)">'+getStatusOptions(o)+'</select></div></div><div class="order-card-total">'+fmt(o.total)+(o.discount?' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>':'')+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Törlés</button></div></div></div></div>';
@@ -1600,7 +1663,7 @@ function renderCompletedOrders(){
 
 function renderAdminGalleries(){
   const div=document.getElementById("admin-galleries");
-  if(galleries.length===0){div.innerHTML='<div class="empty-msg">Még nincs galéria.</div>';return}
+  if(galleries.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📁</span><div class="empty-state-title">Még nincs galériád</div><div class="empty-state-text">Az <strong>+ Új</strong> fülön hozhatsz létre új galériát a szülők számára.</div></div>';return}
   div.innerHTML=galleries.map(g=>{
     const thumbs=g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+p.url+'" alt="">').join(""):'<div class="no-photo">&#128247;</div>';
     return '<div class="gallery-admin-card" onclick="openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+g.parentEmail+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div></div></div></div>';
