@@ -223,6 +223,31 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .lightbox-name{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;margin-top:6px}
 .lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
 .lightbox-order-btn:hover{background:#b8922e}
+/* ===== ADMIN KERESŐ + TOOLTIP + MULTI-SELECT ===== */
+.admin-search{width:100%;padding:11px 16px;border:1.5px solid var(--warm);border-radius:24px;font-family:'DM Sans',sans-serif;font-size:.92rem;background:var(--white);margin-bottom:14px;color:var(--dark);box-sizing:border-box;transition:border-color .2s ease}
+.admin-search:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.15)}
+body.dark-mode .admin-search{background:#100c08;border-color:#2a1e0a}
+body.dark-mode .admin-search:focus{border-color:var(--gold)}
+.tt-wrap{display:inline-block;position:relative;margin-left:6px;vertical-align:middle}
+.tt-btn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--warm);color:var(--muted);font-size:.72rem;font-weight:700;cursor:pointer;border:none;line-height:1;padding:0;transition:all .2s ease}
+.tt-btn:hover{background:var(--gold);color:#fff;transform:scale(1.1)}
+.tt-content{display:none;position:absolute;top:25px;left:-10px;width:240px;background:#2a1e08;color:#f5ede0;padding:10px 13px;border-radius:8px;font-size:.78rem;line-height:1.5;z-index:60;box-shadow:0 6px 18px rgba(0,0,0,.3);font-weight:400;text-transform:none;letter-spacing:0;white-space:normal}
+.tt-content::before{content:"";position:absolute;top:-5px;left:14px;width:10px;height:10px;background:#2a1e08;transform:rotate(45deg)}
+.tt-wrap.active .tt-content{display:block;animation:ttFade .18s ease-out}
+@keyframes ttFade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.photo-select-btn{position:absolute;top:8px;left:8px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.85);border:2px solid rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:all .2s ease;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:transparent;font-size:1rem;font-weight:700;padding:0;line-height:1}
+.photo-select-btn:hover{transform:scale(1.1);background:#fff}
+.photo-card.photo-selected .photo-select-btn{background:var(--gold);border-color:var(--gold);color:#fff}
+.photo-card.photo-selected{outline:3px solid var(--gold);outline-offset:-3px}
+.photo-card.photo-selected::after{content:"";position:absolute;inset:0;background:rgba(201,168,76,.13);z-index:1;pointer-events:none}
+#multi-select-bar{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);width:auto;max-width:calc(100% - 24px);padding:13px 20px 13px 16px;background:linear-gradient(135deg,var(--gold),#d4a028);color:#1a1208;border-radius:50px;font-weight:600;font-size:.92rem;box-shadow:0 6px 24px rgba(201,168,76,.55);z-index:91;border:none;cursor:pointer;display:flex;align-items:center;gap:10px;animation:cartPop .3s ease-out}
+@supports(padding:max(0px)){#multi-select-bar{bottom:max(14px,env(safe-area-inset-bottom))}}
+#multi-select-bar:hover{transform:translateX(-50%) translateY(-2px)}
+.ms-count{background:rgba(0,0,0,.18);padding:2px 10px;border-radius:24px;font-size:.85rem}
+.ms-clear{background:transparent;border:none;color:#1a1208;font-size:1.2rem;cursor:pointer;padding:0 0 0 6px;line-height:1;opacity:.6}
+.ms-clear:hover{opacity:1}
+.multi-photo-strip{display:flex;gap:5px;overflow-x:auto;padding:8px 0;margin-bottom:10px;scrollbar-width:thin}
+.multi-photo-strip img{width:54px;height:68px;object-fit:cover;border-radius:6px;flex-shrink:0;border:2px solid var(--gold)}
 /* ===== RENDELÉS ELLENŐRZŐ ===== */
 .review-section{background:var(--cream);border:1px solid var(--warm);border-radius:10px;padding:12px 14px;margin-bottom:10px}
 .review-section-title{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;font-weight:600}
@@ -466,6 +491,35 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     </div>
   </div>
 </div>
+<button id="multi-select-bar" class="hidden" onclick="openMultiSheet()" type="button">
+  <span class="ms-count" id="ms-count-text">0</span>
+  <span>kép kijelölve – Kosárba</span>
+  <button class="ms-clear" onclick="event.stopPropagation();clearMultiSelect()" type="button" title="Kijelölés törlése">×</button>
+</button>
+<div id="multi-overlay" class="modal-overlay hidden" onclick="closeMultiSheet(event)">
+  <div class="modal-sheet" style="max-width:520px">
+    <div class="sheet-handle"></div>
+    <h2 style="text-align:center;font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--dark);margin-bottom:4px">📦 Több kép kosárba</h2>
+    <p id="multi-count-info" style="text-align:center;color:var(--muted);font-size:.86rem;margin-bottom:10px"></p>
+    <div class="multi-photo-strip" id="multi-photo-strip"></div>
+    <div class="type-tabs" id="multi-type-tabs" style="margin-bottom:12px"></div>
+    <div id="multi-print-options" class="hidden"><div id="multi-sizes-list"></div></div>
+    <div id="multi-digital-options" class="hidden"><div class="size-row" style="background:var(--cream);padding:14px;border-radius:10px;display:flex;align-items:center;gap:10px"><div style="font-size:1.8rem">💾</div><div style="flex:1"><div style="font-weight:500;color:var(--dark)">Digitális fájl</div><div style="font-size:.78rem;color:var(--muted)">Nagy felbontású JPG, emailben küldve</div></div><div style="font-weight:600;color:var(--brown)" id="multi-digital-price"></div></div></div>
+    <div id="multi-gift-options" class="hidden"><div id="multi-gifts-list"></div></div>
+    <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between;background:var(--cream);padding:10px 14px;border-radius:10px">
+      <span style="font-size:.92rem;color:var(--dark)">Darabszám / kép</span>
+      <div class="qty-controls"><button onclick="changeMultiQty(-1)" type="button">−</button><span id="multi-qty-num">1</span><button onclick="changeMultiQty(1)" type="button">+</button></div>
+    </div>
+    <div id="multi-total-box" style="margin-top:14px;padding:14px 16px;background:linear-gradient(135deg,var(--gold),#d4a028);color:#1a1208;border-radius:12px;text-align:center;font-weight:600">
+      <div style="font-size:.84rem;opacity:.9" id="multi-total-formula"></div>
+      <div style="font-size:1.35rem;margin-top:4px" id="multi-total-amount"></div>
+    </div>
+    <div style="display:flex;gap:9px;margin-top:14px">
+      <button class="btn btn-outline" onclick="closeMultiSheet()" type="button" style="flex:1;width:auto">Mégsem</button>
+      <button class="btn btn-gold" onclick="addMultipleToCart()" type="button" style="flex:2;width:auto">✓ Kosárba teszem</button>
+    </div>
+  </div>
+</div>
 <div id="page-cart" class="hidden">
   <div class="header">
     <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-byrow"><span class="hls-line"></span><span class="hls-by">&#9670; BY &#9670;</span><span class="hls-line r"></span></span><span class="hls-script">SpringMoonPhoto</span></div></div>
@@ -607,7 +661,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <div id="group-gallery-fields" class="hidden">
           <label>Csoport neve *</label><input id="new-group-name" type="text" placeholder="pl. Napsugár csoport 2025" oninput="updateGroupCode()">
         </div>
-        <label style="margin-top:14px;margin-bottom:8px">&#127919; Elérhető termékek</label>
+        <label style="margin-top:14px;margin-bottom:8px">&#127919; Elérhető termékek <span class="tt-wrap"><button class="tt-btn" onclick="toggleTooltip(this)" type="button">?</button><span class="tt-content">Ebben a galeriaban csak a bepipalt terméktípusok jelennek meg. Pl. ha csak papírképet pipálsz, a szülő nem tud digitálist rendelni.</span></span></label>
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">A szülők csak a bepipált terméktípusokat rendelhetik ebben a galériában.</p>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--cream)">
           <input type="checkbox" id="new-enable-print" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">&#128444;&#65039; Papírképek</span>
@@ -618,24 +672,24 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:14px;cursor:pointer;background:var(--cream)">
           <input type="checkbox" id="new-enable-gift" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">&#127873; Ajándéktárgyak</span>
         </label>
-        <label style="margin-top:14px;margin-bottom:8px">&#128737;&#65039; Vízjel beállításai</label>
+        <label style="margin-top:14px;margin-bottom:8px">&#128737;&#65039; Vízjel beállításai <span class="tt-wrap"><button class="tt-btn" onclick="toggleTooltip(this)" type="button">?</button><span class="tt-content">A vízjel egy ismétlődő SpringMoonPhoto felirat a képeken. Megakadályozza a lopást: ha valaki képernyőfotót készít, a felirat is rajta marad. A teljes minőségű kép vízjel nélkül érkezik majd a szülőnek.</span></span></label>
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">A vízjel megakadályozza a képek ellopását.</p>
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:10px;cursor:pointer;background:var(--cream)">
           <input type="checkbox" id="new-watermark-enabled" checked style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">Vízjel megjelenítése a galéria képein</span>
         </label>
         <input type="text" id="new-watermark-text" value="SpringMoonPhoto\nMINTA" placeholder="pl. SpringMoonPhoto\nMINTA" style="margin-bottom:14px">
         <p style="font-size:.74rem;color:var(--muted);margin-top:-8px;margin-bottom:14px">Tipp: \n jelet használj sortörésnek</p>
-        <label style="margin-top:14px;margin-bottom:8px">⏰ Galéria lejárati ideje</label>
+        <label style="margin-top:14px;margin-bottom:8px">⏰ Galéria lejárati ideje <span class="tt-wrap"><button class="tt-btn" onclick="toggleTooltip(this)" type="button">?</button><span class="tt-content">A megadott nap után a szülő nem tud belépni a galériába - üzenetet kap, hogy lejárt. Hagyd üresen, ha nincs lejárat. A galéria adatait te az adminban továbbra is látod.</span></span></label>
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Mikor záruljon le a galéria?</p>
         <input type="date" id="new-expires-at" style="margin-bottom:14px">
         <p style="font-size:.74rem;color:var(--muted);margin-top:-8px;margin-bottom:14px">Hagyd üresen, ha nincs lejárat</p>
-        <label style="margin-top:14px;margin-bottom:8px">🎁 Kedvezménykódok</label>
+        <label style="margin-top:14px;margin-bottom:8px">🎁 Kedvezménykódok <span class="tt-wrap"><button class="tt-btn" onclick="toggleTooltip(this)" type="button">?</button><span class="tt-content">Olyan kódot adhatsz meg, amit a szülő a kosárban beír, és kedvezményt kap. Beállíthatsz min. rendelési Ft-ot vagy min. képszámot is. Az intelligens kosár automatikusan mutatja a szülőnek, mit nyer vele.</span></span></label>
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Adj meg kedvezménykódokat, amit a szülők beírhatnak.</p>
         <div id="new-discounts-list"></div>
         <button class="btn btn-outline btn-sm" type="button" style="width:100%;margin-bottom:14px" onclick="addNewDiscount()">+ Új kedvezménykód</button>
-        <label style="margin-top:14px;margin-bottom:8px">📦 Csomagajánlat (opcionális)</label>
+        <label style="margin-top:14px;margin-bottom:8px">📦 Csomagajánlat (opcionális) <span class="tt-wrap"><button class="tt-btn" onclick="toggleTooltip(this)" type="button">?</button><span class="tt-content">Egy szöveges hirdetes a galéria tetején, pl. Most rendelj 10 képet és 1000 Ft kedvezményt kapsz. Ez csak figyelemfelhívás, a kedvezményt a Kedvezménykódok résznél kell beállítani.</span></span></label>
         <textarea id="new-promo-text" placeholder="Hagyd üresen, ha nincs csomagajánlat" style="width:100%;min-height:60px;padding:12px 15px;border:1.5px solid var(--warm);border-radius:10px;font-size:.95rem;font-family:inherit;background:var(--cream);color:var(--dark);outline:none;margin-bottom:14px;resize:vertical"></textarea>
-        <label style="margin-top:14px;margin-bottom:8px">💬 Üzenet a szülőknek</label>
+        <label style="margin-top:14px;margin-bottom:8px">💬 Üzenet a szülőknek <span class="tt-wrap"><button class="tt-btn" onclick="toggleTooltip(this)" type="button">?</button><span class="tt-content">Személyes köszöntő a galéria tetején, pl. Köszönöm, hogy nálam dolgozhattam. A szülő ezt látja, amint belép.</span></span></label>
         <textarea id="new-gallery-message" placeholder="Hagyd üresen, ha nincs üzenet" style="width:100%;min-height:60px;padding:12px 15px;border:1.5px solid var(--warm);border-radius:10px;font-size:.95rem;font-family:inherit;background:var(--cream);color:var(--dark);outline:none;margin-bottom:14px;resize:vertical"></textarea>
         <div id="code-box" class="code-box hidden">
           <div><div style="font-size:.72rem;color:var(--muted);margin-bottom:3px">AUTOMATIKUSAN GENERÁLT KÓD</div><div id="new-code" class="code-val"></div><div class="code-hint">Ezt küldd el a szülőnek</div></div>
@@ -829,6 +883,7 @@ const STATUS_LABELS={pending:"\u23f3 F\u00fcgg\u0151ben",digital:"&#128231; Digi
 const STATUS_CLASSES={pending:"status-pending",digital:"status-digital",printing:"status-printing",delivered:"status-delivered",paid:"status-paid",completed:"status-completed"};
 let galleries=[],orders=[],currentGallery=null,cart=[];
 let activePhoto=null,orderType="print",selectedSize=PRINT_SIZES[0],qty=1;
+let multiSelectedIds=new Set(),multiOrderType="print",multiSelectedSize=null,multiSelectedGift=null,multiQty=1;
 let generatedCode="",uploadedPhotosNew=[];
 let currentDetailGallery=null,uploadedPhotosDetail=[];
 let selectedOrderIds=new Set();
@@ -1137,6 +1192,8 @@ async function prepareWm(){
   _wmCacheKey=text;
 }
 function wmBg(){return _wmCache}
+function toggleTooltip(btn){const w=btn.parentElement;document.querySelectorAll(".tt-wrap.active").forEach(x=>{if(x!==w)x.classList.remove("active")});w.classList.toggle("active")}
+document.addEventListener("click",function(e){if(!e.target.closest(".tt-wrap"))document.querySelectorAll(".tt-wrap.active").forEach(w=>w.classList.remove("active"))})
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
 function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail"].forEach(p=>hide(p));const el=document.getElementById(id);el.classList.remove("hidden");void el.offsetWidth;window.scrollTo({top:0,behavior:"smooth"})}
@@ -1340,15 +1397,19 @@ function renderGallery(){
   if(favBtn){favBtn.textContent=showingFavoritesOnly?"← Összes kép":"❤️ Kedvenceim ("+favorites.length+")";favBtn.classList.toggle("active",showingFavoritesOnly)}
   if(showingFavoritesOnly&&photos.length===0){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:10px">🤍</div><p style="margin-bottom:18px">Még nincs kedvenc képed.<br>Koppints a szívre a képeken!</p><button class="btn btn-outline" style="width:auto;padding:10px 24px" onclick="toggleFavView()">← Vissza az összes képhez</button></div>';updateCartUI();return}
   photos.forEach((photo)=>{
-    const realIdx=allPhotos.indexOf(photo);const div=document.createElement("div");div.className="photo-card";
+    const realIdx=allPhotos.indexOf(photo);const div=document.createElement("div");
+    const isSelected=multiSelectedIds.has(photo.id);
+    div.className="photo-card"+(isSelected?" photo-selected":"");
     const wmHtml=WATERMARK_CONFIG.enabled?'<div class="watermark-overlay" style="background-image:'+wmBg()+'"></div>':'';
     const zoomBtn='<button class="photo-zoom-btn" onclick="event.stopPropagation();openLightbox('+realIdx+')" title="Nagyítás">&#128269;</button>';
     const isFav=favorites.includes(photo.id);
     const favBtnHtml='<button class="photo-fav-btn'+(isFav?" active":"")+'" onclick="event.stopPropagation();toggleFavorite(\''+photo.id+'\')" title="Kedvenc">'+(isFav?"❤️":"🤍")+'</button>';
-    div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false">'+wmHtml+zoomBtn+favBtnHtml;
+    const selBtnHtml='<button class="photo-select-btn" onclick="event.stopPropagation();toggleMultiSelect(\''+photo.id+'\')" title="Kijelölés">✓</button>';
+    div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false">'+wmHtml+selBtnHtml+zoomBtn+favBtnHtml;
     div.onclick=()=>openSheet(photo);grid.appendChild(div);
   });
   updateCartUI();
+  updateMultiSelectBar();
 }
 
 function openLightbox(idx){
@@ -1468,9 +1529,111 @@ function bounceCart(){
   btn.classList.add("cart-bounce");
 }
 
+function toggleMultiSelect(photoId){
+  if(multiSelectedIds.has(photoId))multiSelectedIds.delete(photoId);
+  else multiSelectedIds.add(photoId);
+  // Re-render only this card
+  const cards=document.querySelectorAll("#photo-grid .photo-card");
+  const photos=currentGallery.photos||[];
+  let visible=photos;
+  if(showingFavoritesOnly)visible=photos.filter(p=>favorites.includes(p.id));
+  visible.forEach((p,i)=>{const c=cards[i];if(c){if(multiSelectedIds.has(p.id))c.classList.add("photo-selected");else c.classList.remove("photo-selected")}});
+  updateMultiSelectBar();
+}
+
+function clearMultiSelect(){multiSelectedIds.clear();document.querySelectorAll(".photo-card.photo-selected").forEach(c=>c.classList.remove("photo-selected"));updateMultiSelectBar()}
+
+function updateMultiSelectBar(){
+  const bar=document.getElementById("multi-select-bar");if(!bar)return;
+  const cnt=multiSelectedIds.size;
+  if(cnt>0){
+    document.getElementById("ms-count-text").textContent=cnt;
+    bar.classList.remove("hidden");
+    // Hide cart float btn so they don't overlap
+    const cartBtn=document.getElementById("cart-float-btn");if(cartBtn)cartBtn.classList.add("hidden");
+  }else{
+    bar.classList.add("hidden");
+    // Restore cart-float-btn visibility
+    updateCartUI();
+  }
+}
+
+function openMultiSheet(){
+  if(multiSelectedIds.size===0)return;
+  multiOrderType="print";multiSelectedSize=PRINT_SIZES[0];multiSelectedGift=null;multiQty=1;
+  // Photo thumbnails strip
+  const photos=(currentGallery.photos||[]).filter(p=>multiSelectedIds.has(p.id));
+  document.getElementById("multi-photo-strip").innerHTML=photos.map(p=>'<img src="'+lowQ(p.url)+'" alt="">').join("");
+  document.getElementById("multi-count-info").textContent=photos.length+" kép kijelölve. Válaszd ki a típust és a darabszámot, majd egyben kosárba kerül.";
+  // Build type tabs based on enabled products
+  let tabsHtml="";
+  if(ENABLED_PRODUCTS.print)tabsHtml+='<button class="type-tab" id="mtab-print" onclick="setMultiOrderType(\'print\')" type="button">📸 Papírkép</button>';
+  if(ENABLED_PRODUCTS.digital)tabsHtml+='<button class="type-tab" id="mtab-digital" onclick="setMultiOrderType(\'digital\')" type="button">💾 Digitális</button>';
+  if(ENABLED_PRODUCTS.gift)tabsHtml+='<button class="type-tab" id="mtab-gift" onclick="setMultiOrderType(\'gift\')" type="button">🎁 Ajándék</button>';
+  document.getElementById("multi-type-tabs").innerHTML=tabsHtml;
+  // Sizes list
+  document.getElementById("multi-sizes-list").innerHTML=PRINT_SIZES.map((s,i)=>'<div class="size-row" id="msize-'+i+'" onclick="setMultiSize('+i+')">'+(s.label||"")+(s.price?' <span style="float:right;color:var(--brown);font-weight:600">'+fmt(s.price)+'</span>':"")+'</div>').join("");
+  // Digital price
+  document.getElementById("multi-digital-price").textContent=fmt(DIGITAL_PRICE)+"/kép";
+  // Gifts list
+  document.getElementById("multi-gifts-list").innerHTML=GIFT_ITEMS.map((g,i)=>'<div class="size-row" id="mgift-'+i+'" onclick="setMultiGift('+i+')"><span style="font-size:1.4rem;margin-right:8px">'+(g.icon||"🎁")+'</span>'+g.label+' <span style="float:right;color:var(--brown);font-weight:600">'+fmt(g.price)+'</span></div>').join("");
+  document.getElementById("multi-qty-num").textContent=1;
+  // Pick first available type
+  const firstType=ENABLED_PRODUCTS.print?"print":(ENABLED_PRODUCTS.digital?"digital":"gift");
+  setMultiOrderType(firstType);
+  document.getElementById("multi-overlay").classList.remove("hidden");
+}
+
+function closeMultiSheet(e){if(e&&e.target!==document.getElementById("multi-overlay"))return;document.getElementById("multi-overlay").classList.add("hidden")}
+
+function setMultiOrderType(t){
+  multiOrderType=t;
+  ["print","digital","gift"].forEach(x=>{const tab=document.getElementById("mtab-"+x);if(tab)tab.classList.toggle("active",x===t)});
+  document.getElementById("multi-print-options").classList.toggle("hidden",t!=="print");
+  document.getElementById("multi-digital-options").classList.toggle("hidden",t!=="digital");
+  document.getElementById("multi-gift-options").classList.toggle("hidden",t!=="gift");
+  if(t==="print"){multiSelectedSize=PRINT_SIZES[0];multiSelectedGift=null;setMultiSize(0)}
+  else if(t==="gift"){multiSelectedGift=GIFT_ITEMS[0];multiSelectedSize=null;setMultiGift(0)}
+  else{multiSelectedSize=null;multiSelectedGift=null;updateMultiTotal()}
+}
+
+function setMultiSize(i){multiSelectedSize=PRINT_SIZES[i];PRINT_SIZES.forEach((s,idx)=>{const r=document.getElementById("msize-"+idx);if(r)r.classList.toggle("active",idx===i)});updateMultiTotal()}
+function setMultiGift(i){multiSelectedGift=GIFT_ITEMS[i];GIFT_ITEMS.forEach((g,idx)=>{const r=document.getElementById("mgift-"+idx);if(r)r.classList.toggle("active",idx===i)});updateMultiTotal()}
+function changeMultiQty(d){multiQty=Math.max(1,Math.min(20,multiQty+d));document.getElementById("multi-qty-num").textContent=multiQty;updateMultiTotal()}
+
+function updateMultiTotal(){
+  const cnt=multiSelectedIds.size;let unit=0;let label="";
+  if(multiOrderType==="digital"){unit=DIGITAL_PRICE;label="Digitális"}
+  else if(multiOrderType==="gift"&&multiSelectedGift){unit=multiSelectedGift.price;label=multiSelectedGift.label}
+  else if(multiOrderType==="print"&&multiSelectedSize){unit=multiSelectedSize.price;label="Papírkép "+multiSelectedSize.label}
+  const total=cnt*unit*multiQty;
+  document.getElementById("multi-total-formula").textContent=cnt+" kép × "+label+" × "+multiQty+" db";
+  document.getElementById("multi-total-amount").textContent=fmt(total);
+}
+
+function addMultipleToCart(){
+  if(multiSelectedIds.size===0)return;
+  if(multiOrderType==="print"&&!multiSelectedSize){alert("Válassz méretet!");return}
+  if(multiOrderType==="gift"&&!multiSelectedGift){alert("Válassz ajándékot!");return}
+  const photos=(currentGallery.photos||[]).filter(p=>multiSelectedIds.has(p.id));
+  photos.forEach((photo,idx)=>{
+    let unitPrice=0;let itemData={id:Date.now()+Math.random()+idx,photo,type:multiOrderType,qty:multiQty};
+    if(multiOrderType==="digital"){unitPrice=DIGITAL_PRICE;itemData.size=null}
+    else if(multiOrderType==="gift"){unitPrice=multiSelectedGift.price;itemData.giftId=multiSelectedGift.id;itemData.giftLabel=multiSelectedGift.label;itemData.size=null}
+    else{unitPrice=multiSelectedSize.price;itemData.size=multiSelectedSize}
+    itemData.unitPrice=unitPrice;itemData.totalPrice=unitPrice*multiQty;
+    cart.push(itemData);
+  });
+  saveCart();
+  clearMultiSelect();
+  closeMultiSheet();
+  updateCartUI();
+  setTimeout(bounceCart,100);
+}
+
 function updateCartUI(){
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
-  if(cart.length>0){document.getElementById("cart-badge").textContent=cart.length;show("cart-badge");document.getElementById("cart-float-btn").textContent="🛒 Kosár ("+cart.length+" tétel – "+fmt(total)+")";show("cart-float-btn")}
+  if(cart.length>0){document.getElementById("cart-badge").textContent=cart.length;show("cart-badge");document.getElementById("cart-float-btn").textContent="🛒 Kosár ("+cart.length+" tétel – "+fmt(total)+")";if(multiSelectedIds.size===0)show("cart-float-btn");else hide("cart-float-btn")}
   else{hide("cart-badge");hide("cart-float-btn")}
 }
 
@@ -1751,8 +1914,19 @@ function renderCompletedOrders(){
 
 function renderAdminGalleries(){
   const div=document.getElementById("admin-galleries");
-  if(galleries.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📁</span><div class="empty-state-title">Még nincs galériád</div><div class="empty-state-text">Az <strong>+ Új</strong> fülön hozhatsz létre új galériát a szülők számára.</div></div>';return}
-  div.innerHTML=galleries.map(g=>{
+  if(!document.getElementById("admin-gallery-search")){
+    div.innerHTML='<input type="text" id="admin-gallery-search" class="admin-search" placeholder="🔍 Keresés név, kód vagy email alapján..." oninput="renderAdminGalleryList()"><div id="admin-galleries-list"></div>';
+  }
+  renderAdminGalleryList();
+}
+function renderAdminGalleryList(){
+  const list=document.getElementById("admin-galleries-list");if(!list)return;
+  const inp=document.getElementById("admin-gallery-search");const q=(inp?inp.value:"").trim().toLowerCase();
+  let filtered=galleries;
+  if(q){filtered=galleries.filter(g=>(g.child||"").toLowerCase().includes(q)||(g.code||"").toLowerCase().includes(q)||(g.name||"").toLowerCase().includes(q)||(g.parentEmail||"").toLowerCase().includes(q))}
+  if(galleries.length===0){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">📁</span><div class="empty-state-title">Még nincs galériád</div><div class="empty-state-text">Az <strong>+ Új</strong> fülön hozhatsz létre új galériát a szülők számára.</div></div>';return}
+  if(filtered.length===0){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs találat</div><div class="empty-state-text">Próbálj más kifejezést. Te kerested: „'+q+'"</div></div>';return}
+  list.innerHTML=filtered.map(g=>{
     const thumbs=g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+p.url+'" alt="">').join(""):'<div class="no-photo">&#128247;</div>';
     return '<div class="gallery-admin-card" onclick="openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+g.parentEmail+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div></div></div></div>';
   }).join("");
