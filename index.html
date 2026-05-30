@@ -1060,22 +1060,22 @@ async function prepareWm(){
   let text=(WATERMARK_CONFIG.text||"SpringMoonPhoto").split('\n')[0].trim().slice(0,40);
   if(!text)text="SpringMoonPhoto";
   if(text===_wmCacheKey&&_wmCache)return;
-  try{await document.fonts.load("42px 'Great Vibes'");await document.fonts.ready;}catch(e){}
-  const w=300,h=140;
+  try{await document.fonts.load("26px 'Great Vibes'");await document.fonts.ready;}catch(e){}
+  const w=170,h=85;
   const c=document.createElement("canvas");
   c.width=w*2;c.height=h*2;
   const ctx=c.getContext("2d");
   ctx.scale(2,2);
   ctx.translate(w/2,h/2);
   ctx.rotate(-22*Math.PI/180);
-  ctx.font="42px 'Great Vibes',cursive";
+  ctx.font="26px 'Great Vibes',cursive";
   ctx.textAlign="center";
   ctx.textBaseline="middle";
-  ctx.strokeStyle="rgba(0,0,0,0.35)";
-  ctx.lineWidth=2.2;
+  ctx.strokeStyle="rgba(0,0,0,0.3)";
+  ctx.lineWidth=1.4;
   ctx.lineJoin="round";
   ctx.strokeText(text,0,0);
-  ctx.fillStyle="rgba(255,255,255,0.65)";
+  ctx.fillStyle="rgba(255,255,255,0.55)";
   ctx.fillText(text,0,0);
   _wmCache='url("'+c.toDataURL()+'")';
   _wmCacheKey=text;
