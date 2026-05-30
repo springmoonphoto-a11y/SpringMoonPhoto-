@@ -235,9 +235,9 @@ body.dark-mode .admin-search:focus{border-color:var(--gold)}
 .tt-content::before{content:"";position:absolute;top:-5px;left:14px;width:10px;height:10px;background:#2a1e08;transform:rotate(45deg)}
 .tt-wrap.active .tt-content{display:block;animation:ttFade .18s ease-out}
 @keyframes ttFade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-.photo-select-btn{position:absolute;top:8px;left:8px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.85);border:2px solid rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:all .2s ease;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);color:transparent;font-size:1rem;font-weight:700;padding:0;line-height:1}
-.photo-select-btn:hover{transform:scale(1.1);background:#fff}
-.photo-card.photo-selected .photo-select-btn{background:var(--gold);border-color:var(--gold);color:#fff}
+.photo-select-btn{position:absolute;bottom:8px;right:8px;width:34px;height:34px;border-radius:50%;background:rgba(20,14,6,.65);border:2px solid rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:all .2s ease;color:#fff;font-size:1.1rem;font-weight:700;padding:0;line-height:1;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.photo-select-btn:hover{transform:scale(1.12);background:rgba(20,14,6,.85);border-color:var(--gold)}
+.photo-card.photo-selected .photo-select-btn{background:var(--gold);border-color:#fff;color:#fff;box-shadow:0 0 0 3px var(--gold),0 4px 14px rgba(201,168,76,.6)}
 .photo-card.photo-selected{outline:3px solid var(--gold);outline-offset:-3px}
 .photo-card.photo-selected::after{content:"";position:absolute;inset:0;background:rgba(201,168,76,.13);z-index:1;pointer-events:none}
 #multi-select-bar{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);width:auto;max-width:calc(100% - 24px);padding:13px 20px 13px 16px;background:linear-gradient(135deg,var(--gold),#d4a028);color:#1a1208;border-radius:50px;font-weight:600;font-size:.92rem;box-shadow:0 6px 24px rgba(201,168,76,.55);z-index:91;border:none;cursor:pointer;display:flex;align-items:center;gap:10px;animation:cartPop .3s ease-out}
