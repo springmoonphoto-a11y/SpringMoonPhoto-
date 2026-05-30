@@ -223,6 +223,26 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .lightbox-name{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;margin-top:6px}
 .lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
 .lightbox-order-btn:hover{background:#b8922e}
+/* ===== RENDELÉS ELLENŐRZŐ ===== */
+.review-section{background:var(--cream);border:1px solid var(--warm);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.review-section-title{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;font-weight:600}
+.review-customer-row{display:flex;justify-content:space-between;padding:3px 0;font-size:.88rem;gap:8px}
+.review-customer-row .label{color:var(--muted)}
+.review-customer-row .value{color:var(--dark);font-weight:500;text-align:right;word-break:break-word}
+.review-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--warm);align-items:center}
+.review-item:last-child{border-bottom:none;padding-bottom:0}
+.review-item img{width:46px;height:58px;object-fit:cover;border-radius:6px;flex-shrink:0}
+.review-item-info{flex:1;min-width:0}
+.review-item-name{color:var(--dark);font-weight:500;font-size:.9rem}
+.review-item-detail{color:var(--muted);font-size:.78rem;margin-top:2px}
+.review-item-price{font-weight:600;color:var(--brown);font-size:.92rem;white-space:nowrap}
+.review-total-row{display:flex;justify-content:space-between;padding:5px 0;font-size:.9rem}
+.review-discount{color:#27ae60;font-weight:500}
+.review-grand{font-size:1.1rem;font-weight:700;color:var(--brown);padding-top:9px;border-top:2px solid var(--gold);margin-top:7px}
+.review-note{background:linear-gradient(135deg,#fffaee,#fff3d6);border:1px solid var(--gold);border-radius:8px;padding:10px 12px;font-size:.82rem;color:var(--brown);margin-bottom:10px;line-height:1.45}
+body.dark-mode .review-section{background:#1a130a;border-color:#2a1e0a}
+body.dark-mode .review-customer-row .label{color:#bda286}
+body.dark-mode .review-note{background:linear-gradient(135deg,#241a0a,#3a2c10);border-color:#9a7018;color:#f5e2a8}
 /* ===== POLISH: ANIMÁCIÓK, SPINNEREK, ÜRES ÁLLAPOTOK ===== */
 @keyframes pageFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .page:not(.hidden){animation:pageFade .32s ease-out}
@@ -763,6 +783,21 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div class="no-print" style="display:flex;gap:9px;margin-top:16px">
       <button class="btn btn-outline btn-sm" onclick="document.getElementById('print-summary-modal').classList.add('hidden')">Bezárás</button>
       <button class="btn btn-green" style="flex:1" onclick="window.print()">&#128424;&#65039; Nyomtatás / PDF mentés</button>
+    </div>
+  </div>
+</div>
+<div id="order-review-modal" class="modal-overlay hidden" onclick="closeOrderReview(event)">
+  <div class="modal-sheet" style="max-width:520px">
+    <div class="sheet-handle"></div>
+    <h2 style="text-align:center;font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--dark);margin-bottom:4px">Rendelés ellenőrzése</h2>
+    <p style="text-align:center;color:var(--muted);font-size:.86rem;margin-bottom:16px">Kérlek nézd át, mielőtt elküldöd. Ha valami nem stimmel, vissza tudsz lépni.</p>
+    <div class="review-note">💡 <strong>Fontos:</strong> a rendelés véglegesítése után már nem módosíthatod. A fotós emailben fog visszajelezni a részletekről.</div>
+    <div id="review-customer" class="review-section"></div>
+    <div id="review-items" class="review-section"></div>
+    <div id="review-totals" class="review-section"></div>
+    <div style="display:flex;gap:9px;margin-top:18px">
+      <button class="btn btn-outline" onclick="closeOrderReview()" style="flex:1;width:auto">← Módosítok</button>
+      <button class="btn btn-gold" id="review-confirm-btn" onclick="confirmOrder()" style="flex:2;width:auto">✓ Megerősítem és elküldöm</button>
     </div>
   </div>
 </div>
@@ -1485,12 +1520,65 @@ async function sendOrder(){
   const parentName=document.getElementById("order-parent-name").value.trim();const phone=document.getElementById("order-phone").value.trim();
   if(!parentName||!phone){alert("Kérjük adja meg a szülő nevét és a telefonszámot!");document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});return}
   if(!socialConsent){alert("Kérjük válaszoljon a képek közzétételére vonatkozó kérdésre!");document.getElementById("consent-warning").style.color="#c0392b";document.getElementById("social-consent-box").scrollIntoView({behavior:"smooth"});return}
-  let orderEmail=currentGallery.parentEmail;let orderChild=currentGallery.child;
   if(currentGallery.isGroup){
     const groupEmail=document.getElementById("group-order-email").value.trim().toLowerCase();const groupChild=document.getElementById("group-order-child").value.trim();
     if(!groupEmail||!groupChild){alert("Kérjük adja meg az email címét és a gyermek nevét a rendelés leadásához!");document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});return}
-    orderEmail=groupEmail;orderChild=groupChild;
   }
+  showOrderReview();
+}
+
+function showOrderReview(){
+  const isGroup=currentGallery.isGroup;
+  const parentName=document.getElementById("order-parent-name").value.trim();
+  const phone=document.getElementById("order-phone").value.trim();
+  let orderEmail=currentGallery.parentEmail;let orderChild=currentGallery.child;
+  if(isGroup){orderEmail=document.getElementById("group-order-email").value.trim().toLowerCase();orderChild=document.getElementById("group-order-child").value.trim()}
+  // Vásárló blokk
+  let custHtml='<div class="review-section-title">👤 Vásárló adatai</div>';
+  custHtml+='<div class="review-customer-row"><span class="label">Név</span><span class="value">'+parentName+'</span></div>';
+  custHtml+='<div class="review-customer-row"><span class="label">Telefon</span><span class="value">'+phone+'</span></div>';
+  custHtml+='<div class="review-customer-row"><span class="label">Email</span><span class="value">'+orderEmail+'</span></div>';
+  if(isGroup)custHtml+='<div class="review-customer-row"><span class="label">Gyermek</span><span class="value">'+orderChild+'</span></div>';
+  custHtml+='<div class="review-customer-row"><span class="label">Közzététel</span><span class="value">'+(socialConsent==="yes"?"✓ Engedélyezem":"✗ Nem engedélyezem")+'</span></div>';
+  document.getElementById("review-customer").innerHTML=custHtml;
+  // Tételek blokk
+  let itemsHtml='<div class="review-section-title">🛒 Rendelt tételek ('+cart.reduce((s,i)=>s+i.qty,0)+' db)</div>';
+  cart.forEach(i=>{
+    let lbl;if(i.type==="digital")lbl="Digitális fájl (JPG)";else if(i.type==="gift"){lbl=i.giftLabel;if(i.mugText)lbl+=' – „'+i.mugText+'"'}else lbl='Papírkép '+i.size.label;
+    itemsHtml+='<div class="review-item"><img src="'+lowQ(i.photo.url)+'" alt=""><div class="review-item-info"><div class="review-item-name">'+i.photo.name+'</div><div class="review-item-detail">'+lbl+' × '+i.qty+' db</div></div><div class="review-item-price">'+fmt(i.totalPrice)+'</div></div>';
+  });
+  document.getElementById("review-items").innerHTML=itemsHtml;
+  // Összesítés blokk
+  const subtotal=cart.reduce((s,i)=>s+i.totalPrice,0);
+  let totalHtml='<div class="review-section-title">💰 Fizetendő</div>';
+  totalHtml+='<div class="review-total-row"><span>Részösszeg</span><span>'+fmt(subtotal)+'</span></div>';
+  let total=subtotal;
+  if(activeDiscount){const discAmount=Math.round(subtotal*activeDiscount.percent/100);total=subtotal-discAmount;totalHtml+='<div class="review-total-row review-discount"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span>-'+fmt(discAmount)+'</span></div>'}
+  totalHtml+='<div class="review-total-row review-grand"><span>Fizetendő összesen</span><span>'+fmt(total)+'</span></div>';
+  document.getElementById("review-totals").innerHTML=totalHtml;
+  document.getElementById("order-review-modal").classList.remove("hidden");
+}
+
+function closeOrderReview(e){if(e&&e.target!==document.getElementById("order-review-modal"))return;document.getElementById("order-review-modal").classList.add("hidden")}
+
+async function confirmOrder(){
+  const cbtn=document.getElementById("review-confirm-btn");
+  cbtn.disabled=true;cbtn.classList.add("btn-loading");cbtn.textContent="Küldés...";
+  try{
+    await placeOrder();
+    document.getElementById("order-review-modal").classList.add("hidden");
+  }catch(e){
+    console.error(e);
+    alert("Hiba történt a rendelés leadásakor. Kérjük próbáld újra!");
+  }finally{
+    cbtn.disabled=false;cbtn.classList.remove("btn-loading");cbtn.textContent="✓ Megerősítem és elküldöm";
+  }
+}
+
+async function placeOrder(){
+  const parentName=document.getElementById("order-parent-name").value.trim();const phone=document.getElementById("order-phone").value.trim();
+  let orderEmail=currentGallery.parentEmail;let orderChild=currentGallery.child;
+  if(currentGallery.isGroup){orderEmail=document.getElementById("group-order-email").value.trim().toLowerCase();orderChild=document.getElementById("group-order-child").value.trim()}
   const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;btn.classList.add("btn-loading");
   try{
     const subtotal=cart.reduce((s,i)=>s+i.totalPrice,0);let total=subtotal;let discountInfo=null;
@@ -1505,7 +1593,7 @@ async function sendOrder(){
     cb.innerHTML=buttons;cart=[];saveCart();updateCartUI();clearDiscount();
     hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");hide("discount-box");show("cart-success");
     const os=await db.collection("orders").orderBy("createdAt","desc").get();orders=os.docs.map(d=>({id:d.id,...d.data()}));
-  }catch(e){console.error(e);btn.textContent="Rendelés leadása →";btn.disabled=false;btn.classList.remove("btn-loading")}
+  }catch(e){console.error(e);btn.textContent="Rendelés leadása →";btn.disabled=false;btn.classList.remove("btn-loading");throw e}
 }
 
 function backToGallery(){hide("cart-success");showGallery()}
