@@ -223,6 +223,49 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .lightbox-name{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;margin-top:6px}
 .lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
 .lightbox-order-btn:hover{background:#b8922e}
+/* ===== RENDELÉS IDŐVONAL, BIO SZALAG, UPSELL, MIT VÁRHATOK ===== */
+.order-timeline{display:flex;align-items:flex-start;gap:0;margin-top:12px;padding:8px 0 4px;position:relative}
+.tl-step{flex:1;text-align:center;position:relative;font-size:.7rem;color:var(--muted);padding:0 4px}
+.tl-step::before{content:"";position:absolute;top:13px;left:calc(-50% + 13px);right:calc(50% + 13px);height:2px;background:var(--warm);z-index:0}
+.tl-step:first-child::before{display:none}
+.tl-step.done{color:var(--brown);font-weight:500}
+.tl-step.done::before{background:var(--gold)}
+.tl-dot{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--cream);border:2px solid var(--warm);font-size:.95rem;position:relative;z-index:1;margin-bottom:5px;line-height:1}
+.tl-step.done .tl-dot{background:linear-gradient(135deg,var(--gold),#d4a028);border-color:var(--gold);color:#fff}
+.tl-step.current .tl-dot{animation:tlPulse 1.8s ease-in-out infinite}
+@keyframes tlPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.45)}50%{box-shadow:0 0 0 8px rgba(201,168,76,0)}}
+body.dark-mode .tl-step.done{color:#f5e2a8}
+body.dark-mode .tl-dot{background:#1a130a;border-color:#2a1e0a}
+.bio-strip{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--warm);border-radius:14px;padding:11px 14px;margin-bottom:14px;box-shadow:var(--shadow-sm)}
+.bio-avatar{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#d4a028);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.45rem;flex-shrink:0;box-shadow:0 2px 8px rgba(201,168,76,.3)}
+.bio-info{flex:1;min-width:0}
+.bio-name{font-family:'Playfair Display',serif;font-size:1.02rem;color:var(--dark);line-height:1.15}
+.bio-tagline{font-size:.76rem;color:var(--muted);margin-top:2px}
+.bio-contacts{display:flex;gap:6px;flex-shrink:0}
+.bio-btn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--cream);color:var(--brown);text-decoration:none;font-size:1rem;border:1px solid var(--warm);transition:all .2s ease}
+.bio-btn:hover{background:var(--gold);color:#fff;border-color:var(--gold);transform:scale(1.06)}
+body.dark-mode .bio-btn{background:#1a130a;border-color:#2a1e0a;color:#d4a960}
+body.dark-mode .bio-btn:hover{background:var(--gold);color:#1a1208}
+#upsell-row{margin-top:12px;padding:11px 13px;background:linear-gradient(135deg,#fffaee,#ffe9c4);border:1.5px dashed var(--gold);border-radius:11px;transition:all .25s ease}
+#upsell-row label{display:flex;align-items:center;gap:10px;cursor:pointer;margin:0}
+#upsell-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--gold);cursor:pointer;flex-shrink:0}
+#upsell-row .ups-text{flex:1;font-size:.88rem;color:var(--brown);line-height:1.35}
+#upsell-row .ups-emo{font-size:1.4rem;flex-shrink:0}
+#upsell-row .ups-price{color:var(--brown);font-weight:600;font-size:.83rem;margin-top:2px;opacity:.85}
+body.dark-mode #upsell-row{background:linear-gradient(135deg,#241a0a,#3a2c10);border-color:#9a7018}
+body.dark-mode #upsell-row .ups-text,body.dark-mode #upsell-row .ups-price{color:#f5e2a8}
+.expect-timeline{background:var(--white);border:1px solid var(--warm);border-radius:13px;padding:14px;margin:14px 0;text-align:left}
+.expect-title{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-weight:600}
+.exp-step{display:flex;align-items:flex-start;gap:11px;padding:9px 0;position:relative}
+.exp-step:not(:last-child)::after{content:"";position:absolute;left:18px;top:38px;bottom:-9px;width:2px;background:var(--warm)}
+.exp-step.exp-current::after{background:linear-gradient(180deg,var(--gold),var(--warm))}
+.exp-icon{width:36px;height:36px;border-radius:50%;background:var(--cream);border:2px solid var(--warm);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;z-index:1;position:relative}
+.exp-step.exp-current .exp-icon{background:linear-gradient(135deg,var(--gold),#d4a028);border-color:var(--gold);color:#fff;animation:tlPulse 1.8s ease-in-out infinite}
+.exp-body{flex:1;padding-top:6px}
+.exp-step-title{font-size:.92rem;color:var(--dark);font-weight:500;line-height:1.3}
+.exp-step.exp-current .exp-step-title{color:var(--brown)}
+.exp-step-time{font-size:.78rem;color:var(--muted);margin-top:2px}
+body.dark-mode .exp-icon{background:#1a130a;border-color:#2a1e0a}
 /* ===== ADMIN KERESŐ + TOOLTIP + MULTI-SELECT ===== */
 .admin-search{width:100%;padding:11px 16px;border:1.5px solid var(--warm);border-radius:24px;font-family:'DM Sans',sans-serif;font-size:.92rem;background:var(--white);margin-bottom:14px;color:var(--dark);box-sizing:border-box;transition:border-color .2s ease}
 .admin-search:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.15)}
@@ -485,6 +528,13 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       </div>
     </div>
     <div id="sheet-total" class="sheet-total"></div>
+    <div id="upsell-row" class="hidden">
+      <label>
+        <input type="checkbox" id="upsell-checkbox">
+        <span class="ups-emo">💾</span>
+        <span class="ups-text">Hozzáadom a <strong>digitális verziót</strong> is ehhez a képhez<div class="ups-price">+<span id="upsell-price">0 Ft</span></div></span>
+      </label>
+    </div>
     <div class="add-btn-row">
       <button class="btn btn-outline btn-sm" onclick="closeSheet()">Mégsem</button>
       <button class="btn btn-gold" style="flex:1" onclick="addToCart()">Kosárba →</button>
@@ -543,6 +593,25 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         </div>
       </div>
       <div class="payment-hint">&#128161; Az utalás beérkezése után a fotós elküldi a digitális képeket, illetve feldolgozza a papírképek rendelését.</div>
+      <div class="expect-timeline">
+        <div class="expect-title">📅 Mit várhatsz ezután?</div>
+        <div class="exp-step exp-current">
+          <div class="exp-icon">✅</div>
+          <div class="exp-body"><div class="exp-step-title">Rendelés beérkezett</div><div class="exp-step-time">Most</div></div>
+        </div>
+        <div class="exp-step">
+          <div class="exp-icon">💳</div>
+          <div class="exp-body"><div class="exp-step-title">Utalás visszaigazolása</div><div class="exp-step-time">1-2 munkanap az utalás után</div></div>
+        </div>
+        <div class="exp-step">
+          <div class="exp-icon">🖼️</div>
+          <div class="exp-body"><div class="exp-step-title">Képek elkészítése</div><div class="exp-step-time">Digitális: aznap · Papírkép: 5-10 munkanap</div></div>
+        </div>
+        <div class="exp-step">
+          <div class="exp-icon">📦</div>
+          <div class="exp-body"><div class="exp-step-title">Átadás</div><div class="exp-step-time">Digitális: emailben · Papírkép: személyesen</div></div>
+        </div>
+      </div>
       <div id="contact-buttons" style="margin-bottom:14px;display:flex;flex-direction:column;gap:8px;align-items:center"></div>
       <button class="btn" style="width:auto;padding:12px 28px" onclick="backToGallery()">Vissza a galériához</button>
     </div>
@@ -1373,6 +1442,18 @@ function closeCopyrightWarning(e){if(!e||e.target===document.getElementById("cop
 function renderGallery(){
   document.getElementById("gallery-title").textContent=currentGallery.isGroup?currentGallery.name+" - összes kép":currentGallery.child+" képei";
   let promoBanner=document.getElementById("promo-banner");
+  // Fotós bio sáv
+  let bioStrip=document.getElementById("photographer-bio-strip");
+  const phName=currentGallery.photographerName||"";
+  const pc=window.PHOTOGRAPHER_CONTACT||{};
+  if(phName||pc.phone||pc.email){
+    if(!bioStrip){bioStrip=document.createElement("div");bioStrip.id="photographer-bio-strip";bioStrip.className="bio-strip";const wrap=document.querySelector("#page-gallery .wrap");wrap.insertBefore(bioStrip,document.getElementById("photo-grid"))}
+    let contacts="";
+    if(pc.phone){const cln=pc.phone.replace(/\D/g,"");contacts+='<a href="tel:'+pc.phone+'" class="bio-btn" title="Hívás">📞</a>';if(cln)contacts+='<a href="https://wa.me/'+cln+'" target="_blank" class="bio-btn" title="WhatsApp">💬</a>'}
+    if(pc.email)contacts+='<a href="mailto:'+pc.email+'" class="bio-btn" title="Email">✉️</a>';
+    bioStrip.innerHTML='<div class="bio-avatar">📷</div><div class="bio-info"><div class="bio-name">'+(phName||"Fotós")+'</div><div class="bio-tagline">A galéria fotósa · Kérdezz bátran</div></div><div class="bio-contacts">'+contacts+'</div>';
+    bioStrip.style.display="flex";
+  }else if(bioStrip){bioStrip.style.display="none"}
   if(currentGallery.promoText){
     if(!promoBanner){promoBanner=document.createElement("div");promoBanner.id="promo-banner";promoBanner.style.cssText="background:linear-gradient(135deg,#fff8ee,#ffe4b5);border:2px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:18px;font-size:.92rem;color:var(--brown);line-height:1.5;white-space:pre-wrap";const wrap=document.querySelector("#page-gallery .wrap");wrap.insertBefore(promoBanner,document.getElementById("photo-grid"))}
     promoBanner.innerHTML='<strong style="display:block;margin-bottom:4px;font-family:Playfair Display,serif;font-size:1rem">🎁 Csomagajánlat</strong>'+currentGallery.promoText.replace(/</g,"&lt;");promoBanner.style.display="block";
@@ -1466,11 +1547,24 @@ function openSheet(photo){
   document.getElementById("tab-print").classList.toggle("active",orderType==="print");
   document.getElementById("tab-digital").classList.toggle("active",orderType==="digital");
   document.getElementById("tab-gift").classList.toggle("active",orderType==="gift");
-  document.getElementById("mug-text").value="";renderSizes();renderGifts();updateSheetType();updateSheetTotal();show("overlay");
+  document.getElementById("mug-text").value="";renderSizes();renderGifts();updateSheetType();updateSheetTotal();updateUpsell();show("overlay");
 }
 function closeOverlay(e){if(e.target===document.getElementById("overlay"))closeSheet()}
 function closeSheet(){hide("overlay")}
-function setType(t){orderType=t;document.getElementById("tab-print").classList.toggle("active",t==="print");document.getElementById("tab-digital").classList.toggle("active",t==="digital");document.getElementById("tab-gift").classList.toggle("active",t==="gift");updateSheetType();updateSheetTotal()}
+function setType(t){orderType=t;document.getElementById("tab-print").classList.toggle("active",t==="print");document.getElementById("tab-digital").classList.toggle("active",t==="digital");document.getElementById("tab-gift").classList.toggle("active",t==="gift");updateSheetType();updateSheetTotal();updateUpsell()}
+
+function updateUpsell(){
+  const row=document.getElementById("upsell-row");if(!row)return;
+  // Csak akkor mutatjuk, ha NEM digital a típus, ÉS a digitális elérhető a galériában
+  if(orderType!=="digital"&&ENABLED_PRODUCTS.digital){
+    document.getElementById("upsell-price").textContent=fmt(DIGITAL_PRICE);
+    document.getElementById("upsell-checkbox").checked=false;
+    row.classList.remove("hidden");
+  }else{
+    row.classList.add("hidden");
+    const cb=document.getElementById("upsell-checkbox");if(cb)cb.checked=false;
+  }
+}
 function updateSheetType(){
   hide("size-section");hide("digital-section");hide("gift-section");hide("mug-text-wrap");
   const qtyRow=document.querySelector(".qty-row");
@@ -1489,7 +1583,13 @@ function addToCart(){
   if(orderType==="digital"){unitPrice=DIGITAL_PRICE;itemData.size=null}
   else if(orderType==="gift"){unitPrice=selectedGift.price;itemData.giftId=selectedGift.id;itemData.giftLabel=selectedGift.label;if(selectedGift.id==="mug"){const text=document.getElementById("mug-text").value.trim();if(text)itemData.mugText=text}itemData.size=null}
   else{unitPrice=selectedSize.price;itemData.size=selectedSize}
-  itemData.unitPrice=unitPrice;itemData.totalPrice=unitPrice*qty;cart.push(itemData);saveCart();
+  itemData.unitPrice=unitPrice;itemData.totalPrice=unitPrice*qty;cart.push(itemData);
+  // Upsell: ha a checkbox be van pipálva, hozzáadunk egy digitális verziót is
+  const upCb=document.getElementById("upsell-checkbox");
+  if(upCb&&upCb.checked&&orderType!=="digital"){
+    cart.push({id:Date.now()+Math.random()+1,photo:activePhoto,type:"digital",qty:1,size:null,unitPrice:DIGITAL_PRICE,totalPrice:DIGITAL_PRICE});
+  }
+  saveCart();
   flyToCart(srcImg);
   closeSheet();updateCartUI();
 }
@@ -1773,7 +1873,14 @@ async function showMyOrders(){
     if(myOrders.length===0){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">📦</span><div class="empty-state-title">Még nincs rendelésed</div><div class="empty-state-text">Itt fogod látni a leadott rendeléseidet, amint elkészülnek.</div></div>';return}
     list.innerHTML=myOrders.map(o=>{
       const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div style="font-size:.82rem;color:var(--text);padding:3px 0">'+i.photoName+' – '+typeLabel+' × '+i.qty+' = '+fmt(i.totalPrice)+'</div>'}).join("");
-      return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="font-size:.78rem;color:var(--text);margin-top:2px">&#128100; '+(o.parentName||"-")+' &#183; &#128222; '+(o.phone||"-")+'</div><div style="margin-top:6px">'+getStatusBadge(o.status)+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div><div style="border-top:1px solid var(--warm);padding-top:8px">'+itemsHtml+'</div></div>';
+      // Idővonal
+      const st=o.status||"pending";
+      const s1done=true;
+      const s2done=st!=="pending";
+      const s3done=["digital","delivered","completed"].includes(st);
+      const cur=s3done?-1:(s2done?2:1);
+      const tl='<div class="order-timeline"><div class="tl-step done'+(cur===1?" current":"")+'"><div class="tl-dot">📥</div>Beérkezett</div><div class="tl-step'+(s2done?" done":"")+(cur===2?" current":"")+'"><div class="tl-dot">🖼️</div>Készül</div><div class="tl-step'+(s3done?" done":"")+'"><div class="tl-dot">✅</div>Elkészült</div></div>';
+      return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="font-size:.78rem;color:var(--text);margin-top:2px">&#128100; '+(o.parentName||"-")+' &#183; &#128222; '+(o.phone||"-")+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div>'+tl+'<div style="border-top:1px solid var(--warm);padding-top:8px;margin-top:10px">'+itemsHtml+'</div></div>';
     }).join("");
   }catch(e){console.error("Rendelések betöltési hiba:",e);list.innerHTML='<div class="empty-state"><span class="empty-state-icon">⚠️</span><div class="empty-state-title">Hiba történt</div><div class="empty-state-text">Nem sikerült betölteni a rendeléseket. Próbáld újra később.</div></div>'}
 }
