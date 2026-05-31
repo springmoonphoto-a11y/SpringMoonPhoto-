@@ -223,6 +223,25 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .lightbox-name{color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem;margin-top:6px}
 .lightbox-order-btn{margin-top:18px;background:var(--gold);color:#fff;border:none;padding:13px 30px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer}
 .lightbox-order-btn:hover{background:#b8922e}
+/* ===== SZÍNVÁLASZTÓ KERÉK (GALÉRIA TÉMA-SZÍN) ===== */
+.theme-color-picker{background:var(--cream);border:1px solid var(--warm);border-radius:12px;padding:14px;margin-bottom:14px}
+.tc-title{font-size:.85rem;font-weight:500;color:var(--dark);margin-bottom:4px}
+.tc-subtitle{font-size:.75rem;color:var(--muted);margin-bottom:14px}
+.tc-wheel-wrap{display:flex;justify-content:center;margin-bottom:16px}
+.tc-wheel{position:relative;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,#FFF 0%,rgba(255,255,255,0) 75%),conic-gradient(hsl(0,100%,50%),hsl(60,100%,50%),hsl(120,100%,50%),hsl(180,100%,50%),hsl(240,100%,50%),hsl(300,100%,50%),hsl(360,100%,50%));cursor:crosshair;touch-action:none;border:1px solid var(--warm);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.tc-puck{position:absolute;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.5);pointer-events:none;transform:translate(-50%,-50%);transition:none}
+.tc-slider-row{margin-bottom:10px}
+.tc-slider-head{display:flex;align-items:center;justify-content:space-between;font-size:.8rem;margin-bottom:4px;color:var(--dark)}
+.tc-slider-val{font-family:'DM Sans',monospace;color:var(--muted);font-size:.78rem}
+.tc-slider-row input[type=range]{width:100%;accent-color:var(--gold);cursor:pointer}
+.tc-hex{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--white);border:1px solid var(--warm);border-radius:8px;margin-top:14px}
+.tc-swatch{width:26px;height:26px;border-radius:6px;border:1px solid var(--warm);flex-shrink:0}
+.tc-hex-label{font-size:.78rem;color:var(--muted);flex:1}
+.tc-hex-val{font-family:'DM Sans',monospace;font-size:.85rem;font-weight:500;color:var(--dark)}
+.tc-reset{font-size:.75rem;background:transparent;border:1px solid var(--warm);color:var(--muted);padding:5px 10px;border-radius:6px;cursor:pointer;margin-left:6px}
+.tc-reset:hover{background:var(--cream);color:var(--brown);border-color:var(--gold)}
+body.dark-mode .tc-hex{background:#100c08}
+body.dark-mode .tc-wheel{box-shadow:0 2px 12px rgba(0,0,0,.5)}
 /* ===== RENDELÉS IDŐVONAL, BIO SZALAG, UPSELL, MIT VÁRHATOK ===== */
 .order-timeline{display:flex;align-items:flex-start;gap:0;margin-top:12px;padding:8px 0 4px;position:relative}
 .tl-step{flex:1;text-align:center;position:relative;font-size:.7rem;color:var(--muted);padding:0 4px}
@@ -752,6 +771,15 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Mikor záruljon le a galéria?</p>
         <input type="date" id="new-expires-at" style="margin-bottom:14px">
         <p style="font-size:.74rem;color:var(--muted);margin-top:-8px;margin-bottom:14px">Hagyd üresen, ha nincs lejárat</p>
+        <label style="margin-top:14px;margin-bottom:8px">🎨 Galéria téma-szín <span class="tt-wrap"><button class="tt-btn" onclick="toggleTooltip(this)" type="button">?</button><span class="tt-content">A galéria gombjainak, kiemeléseinek, ikonjainak színe. Húzd a pöttyöt a keréken, vagy állítsd a csúszkákat. Esküvős/családi galériához érdemes egyéni színt választani.</span></span></label>
+        <div class="theme-color-picker">
+          <div class="tc-subtitle">Húzd a pöttyöt vagy állítsd a csúszkákat.</div>
+          <div class="tc-wheel-wrap"><div class="tc-wheel" id="new-tc-wheel"><div class="tc-puck" id="new-tc-puck" style="left:100px;top:100px"></div></div></div>
+          <div class="tc-slider-row"><div class="tc-slider-head"><label>Hue (színárnyalat)</label><span class="tc-slider-val" id="new-tc-h-val">35</span></div><input type="range" min="0" max="360" value="35" id="new-tc-h"></div>
+          <div class="tc-slider-row"><div class="tc-slider-head"><label>Saturation (telítettség)</label><span class="tc-slider-val" id="new-tc-s-val">78</span></div><input type="range" min="0" max="100" value="78" id="new-tc-s"></div>
+          <div class="tc-slider-row"><div class="tc-slider-head"><label>Luminance (világosság)</label><span class="tc-slider-val" id="new-tc-l-val">41</span></div><input type="range" min="10" max="80" value="41" id="new-tc-l"></div>
+          <div class="tc-hex"><div class="tc-swatch" id="new-tc-swatch"></div><span class="tc-hex-label">Aktuális szín:</span><span class="tc-hex-val" id="new-tc-hex">#BA7517</span><button class="tc-reset" type="button" onclick="resetThemeColor('new')">↺ Alap</button></div>
+        </div>
         <label style="margin-top:14px;margin-bottom:8px">🎁 Kedvezménykódok <span class="tt-wrap"><button class="tt-btn" onclick="toggleTooltip(this)" type="button">?</button><span class="tt-content">Olyan kódot adhatsz meg, amit a szülő a kosárban beír, és kedvezményt kap. Beállíthatsz min. rendelési Ft-ot vagy min. képszámot is. Az intelligens kosár automatikusan mutatja a szülőnek, mit nyer vele.</span></span></label>
         <p style="font-size:.78rem;color:var(--muted);margin-bottom:10px">Adj meg kedvezménykódokat, amit a szülők beírhatnak.</p>
         <div id="new-discounts-list"></div>
@@ -808,6 +836,15 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
           <input type="text" id="edit-code" style="margin-bottom:0;letter-spacing:.1em;font-weight:600;flex:1" readonly>
           <button class="btn btn-outline btn-sm" style="margin-top:0;white-space:nowrap" onclick="regenEditCode()">&#128260; Új kód</button>
+        </div>
+        <label style="margin-top:14px;margin-bottom:8px">🎨 Galéria téma-szín</label>
+        <div class="theme-color-picker">
+          <div class="tc-subtitle">Húzd a pöttyöt vagy állítsd a csúszkákat.</div>
+          <div class="tc-wheel-wrap"><div class="tc-wheel" id="edit-tc-wheel"><div class="tc-puck" id="edit-tc-puck" style="left:100px;top:100px"></div></div></div>
+          <div class="tc-slider-row"><div class="tc-slider-head"><label>Hue (színárnyalat)</label><span class="tc-slider-val" id="edit-tc-h-val">35</span></div><input type="range" min="0" max="360" value="35" id="edit-tc-h"></div>
+          <div class="tc-slider-row"><div class="tc-slider-head"><label>Saturation (telítettség)</label><span class="tc-slider-val" id="edit-tc-s-val">78</span></div><input type="range" min="0" max="100" value="78" id="edit-tc-s"></div>
+          <div class="tc-slider-row"><div class="tc-slider-head"><label>Luminance (világosság)</label><span class="tc-slider-val" id="edit-tc-l-val">41</span></div><input type="range" min="10" max="80" value="41" id="edit-tc-l"></div>
+          <div class="tc-hex"><div class="tc-swatch" id="edit-tc-swatch"></div><span class="tc-hex-label">Aktuális szín:</span><span class="tc-hex-val" id="edit-tc-hex">#BA7517</span><button class="tc-reset" type="button" onclick="resetThemeColor('edit')">↺ Alap</button></div>
         </div>
         <div id="edit-msg"></div>
         <div style="display:flex;gap:9px;margin-top:4px">
@@ -976,6 +1013,7 @@ async function loadGalleryPrices(gallery){
     else ENABLED_PRODUCTS={print:true,digital:true,gift:true};
     if(gallery.watermarkConfig)WATERMARK_CONFIG=gallery.watermarkConfig;
     else WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
+    if(gallery.themeColor)applyGalleryTheme(gallery.themeColor);else resetGalleryTheme();
   }catch(e){console.error("Árlista betöltési hiba:",e)}
   await prepareWm();
 }
@@ -1419,7 +1457,7 @@ async function loadPhotographerData(){
 }
 
 async function logout(){
-  cart=[];currentGallery=null;
+  cart=[];currentGallery=null;resetGalleryTheme();
   if(currentUser){await firebase.auth().signOut();currentUser=null;orders=[]}
   await loadData();
 }
@@ -1628,6 +1666,54 @@ function bounceCart(){
   void btn.offsetWidth;
   btn.classList.add("cart-bounce");
 }
+
+// === SZÍNVÁLASZTÓ KERÉK (Galéria téma-szín) ===
+function hslToHex(h,s,l){s/=100;l/=100;const k=n=>(n+h/30)%12;const a=s*Math.min(l,1-l);const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));return "#"+[f(0),f(8),f(4)].map(c=>Math.round(c*255).toString(16).padStart(2,"0")).join("").toUpperCase()}
+function hexToHsl(hex){hex=hex.replace("#","");if(hex.length===3)hex=hex.split("").map(c=>c+c).join("");const r=parseInt(hex.slice(0,2),16)/255;const g=parseInt(hex.slice(2,4),16)/255;const b=parseInt(hex.slice(4,6),16)/255;const max=Math.max(r,g,b);const min=Math.min(r,g,b);let h=0,s=0;const l=(max+min)/2;if(max!==min){const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);if(max===r)h=((g-b)/d+(g<b?6:0))*60;else if(max===g)h=((b-r)/d+2)*60;else h=((r-g)/d+4)*60}return{h:Math.round(h),s:Math.round(s*100),l:Math.round(l*100)}}
+function darken(hex,r){const R=parseInt(hex.slice(1,3),16);const G=parseInt(hex.slice(3,5),16);const B=parseInt(hex.slice(5,7),16);return "#"+[R,G,B].map(c=>Math.round(c*(1-r)).toString(16).padStart(2,"0")).join("")}
+
+const _tcState={};
+
+function initColorPicker(prefix,initialHex){
+  const hsl=initialHex?hexToHsl(initialHex):{h:35,s:78,l:41};
+  _tcState[prefix]={h:hsl.h,s:hsl.s,l:hsl.l};
+  const wheel=document.getElementById(prefix+"-tc-wheel");if(!wheel||wheel._tcInit)return;
+  wheel._tcInit=true;
+  let dragging=false;
+  const fromXY=(cx,cy)=>{const r=wheel.getBoundingClientRect();const dx=cx-(r.left+r.width/2);const dy=cy-(r.top+r.height/2);let a=Math.atan2(dy,dx)*180/Math.PI;_tcState[prefix].h=(a+90+360)%360;const d=Math.sqrt(dx*dx+dy*dy);_tcState[prefix].s=Math.min(100,(d/(r.width/2))*100);updateColorPicker(prefix)};
+  wheel.addEventListener("mousedown",e=>{dragging=true;fromXY(e.clientX,e.clientY);e.preventDefault()});
+  wheel.addEventListener("touchstart",e=>{dragging=true;fromXY(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault()},{passive:false});
+  const moveH=e=>{if(!dragging)return;const t=e.touches?e.touches[0]:e;fromXY(t.clientX,t.clientY);e.preventDefault()};
+  const endH=()=>{dragging=false};
+  document.addEventListener("mousemove",moveH);document.addEventListener("mouseup",endH);
+  document.addEventListener("touchmove",moveH,{passive:false});document.addEventListener("touchend",endH);
+  document.getElementById(prefix+"-tc-h").addEventListener("input",e=>{_tcState[prefix].h=+e.target.value;updateColorPicker(prefix)});
+  document.getElementById(prefix+"-tc-s").addEventListener("input",e=>{_tcState[prefix].s=+e.target.value;updateColorPicker(prefix)});
+  document.getElementById(prefix+"-tc-l").addEventListener("input",e=>{_tcState[prefix].l=+e.target.value;updateColorPicker(prefix)});
+  updateColorPicker(prefix);
+}
+
+function updateColorPicker(prefix){
+  const st=_tcState[prefix];if(!st)return;
+  const hex=hslToHex(st.h,st.s,st.l);
+  const puck=document.getElementById(prefix+"-tc-puck");
+  if(puck){const a=(st.h-90)*Math.PI/180;const d=(st.s/100)*95;puck.style.left=(100+Math.cos(a)*d)+"px";puck.style.top=(100+Math.sin(a)*d)+"px";puck.style.background=hex}
+  const hSl=document.getElementById(prefix+"-tc-h");if(hSl)hSl.value=Math.round(st.h);
+  const sSl=document.getElementById(prefix+"-tc-s");if(sSl)sSl.value=Math.round(st.s);
+  const lSl=document.getElementById(prefix+"-tc-l");if(lSl)lSl.value=Math.round(st.l);
+  const hv=document.getElementById(prefix+"-tc-h-val");if(hv)hv.textContent=Math.round(st.h);
+  const sv=document.getElementById(prefix+"-tc-s-val");if(sv)sv.textContent=Math.round(st.s);
+  const lv=document.getElementById(prefix+"-tc-l-val");if(lv)lv.textContent=Math.round(st.l);
+  const hx=document.getElementById(prefix+"-tc-hex");if(hx)hx.textContent=hex;
+  const sw=document.getElementById(prefix+"-tc-swatch");if(sw)sw.style.background=hex;
+}
+
+function getThemeColorFromPicker(prefix){const st=_tcState[prefix];if(!st)return null;return hslToHex(st.h,st.s,st.l)}
+function resetThemeColor(prefix){const hsl=hexToHsl("#C9A84C");_tcState[prefix]={h:hsl.h,s:hsl.s,l:hsl.l};updateColorPicker(prefix)}
+
+function applyGalleryTheme(hex){if(!hex)return;document.body.style.setProperty("--gold",hex);document.body.style.setProperty("--brown",darken(hex,0.3))}
+function resetGalleryTheme(){document.body.style.removeProperty("--gold");document.body.style.removeProperty("--brown")}
+
 
 function toggleMultiSelect(photoId){
   if(multiSelectedIds.has(photoId))multiSelectedIds.delete(photoId);
@@ -1993,7 +2079,7 @@ function setAdminTab(tab){
   document.getElementById("admin-stats").classList.toggle("hidden",tab!=="stats");
   document.getElementById("admin-prices").classList.toggle("hidden",tab!=="prices");
   document.getElementById("admin-new").classList.toggle("hidden",tab!=="new");
-  if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");newDiscounts=[];renderNewDiscounts()}
+  if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");newDiscounts=[];renderNewDiscounts();initColorPicker("new","#C9A84C")}
   if(tab==="completed")renderCompletedOrders();
   if(tab==="prices")renderPricesEditor();
   if(tab==="stats")renderStats();
@@ -2139,6 +2225,7 @@ function toggleEditForm(){
     document.getElementById("edit-email").value=currentDetailGallery.parentEmail||"";
     document.getElementById("edit-code").value=currentDetailGallery.code;
     document.getElementById("edit-msg").innerHTML="";
+    initColorPicker("edit",currentDetailGallery.themeColor||"#C9A84C");
   }
 }
 function updateEditCode(){const name=document.getElementById("edit-child").value.trim();if(name)document.getElementById("edit-code").value=generateCode(name)}
@@ -2146,11 +2233,12 @@ function regenEditCode(){document.getElementById("edit-code").value=generateCode
 
 async function saveEdit(){
   const child=document.getElementById("edit-child").value.trim();const email=document.getElementById("edit-email").value.trim().toLowerCase();const code=document.getElementById("edit-code").value.trim().toUpperCase();const msg=document.getElementById("edit-msg");
+  const themeColor=getThemeColorFromPicker("edit")||"#C9A84C";
   if(!child||!email){msg.innerHTML='<div class="error-msg">Töltsd ki mindkét mezőt!</div>';return}
   try{
-    await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,code,name:child+" – Iskolai fotók 2025"});
-    currentDetailGallery.child=child;currentDetailGallery.parentEmail=email;currentDetailGallery.code=code;
-    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.child=child;g.parentEmail=email;g.code=code}
+    await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,code,name:child+" – Iskolai fotók 2025",themeColor});
+    currentDetailGallery.child=child;currentDetailGallery.parentEmail=email;currentDetailGallery.code=code;currentDetailGallery.themeColor=themeColor;
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.child=child;g.parentEmail=email;g.code=code;g.themeColor=themeColor}
     document.getElementById("detail-name").textContent=child+" galériája";document.getElementById("detail-meta").textContent=email;document.getElementById("detail-code").textContent=code+" 📋";
     msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';setTimeout(()=>{document.getElementById("edit-form").classList.add("hidden");msg.innerHTML=""},1500);
   }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt!</div>'}
@@ -2169,13 +2257,13 @@ async function createGallery(){
     const groupName=document.getElementById("new-group-name").value.trim();
     if(!groupName){errDiv.textContent="A csoport nevének megadása kötelező.";show("new-form-error");return}
     const finalCode=generatedCode||generateCode(groupName);
-    galleryData={name:groupName,code:finalCode,child:groupName,parentEmail:"",isGroup:true,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim()};
+    galleryData={name:groupName,code:finalCode,child:groupName,parentEmail:"",isGroup:true,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim(),themeColor:getThemeColorFromPicker("new")||"#C9A84C"};
   }else{
     const child=document.getElementById("new-child").value.trim();const email=document.getElementById("new-email").value.trim().toLowerCase();
     if(!child||!email){errDiv.textContent="A gyerek neve és az email cím kötelező.";show("new-form-error");return}
     const existing=galleries.find(g=>!g.isGroup&&g.parentEmail&&g.parentEmail.toLowerCase()===email);
     const finalCode=existing?existing.code:(generatedCode||generateCode(child));
-    galleryData={name:child+" – Iskolai fotók 2025",code:finalCode,child,parentEmail:email,isGroup:false,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim()};
+    galleryData={name:child+" – Iskolai fotók 2025",code:finalCode,child,parentEmail:email,isGroup:false,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim(),themeColor:getThemeColorFromPicker("new")||"#C9A84C"};
   }
   const btn=document.getElementById("create-btn");btn.disabled=true;btn.textContent="Mentés...";
   try{
