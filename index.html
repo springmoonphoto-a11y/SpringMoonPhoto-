@@ -793,7 +793,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
           <div class="tc-slider-row"><div class="tc-slider-head"><label>Hue (színárnyalat)</label><span class="tc-slider-val" id="new-tc-h-val">35</span></div><input type="range" min="0" max="360" value="35" id="new-tc-h"></div>
           <div class="tc-slider-row"><div class="tc-slider-head"><label>Saturation (telítettség)</label><span class="tc-slider-val" id="new-tc-s-val">78</span></div><input type="range" min="0" max="100" value="78" id="new-tc-s"></div>
           <div class="tc-slider-row"><div class="tc-slider-head"><label>Luminance (világosság)</label><span class="tc-slider-val" id="new-tc-l-val">41</span></div><input type="range" min="10" max="80" value="41" id="new-tc-l"></div>
-          <div class="tc-hex"><div class="tc-swatch" id="new-tc-swatch"></div><span class="tc-hex-label">Aktuális szín:</span><span class="tc-hex-val" id="new-tc-hex">#BA7517</span><button class="tc-reset" type="button" onclick="resetThemeColor('new')">↺ Alap</button></div>
+          <div class="tc-hex"><div class="tc-swatch" id="new-tc-swatch"></div><span class="tc-hex-label">HEX:</span><input type="text" id="new-tc-hex" value="#BA7517" maxlength="7" style="font-family:monospace;font-size:.85rem;font-weight:500;background:transparent;border:1px solid var(--warm);border-radius:6px;padding:4px 8px;width:90px;color:var(--dark);text-align:center"><button class="tc-reset" type="button" onclick="copyHexCode('new')" title="Másolás">📋</button><button class="tc-reset" type="button" onclick="resetThemeColor('new')">↺ Alap</button></div>
           <div class="tc-preview" id="new-tc-preview"></div>
         </div>
         <label style="margin-top:14px;margin-bottom:8px">🎁 Kedvezménykódok <span class="tt-wrap"><button class="tt-btn" onclick="toggleTooltip(this)" type="button">?</button><span class="tt-content">Olyan kódot adhatsz meg, amit a szülő a kosárban beír, és kedvezményt kap. Beállíthatsz min. rendelési Ft-ot vagy min. képszámot is. Az intelligens kosár automatikusan mutatja a szülőnek, mit nyer vele.</span></span></label>
@@ -860,7 +860,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
           <div class="tc-slider-row"><div class="tc-slider-head"><label>Hue (színárnyalat)</label><span class="tc-slider-val" id="edit-tc-h-val">35</span></div><input type="range" min="0" max="360" value="35" id="edit-tc-h"></div>
           <div class="tc-slider-row"><div class="tc-slider-head"><label>Saturation (telítettség)</label><span class="tc-slider-val" id="edit-tc-s-val">78</span></div><input type="range" min="0" max="100" value="78" id="edit-tc-s"></div>
           <div class="tc-slider-row"><div class="tc-slider-head"><label>Luminance (világosság)</label><span class="tc-slider-val" id="edit-tc-l-val">41</span></div><input type="range" min="10" max="80" value="41" id="edit-tc-l"></div>
-          <div class="tc-hex"><div class="tc-swatch" id="edit-tc-swatch"></div><span class="tc-hex-label">Aktuális szín:</span><span class="tc-hex-val" id="edit-tc-hex">#BA7517</span><button class="tc-reset" type="button" onclick="resetThemeColor('edit')">↺ Alap</button></div>
+          <div class="tc-hex"><div class="tc-swatch" id="edit-tc-swatch"></div><span class="tc-hex-label">HEX:</span><input type="text" id="edit-tc-hex" value="#BA7517" maxlength="7" style="font-family:monospace;font-size:.85rem;font-weight:500;background:transparent;border:1px solid var(--warm);border-radius:6px;padding:4px 8px;width:90px;color:var(--dark);text-align:center"><button class="tc-reset" type="button" onclick="copyHexCode('edit')" title="Másolás">📋</button><button class="tc-reset" type="button" onclick="resetThemeColor('edit')">↺ Alap</button></div>
           <div class="tc-preview" id="edit-tc-preview"></div>
         </div>
         <div id="edit-msg"></div>
@@ -1030,7 +1030,16 @@ async function loadGalleryPrices(gallery){
     else ENABLED_PRODUCTS={print:true,digital:true,gift:true};
     if(gallery.watermarkConfig)WATERMARK_CONFIG=gallery.watermarkConfig;
     else WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
-    if(gallery.themeColor)applyGalleryTheme(gallery.themeColor);else resetGalleryTheme();
+    if(gallery.themeColor)applyGalleryTheme(gallery.themeColor);
+    else{
+      // Galéria-szintű szín nincs → fotós globális színe (vagy cache)
+      let g=null;
+      try{
+        if(gallery.photographerId){const pdoc=await db.collection("photographers").doc(gallery.photographerId).get();if(pdoc.exists)g=pdoc.data().themeColor}
+      }catch(e){}
+      if(!g){try{g=localStorage.getItem("appThemeColor")}catch(e){}}
+      if(g&&/^#[0-9A-Fa-f]{6}$/.test(g))applyGalleryTheme(g);else resetGalleryTheme();
+    }
   }catch(e){console.error("Árlista betöltési hiba:",e)}
   await prepareWm();
 }
@@ -1046,7 +1055,9 @@ async function loadMyPrices(){
       GIFT_ITEMS=data.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
       ENABLED_PRODUCTS=data.enabledProducts||{print:true,digital:true,gift:true};
       WATERMARK_CONFIG=data.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"};
-      window.MY_PROFILE={phone:data.phone||"",contactEmail:data.contactEmail||data.email||""};
+      window.MY_PROFILE={phone:data.phone||"",contactEmail:data.contactEmail||data.email||"",themeColor:data.themeColor||"#C9A84C"};
+      // Globális téma alkalmazása és cache-elése
+      if(window.MY_PROFILE.themeColor){applyGalleryTheme(window.MY_PROFILE.themeColor);try{localStorage.setItem("appThemeColor",window.MY_PROFILE.themeColor)}catch(e){}}
       if(data.emailjsConfig){
         EMAILJS_CONFIG=data.emailjsConfig;
         if(EMAILJS_CONFIG.publicKey&&window.emailjs){
@@ -1065,6 +1076,16 @@ function renderPricesEditor(){
   html+='<input type="tel" id="my-phone" value="'+(window.MY_PROFILE?.phone||"").replace(/"/g,"&quot;")+'" placeholder="+36 30 123 4567" style="margin-bottom:10px">';
   html+='<label>Email cím (kapcsolatfelvételhez)</label>';
   html+='<input type="email" id="my-contact-email" value="'+(window.MY_PROFILE?.contactEmail||currentUser?.email||"").replace(/"/g,"&quot;")+'" placeholder="kapcsolat@email.com" style="margin-bottom:14px">';
+  html+='</div>';
+  html+='<div class="new-form" style="margin-top:14px"><h3>🎨 App téma-szín (globális)</h3>';
+  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Ez a szín jelenik meg az egész alkalmazásban a belépéstől a galériákig. Az egyes galériákat egyedileg felülbírálhatod a galéria szerkesztésénél.</p>';
+  html+='<div class="theme-color-picker"><div class="tc-subtitle">Húzd a pöttyöt vagy állítsd a csúszkákat.</div>';
+  html+='<div class="tc-wheel-wrap"><div class="tc-wheel" id="prices-tc-wheel"><div class="tc-puck" id="prices-tc-puck" style="left:100px;top:100px"></div></div></div>';
+  html+='<div class="tc-slider-row"><div class="tc-slider-head"><label>Hue (színárnyalat)</label><span class="tc-slider-val" id="prices-tc-h-val">35</span></div><input type="range" min="0" max="360" value="35" id="prices-tc-h"></div>';
+  html+='<div class="tc-slider-row"><div class="tc-slider-head"><label>Saturation (telítettség)</label><span class="tc-slider-val" id="prices-tc-s-val">78</span></div><input type="range" min="0" max="100" value="78" id="prices-tc-s"></div>';
+  html+='<div class="tc-slider-row"><div class="tc-slider-head"><label>Luminance (világosság)</label><span class="tc-slider-val" id="prices-tc-l-val">41</span></div><input type="range" min="10" max="80" value="41" id="prices-tc-l"></div>';
+  html+='<div class="tc-hex"><div class="tc-swatch" id="prices-tc-swatch"></div><span class="tc-hex-label">HEX kód:</span><input type="text" class="tc-hex-input" id="prices-tc-hex" value="#C9A84C" maxlength="7" style="font-family:monospace;font-size:.85rem;font-weight:500;background:transparent;border:1px solid var(--warm);border-radius:6px;padding:4px 8px;width:90px;color:var(--dark);text-align:center"><button class="tc-reset" type="button" onclick="copyHexCode(\'prices\')" title="Másolás">📋</button><button class="tc-reset" type="button" onclick="resetThemeColor(\'prices\')">↺ Alap</button></div>';
+  html+='<div class="tc-preview" id="prices-tc-preview"></div></div>';
   html+='</div>';
   html+='<div class="new-form" style="margin-top:14px"><h3>📨 Automatikus email értesítés (EmailJS)</h3>';
   html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Regisztráció: <a href="https://www.emailjs.com" target="_blank" style="color:var(--gold)">emailjs.com</a> (ingyenes 200 email/hó).</p>';
@@ -1110,9 +1131,12 @@ async function savePrices(){
   const myPhone=document.getElementById("my-phone").value.trim();
   const myContactEmail=document.getElementById("my-contact-email").value.trim().toLowerCase();
   const newEmailJS={publicKey:document.getElementById("emailjs-public-key").value.trim(),serviceId:document.getElementById("emailjs-service-id").value.trim(),templateNewOrder:document.getElementById("emailjs-template-new").value.trim(),templateStatusChange:document.getElementById("emailjs-template-status").value.trim()};
+  const themeColor=getThemeColorFromPicker("prices")||"#C9A84C";
   try{
-    await db.collection("photographers").doc(currentUser.uid).update({printSizes:PRINT_SIZES,digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,giftItems:GIFT_ITEMS,phone:myPhone,contactEmail:myContactEmail,emailjsConfig:newEmailJS});
-    window.MY_PROFILE=window.MY_PROFILE||{};window.MY_PROFILE.phone=myPhone;window.MY_PROFILE.contactEmail=myContactEmail;
+    await db.collection("photographers").doc(currentUser.uid).update({printSizes:PRINT_SIZES,digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,giftItems:GIFT_ITEMS,phone:myPhone,contactEmail:myContactEmail,emailjsConfig:newEmailJS,themeColor});
+    window.MY_PROFILE=window.MY_PROFILE||{};window.MY_PROFILE.phone=myPhone;window.MY_PROFILE.contactEmail=myContactEmail;window.MY_PROFILE.themeColor=themeColor;
+    try{localStorage.setItem("appThemeColor",themeColor)}catch(e){}
+    applyGalleryTheme(themeColor);
     EMAILJS_CONFIG=newEmailJS;
     if(EMAILJS_CONFIG.publicKey&&window.emailjs){try{emailjs.init({publicKey:EMAILJS_CONFIG.publicKey})}catch(e){console.error(e)}}
     DIGITAL_PRICE=isNaN(newDigital)?DIGITAL_PRICE:newDigital;
@@ -1327,6 +1351,8 @@ function saveCart(){try{localStorage.setItem("fotolux_cart_"+(currentGallery?cur
 function loadCart(){try{const s=localStorage.getItem("fotolux_cart_"+(currentGallery?currentGallery.id:""));cart=s?JSON.parse(s):[]}catch(e){cart=[]}}
 
 async function loadData(){
+  // Globális téma azonnal alkalmazása localStorage cache-ből (a login képernyő előtt)
+  try{const cachedTheme=localStorage.getItem("appThemeColor");if(cachedTheme&&/^#[0-9A-Fa-f]{6}$/.test(cachedTheme))applyGalleryTheme(cachedTheme)}catch(e){}
   try{const gs=await db.collection("galleries").orderBy("createdAt","desc").get();galleries=gs.docs.map(d=>({id:d.id,...d.data()}))}catch(e){console.error(e)}
   orders=[];showPage("page-login");
 }
@@ -1474,7 +1500,10 @@ async function loadPhotographerData(){
 }
 
 async function logout(){
-  cart=[];currentGallery=null;resetGalleryTheme();
+  cart=[];currentGallery=null;
+  // Galéria-szintű szín leszedése, visszatérés a globálishoz (vagy ha nincs, akkor default)
+  resetGalleryTheme();
+  try{const cachedTheme=localStorage.getItem("appThemeColor");if(cachedTheme&&/^#[0-9A-Fa-f]{6}$/.test(cachedTheme))applyGalleryTheme(cachedTheme)}catch(e){}
   if(currentUser){await firebase.auth().signOut();currentUser=null;orders=[]}
   await loadData();
 }
@@ -1714,7 +1743,16 @@ function initColorPicker(prefix,initialHex){
   document.getElementById(prefix+"-tc-h").addEventListener("input",e=>{_tcState[prefix].h=+e.target.value;updateColorPicker(prefix)});
   document.getElementById(prefix+"-tc-s").addEventListener("input",e=>{_tcState[prefix].s=+e.target.value;updateColorPicker(prefix)});
   document.getElementById(prefix+"-tc-l").addEventListener("input",e=>{_tcState[prefix].l=+e.target.value;updateColorPicker(prefix)});
+  // HEX input mezőből vissza a kerékbe (beillesztés támogatás)
+  const hxEl=document.getElementById(prefix+"-tc-hex");
+  if(hxEl&&hxEl.tagName==="INPUT"){hxEl.addEventListener("input",e=>{let v=e.target.value.trim();if(!v.startsWith("#"))v="#"+v;if(/^#[0-9A-Fa-f]{6}$/.test(v)){const hsl=hexToHsl(v);_tcState[prefix]={h:hsl.h,s:hsl.s,l:hsl.l};updateColorPicker(prefix)}})}
   updateColorPicker(prefix);
+}
+
+function copyHexCode(prefix){
+  const el=document.getElementById(prefix+"-tc-hex");if(!el)return;
+  const hex=el.tagName==="INPUT"?el.value:el.textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(hex).then(()=>{const orig=el.previousElementSibling;if(orig){const o=orig.textContent;orig.textContent="✓ Másolva!";setTimeout(()=>{orig.textContent=o},1500)}}).catch(()=>{prompt("Másold ki manuálisan:",hex)})}else{prompt("Másold ki manuálisan:",hex)}
 }
 
 function updateColorPicker(prefix){
@@ -1728,7 +1766,7 @@ function updateColorPicker(prefix){
   const hv=document.getElementById(prefix+"-tc-h-val");if(hv)hv.textContent=Math.round(st.h);
   const sv=document.getElementById(prefix+"-tc-s-val");if(sv)sv.textContent=Math.round(st.s);
   const lv=document.getElementById(prefix+"-tc-l-val");if(lv)lv.textContent=Math.round(st.l);
-  const hx=document.getElementById(prefix+"-tc-hex");if(hx)hx.textContent=hex;
+  const hx=document.getElementById(prefix+"-tc-hex");if(hx){if(hx.tagName==="INPUT")hx.value=hex;else hx.textContent=hex}
   const sw=document.getElementById(prefix+"-tc-swatch");if(sw)sw.style.background=hex;
   // Mini preview frissítése
   const dark=darken(hex,0.45);const light=lighten(hex,0.85);
@@ -2110,9 +2148,9 @@ function setAdminTab(tab){
   document.getElementById("admin-stats").classList.toggle("hidden",tab!=="stats");
   document.getElementById("admin-prices").classList.toggle("hidden",tab!=="prices");
   document.getElementById("admin-new").classList.toggle("hidden",tab!=="new");
-  if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");newDiscounts=[];renderNewDiscounts();initColorPicker("new","#C9A84C")}
+  if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");newDiscounts=[];renderNewDiscounts();initColorPicker("new",window.MY_PROFILE?.themeColor||"#C9A84C")}
   if(tab==="completed")renderCompletedOrders();
-  if(tab==="prices")renderPricesEditor();
+  if(tab==="prices"){renderPricesEditor();setTimeout(()=>initColorPicker("prices",window.MY_PROFILE?.themeColor||"#C9A84C"),50)}
   if(tab==="stats")renderStats();
 }
 
@@ -2256,7 +2294,7 @@ function toggleEditForm(){
     document.getElementById("edit-email").value=currentDetailGallery.parentEmail||"";
     document.getElementById("edit-code").value=currentDetailGallery.code;
     document.getElementById("edit-msg").innerHTML="";
-    initColorPicker("edit",currentDetailGallery.themeColor||"#C9A84C");
+    initColorPicker("edit",currentDetailGallery.themeColor||window.MY_PROFILE?.themeColor||"#C9A84C");
   }
 }
 function updateEditCode(){const name=document.getElementById("edit-child").value.trim();if(name)document.getElementById("edit-code").value=generateCode(name)}
