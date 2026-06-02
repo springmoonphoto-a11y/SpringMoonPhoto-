@@ -720,6 +720,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <button id="atab-galleries" class="admin-tab" onclick="setAdminTab('galleries')">Galériák</button>
       <button id="atab-stats" class="admin-tab" onclick="setAdminTab('stats')">📊 Stat</button>
       <button id="atab-prices" class="admin-tab" onclick="setAdminTab('prices')">💰 Árak</button>
+      <button id="atab-settings" class="admin-tab" onclick="setAdminTab('settings')">⚙️ Beállítások</button>
       <button id="atab-new" class="admin-tab" onclick="setAdminTab('new')">+ Új</button>
     </div>
     <div id="admin-orders-wrap">
@@ -748,6 +749,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="admin-completed" class="hidden"></div>
     <div id="admin-stats" class="hidden"></div>
     <div id="admin-prices" class="hidden"></div>
+    <div id="admin-settings" class="hidden"></div>
     <div id="admin-new" class="hidden">
       <div class="new-form">
         <h3>&#128193; Új galéria létrehozása</h3>
@@ -1068,14 +1070,14 @@ async function loadMyPrices(){
   }catch(e){console.error("Árlista betöltési hiba:",e)}
   await prepareWm();
 }
-function renderPricesEditor(){
-  const div=document.getElementById("admin-prices");
+function renderSettingsEditor(){
+  const div=document.getElementById("admin-settings");
   let html='<div class="new-form"><h3>📞 Elérhetőségek</h3>';
   html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Ezeket az adatokat a szülők látják a rendelés után.</p>';
   html+='<label>Telefonszám (pl. +36301234567)</label>';
-  html+='<input type="tel" id="my-phone" value="'+(window.MY_PROFILE?.phone||"").replace(/"/g,"&quot;")+'" placeholder="+36 30 123 4567" style="margin-bottom:10px">';
+  html+='<input type="tel" id="set-phone" value="'+(window.MY_PROFILE?.phone||"").replace(/"/g,"&quot;")+'" placeholder="+36 30 123 4567" style="margin-bottom:10px">';
   html+='<label>Email cím (kapcsolatfelvételhez)</label>';
-  html+='<input type="email" id="my-contact-email" value="'+(window.MY_PROFILE?.contactEmail||currentUser?.email||"").replace(/"/g,"&quot;")+'" placeholder="kapcsolat@email.com" style="margin-bottom:14px">';
+  html+='<input type="email" id="set-contact-email" value="'+(window.MY_PROFILE?.contactEmail||currentUser?.email||"").replace(/"/g,"&quot;")+'" placeholder="kapcsolat@email.com" style="margin-bottom:14px">';
   html+='</div>';
   html+='<div class="new-form" style="margin-top:14px"><h3>🎨 App téma-szín (globális)</h3>';
   html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Ez a szín jelenik meg az egész alkalmazásban a belépéstől a galériákig. Az egyes galériákat egyedileg felülbírálhatod a galéria szerkesztésénél.</p>';
@@ -1095,7 +1097,13 @@ function renderPricesEditor(){
   html+='<label>"Státusz változás" Template ID</label><input type="text" id="emailjs-template-status" value="'+(EMAILJS_CONFIG.templateStatusChange||"").replace(/"/g,"&quot;")+'" placeholder="pl. template_xxxxxxx" style="margin-bottom:10px">';
   html+='<button class="btn btn-outline btn-sm" type="button" onclick="testEmail()" style="width:100%;margin-bottom:8px">✉️ Teszt email küldése magamnak</button>';
   html+='<div id="emailjs-test-msg" style="margin-top:8px"></div></div>';
-  html+='<div class="new-form" style="margin-top:14px"><h3>💰 Papírkép árak</h3>';
+  html+='<div id="save-settings-msg" style="margin-top:14px"></div><button class="btn btn-green" style="margin-top:14px" onclick="saveSettings()">✓ Beállítások mentése</button>';
+  div.innerHTML=html;
+}
+
+function renderPricesEditor(){
+  const div=document.getElementById("admin-prices");
+  let html='<div class="new-form"><h3>💰 Papírkép árak</h3>';
   html+='<div id="price-print-list"></div>';
   html+='<button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%" onclick="addPrintSize()">+ Új méret hozzáadása</button>';
   html+='</div><div class="new-form" style="margin-top:14px"><h3>💾 Digitális kép ára</h3>';
@@ -1124,21 +1132,30 @@ function removePrintSize(idx){if(PRINT_SIZES.length<=1){alert("Legalább egy mé
 function addGiftItem(){readCurrentPrices();GIFT_ITEMS.push({id:"gift"+Date.now(),label:"🎁 Új ajándéktárgy",price:1000});renderPriceLists()}
 function removeGiftItem(idx){if(!confirm("Biztosan törlöd ezt az ajándéktárgyat?"))return;readCurrentPrices();GIFT_ITEMS.splice(idx,1);renderPriceLists()}
 
-async function savePrices(){
-  const msg=document.getElementById("save-prices-msg");
-  readCurrentPrices();
-  const newDigital=parseInt(document.getElementById("price-digital").value);
-  const myPhone=document.getElementById("my-phone").value.trim();
-  const myContactEmail=document.getElementById("my-contact-email").value.trim().toLowerCase();
+async function saveSettings(){
+  const msg=document.getElementById("save-settings-msg");
+  const myPhone=document.getElementById("set-phone").value.trim();
+  const myContactEmail=document.getElementById("set-contact-email").value.trim().toLowerCase();
   const newEmailJS={publicKey:document.getElementById("emailjs-public-key").value.trim(),serviceId:document.getElementById("emailjs-service-id").value.trim(),templateNewOrder:document.getElementById("emailjs-template-new").value.trim(),templateStatusChange:document.getElementById("emailjs-template-status").value.trim()};
   const themeColor=getThemeColorFromPicker("prices")||"#C9A84C";
   try{
-    await db.collection("photographers").doc(currentUser.uid).update({printSizes:PRINT_SIZES,digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,giftItems:GIFT_ITEMS,phone:myPhone,contactEmail:myContactEmail,emailjsConfig:newEmailJS,themeColor});
+    await db.collection("photographers").doc(currentUser.uid).update({phone:myPhone,contactEmail:myContactEmail,emailjsConfig:newEmailJS,themeColor});
     window.MY_PROFILE=window.MY_PROFILE||{};window.MY_PROFILE.phone=myPhone;window.MY_PROFILE.contactEmail=myContactEmail;window.MY_PROFILE.themeColor=themeColor;
     try{localStorage.setItem("appThemeColor",themeColor)}catch(e){}
     applyGalleryTheme(themeColor);
     EMAILJS_CONFIG=newEmailJS;
     if(EMAILJS_CONFIG.publicKey&&window.emailjs){try{emailjs.init({publicKey:EMAILJS_CONFIG.publicKey})}catch(e){console.error(e)}}
+    msg.innerHTML='<div class="success-msg">✓ A beállításokat sikeresen mentettük!</div>';
+    setTimeout(()=>msg.innerHTML="",3000);
+  }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt a mentés során.</div>';console.error(e)}
+}
+
+async function savePrices(){
+  const msg=document.getElementById("save-prices-msg");
+  readCurrentPrices();
+  const newDigital=parseInt(document.getElementById("price-digital").value);
+  try{
+    await db.collection("photographers").doc(currentUser.uid).update({printSizes:PRINT_SIZES,digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,giftItems:GIFT_ITEMS});
     DIGITAL_PRICE=isNaN(newDigital)?DIGITAL_PRICE:newDigital;
     msg.innerHTML='<div class="success-msg">✓ Az árlistát sikeresen mentettük!</div>';
     setTimeout(()=>msg.innerHTML="",3000);
@@ -2141,16 +2158,18 @@ function renderAdmin(){
 }
 
 function setAdminTab(tab){
-  ["orders","completed","galleries","stats","prices","new"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
+  ["orders","completed","galleries","stats","prices","settings","new"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
   document.getElementById("admin-orders-wrap").classList.toggle("hidden",tab!=="orders");
   document.getElementById("admin-completed").classList.toggle("hidden",tab!=="completed");
   document.getElementById("admin-galleries").classList.toggle("hidden",tab!=="galleries");
   document.getElementById("admin-stats").classList.toggle("hidden",tab!=="stats");
   document.getElementById("admin-prices").classList.toggle("hidden",tab!=="prices");
+  document.getElementById("admin-settings").classList.toggle("hidden",tab!=="settings");
   document.getElementById("admin-new").classList.toggle("hidden",tab!=="new");
   if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");newDiscounts=[];renderNewDiscounts();initColorPicker("new",window.MY_PROFILE?.themeColor||"#C9A84C")}
   if(tab==="completed")renderCompletedOrders();
-  if(tab==="prices"){renderPricesEditor();setTimeout(()=>initColorPicker("prices",window.MY_PROFILE?.themeColor||"#C9A84C"),50)}
+  if(tab==="prices")renderPricesEditor();
+  if(tab==="settings"){renderSettingsEditor();setTimeout(()=>initColorPicker("prices",window.MY_PROFILE?.themeColor||"#C9A84C"),50)}
   if(tab==="stats")renderStats();
 }
 
