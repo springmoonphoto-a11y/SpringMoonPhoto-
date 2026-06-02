@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SpringMoon Gallery</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=Great+Vibes&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=Great+Vibes&family=Dancing+Script:wght@400;700&family=Allura&family=Sacramento&family=Pinyon+Script&family=Pacifico&display=swap" rel="stylesheet">
 <meta name="theme-color" content="#0d0a06">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -245,7 +245,7 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .tc-pp-header{text-align:center;margin-bottom:10px}
 .tc-pp-title{font-family:'Playfair Display',serif;font-size:1rem;color:var(--dark);font-weight:500;line-height:1.1}
 .tc-pp-by{font-size:.55rem;letter-spacing:.2em;margin-top:3px}
-.tc-pp-script{font-family:'Great Vibes',cursive;font-size:1rem;line-height:1;margin-top:1px}
+.tc-pp-script{font-family:var(--brand-font,'Great Vibes',cursive);font-size:1rem;line-height:1;margin-top:1px}
 .tc-pp-bio{display:flex;align-items:center;gap:8px;background:var(--cream);border-radius:8px;padding:7px 9px;margin-bottom:8px}
 .tc-pp-avatar{width:26px;height:26px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
 .tc-pp-bio-info{flex:1;min-width:0}
@@ -415,13 +415,27 @@ body.dark-mode .header-logo-sub{display:flex!important;flex-direction:column;ali
 .hls-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#9a7018);min-width:18px}
 .hls-line.r{background:linear-gradient(90deg,#9a7018,transparent)}
 .hls-by{font-family:'DM Sans',sans-serif;font-size:.42rem;letter-spacing:.22em;color:#9a7018;text-transform:uppercase;font-weight:400;white-space:nowrap}
-.hls-script{font-family:'Great Vibes',cursive;font-size:1.15rem;text-transform:none;letter-spacing:.01em;line-height:1;color:#c09020;text-align:center}
+.hls-script{font-family:var(--brand-font,'Great Vibes',cursive);font-size:1.15rem;text-transform:none;letter-spacing:.01em;line-height:1;color:#c09020;text-align:center}
 .logo-sub{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:230px;margin-bottom:24px}
 .ls-byrow{display:flex;align-items:center;justify-content:center;gap:10px}
 .ls-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#c9a84c)}
 .ls-line.r{background:linear-gradient(90deg,#c9a84c,transparent)}
 .ls-by{font-family:'DM Sans',sans-serif;font-size:.62rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
-.ls-script{font-family:'Great Vibes',cursive;font-size:1.9rem;line-height:1;color:#c9a84c;text-align:center}
+.ls-script{font-family:var(--brand-font,'Great Vibes',cursive);font-size:1.9rem;line-height:1;color:#c9a84c;text-align:center}
+/* Aláírás / branding választó */
+.brand-font-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.brand-font-btn{padding:12px 8px;border:2px solid var(--warm);background:var(--white);border-radius:10px;cursor:pointer;text-align:center;transition:all .15s;min-height:64px;display:flex;flex-direction:column;justify-content:center;align-items:center;overflow:hidden}
+.brand-font-btn:hover{border-color:var(--gold);background:var(--cream)}
+.brand-font-btn.active{border-color:var(--gold);background:var(--cream);box-shadow:0 0 0 2px var(--gold) inset}
+.bfb-preview{font-size:1.4rem;line-height:1;margin-bottom:4px;color:var(--gold);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bfb-name{font-size:.62rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-family:'DM Sans',sans-serif}
+.brand-preview-box{background:var(--cream);border-radius:10px;padding:16px 14px;margin-top:8px;text-align:center}
+.brand-preview-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-weight:500}
+.brand-preview-title{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--dark)}
+.brand-preview-title span{color:var(--gold);font-style:italic}
+body.dark-mode .brand-preview-box{background:#1a130a}
+body.dark-mode .brand-font-btn{background:#100c08}
+body.dark-mode .brand-font-btn:hover,body.dark-mode .brand-font-btn.active{background:#1a130a}
 body.dark-mode .ls-line{background:linear-gradient(90deg,transparent,#9a7018)}
 body.dark-mode .ls-line.r{background:linear-gradient(90deg,#9a7018,transparent)}
 body.dark-mode .ls-by{color:#9a7018}
@@ -1035,12 +1049,18 @@ async function loadGalleryPrices(gallery){
     if(gallery.themeColor)applyGalleryTheme(gallery.themeColor);
     else{
       // Galéria-szintű szín nincs → fotós globális színe (vagy cache)
-      let g=null;
+      let g=null,bN=null,bF=null;
       try{
-        if(gallery.photographerId){const pdoc=await db.collection("photographers").doc(gallery.photographerId).get();if(pdoc.exists)g=pdoc.data().themeColor}
+        if(gallery.photographerId){const pdoc=await db.collection("photographers").doc(gallery.photographerId).get();if(pdoc.exists){const pd=pdoc.data();g=pd.themeColor;bN=pd.brandName;bF=pd.brandFont}}
       }catch(e){}
       if(!g){try{g=localStorage.getItem("appThemeColor")}catch(e){}}
       if(g&&/^#[0-9A-Fa-f]{6}$/.test(g))applyGalleryTheme(g);else resetGalleryTheme();
+      if(bN||bF)applyBrand(bN||"SpringMoonPhoto",bF||"great-vibes");
+    }
+    // Galéria-szintű márka is felülbírálhat (ha külön be lenne állítva)
+    if(gallery.brandName||gallery.brandFont)applyBrand(gallery.brandName||"SpringMoonPhoto",gallery.brandFont||"great-vibes");
+    else if(gallery.photographerId){
+      try{const pdoc=await db.collection("photographers").doc(gallery.photographerId).get();if(pdoc.exists){const pd=pdoc.data();if(pd.brandName||pd.brandFont)applyBrand(pd.brandName||"SpringMoonPhoto",pd.brandFont||"great-vibes")}}catch(e){}
     }
   }catch(e){console.error("Árlista betöltési hiba:",e)}
   await prepareWm();
@@ -1057,9 +1077,11 @@ async function loadMyPrices(){
       GIFT_ITEMS=data.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
       ENABLED_PRODUCTS=data.enabledProducts||{print:true,digital:true,gift:true};
       WATERMARK_CONFIG=data.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"};
-      window.MY_PROFILE={phone:data.phone||"",contactEmail:data.contactEmail||data.email||"",themeColor:data.themeColor||"#C9A84C"};
+      window.MY_PROFILE={phone:data.phone||"",contactEmail:data.contactEmail||data.email||"",themeColor:data.themeColor||"#C9A84C",brandName:data.brandName||"SpringMoonPhoto",brandFont:data.brandFont||"great-vibes"};
       // Globális téma alkalmazása és cache-elése
       if(window.MY_PROFILE.themeColor){applyGalleryTheme(window.MY_PROFILE.themeColor);try{localStorage.setItem("appThemeColor",window.MY_PROFILE.themeColor)}catch(e){}}
+      applyBrand(window.MY_PROFILE.brandName,window.MY_PROFILE.brandFont);
+      try{localStorage.setItem("appBrandName",window.MY_PROFILE.brandName);localStorage.setItem("appBrandFont",window.MY_PROFILE.brandFont)}catch(e){}
       if(data.emailjsConfig){
         EMAILJS_CONFIG=data.emailjsConfig;
         if(EMAILJS_CONFIG.publicKey&&window.emailjs){
@@ -1089,6 +1111,25 @@ function renderSettingsEditor(){
   html+='<div class="tc-hex"><div class="tc-swatch" id="prices-tc-swatch"></div><span class="tc-hex-label">HEX kód:</span><input type="text" class="tc-hex-input" id="prices-tc-hex" value="#C9A84C" maxlength="7" style="font-family:monospace;font-size:.85rem;font-weight:500;background:transparent;border:1px solid var(--warm);border-radius:6px;padding:4px 8px;width:90px;color:var(--dark);text-align:center"><button class="tc-reset" type="button" onclick="copyHexCode(\'prices\')" title="Másolás">📋</button><button class="tc-reset" type="button" onclick="resetThemeColor(\'prices\')">↺ Alap</button></div>';
   html+='<div class="tc-preview" id="prices-tc-preview"></div></div>';
   html+='</div>';
+  // === Aláírás / Branding ===
+  const curBrandName=(window.MY_PROFILE?.brandName||"SpringMoonPhoto").replace(/"/g,"&quot;");
+  const curBrandFont=window.MY_PROFILE?.brandFont||"great-vibes";
+  html+='<div class="new-form" style="margin-top:14px"><h3>🖋️ Aláírás / saját márka</h3>';
+  html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">A „SpringMoonGallery" felirat alatti aláírás szövege és betűtípusa. Ide írhatod a saját márkanevedet vagy fotós neved.</p>';
+  html+='<label>Aláírás szövege</label>';
+  html+='<input type="text" id="set-brand-name" value="'+curBrandName+'" placeholder="pl. Kovács Photography" maxlength="40" oninput="updateBrandPreview()" style="margin-bottom:14px">';
+  html+='<label>Betűtípus</label><div class="brand-font-grid">';
+  for(const key of ["great-vibes","dancing","allura","sacramento","pinyon","pacifico"]){
+    const active=key===curBrandFont?" active":"";
+    html+='<button type="button" class="brand-font-btn'+active+'" data-font="'+key+'" onclick="selectBrandFont(\''+key+'\')"><div class="bfb-preview" style="font-family:'+BRAND_FONT_MAP[key]+'">'+curBrandName+'</div><div class="bfb-name">'+BRAND_FONT_LABELS[key]+'</div></button>';
+  }
+  html+='</div>';
+  html+='<div class="brand-preview-box">';
+  html+='<div class="brand-preview-label">📱 Élő előnézet (logó terület)</div>';
+  html+='<div class="brand-preview-title">SpringMoon<span>Gallery</span></div>';
+  html+='<div class="logo-sub" style="margin-top:6px"><span class="ls-byrow"><span class="ls-line"></span><span class="ls-by">BY</span><span class="ls-line r"></span></span><span class="ls-script" id="brand-preview-script" style="font-family:'+BRAND_FONT_MAP[curBrandFont]+'">'+curBrandName+'</span></div>';
+  html+='</div></div>';
+  // === EmailJS ===
   html+='<div class="new-form" style="margin-top:14px"><h3>📨 Automatikus email értesítés (EmailJS)</h3>';
   html+='<p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Regisztráció: <a href="https://www.emailjs.com" target="_blank" style="color:var(--gold)">emailjs.com</a> (ingyenes 200 email/hó).</p>';
   html+='<label>EmailJS Public Key</label><input type="text" id="emailjs-public-key" value="'+(EMAILJS_CONFIG.publicKey||"").replace(/"/g,"&quot;")+'" placeholder="pl. user_xxxxxxxxxxxxxx" style="margin-bottom:10px">';
@@ -1138,11 +1179,14 @@ async function saveSettings(){
   const myContactEmail=document.getElementById("set-contact-email").value.trim().toLowerCase();
   const newEmailJS={publicKey:document.getElementById("emailjs-public-key").value.trim(),serviceId:document.getElementById("emailjs-service-id").value.trim(),templateNewOrder:document.getElementById("emailjs-template-new").value.trim(),templateStatusChange:document.getElementById("emailjs-template-status").value.trim()};
   const themeColor=getThemeColorFromPicker("prices")||"#C9A84C";
+  const brandName=(document.getElementById("set-brand-name")?.value.trim())||"SpringMoonPhoto";
+  const brandFont=_brandPick.font||"great-vibes";
   try{
-    await db.collection("photographers").doc(currentUser.uid).update({phone:myPhone,contactEmail:myContactEmail,emailjsConfig:newEmailJS,themeColor});
-    window.MY_PROFILE=window.MY_PROFILE||{};window.MY_PROFILE.phone=myPhone;window.MY_PROFILE.contactEmail=myContactEmail;window.MY_PROFILE.themeColor=themeColor;
-    try{localStorage.setItem("appThemeColor",themeColor)}catch(e){}
+    await db.collection("photographers").doc(currentUser.uid).update({phone:myPhone,contactEmail:myContactEmail,emailjsConfig:newEmailJS,themeColor,brandName,brandFont});
+    window.MY_PROFILE=window.MY_PROFILE||{};window.MY_PROFILE.phone=myPhone;window.MY_PROFILE.contactEmail=myContactEmail;window.MY_PROFILE.themeColor=themeColor;window.MY_PROFILE.brandName=brandName;window.MY_PROFILE.brandFont=brandFont;
+    try{localStorage.setItem("appThemeColor",themeColor);localStorage.setItem("appBrandName",brandName);localStorage.setItem("appBrandFont",brandFont)}catch(e){}
     applyGalleryTheme(themeColor);
+    applyBrand(brandName,brandFont);
     EMAILJS_CONFIG=newEmailJS;
     if(EMAILJS_CONFIG.publicKey&&window.emailjs){try{emailjs.init({publicKey:EMAILJS_CONFIG.publicKey})}catch(e){console.error(e)}}
     msg.innerHTML='<div class="success-msg">✓ A beállításokat sikeresen mentettük!</div>';
@@ -1368,8 +1412,9 @@ function saveCart(){try{localStorage.setItem("fotolux_cart_"+(currentGallery?cur
 function loadCart(){try{const s=localStorage.getItem("fotolux_cart_"+(currentGallery?currentGallery.id:""));cart=s?JSON.parse(s):[]}catch(e){cart=[]}}
 
 async function loadData(){
-  // Globális téma azonnal alkalmazása localStorage cache-ből (a login képernyő előtt)
+  // Globális téma + márka azonnal alkalmazása localStorage cache-ből (a login képernyő előtt)
   try{const cachedTheme=localStorage.getItem("appThemeColor");if(cachedTheme&&/^#[0-9A-Fa-f]{6}$/.test(cachedTheme))applyGalleryTheme(cachedTheme)}catch(e){}
+  try{const cn=localStorage.getItem("appBrandName");const cf=localStorage.getItem("appBrandFont");if(cn||cf)applyBrand(cn||"SpringMoonPhoto",cf||"great-vibes")}catch(e){}
   try{const gs=await db.collection("galleries").orderBy("createdAt","desc").get();galleries=gs.docs.map(d=>({id:d.id,...d.data()}))}catch(e){console.error(e)}
   orders=[];showPage("page-login");
 }
@@ -1800,6 +1845,35 @@ function resetThemeColor(prefix){const hsl=hexToHsl("#C9A84C");_tcState[prefix]=
 function applyGalleryTheme(hex){if(!hex)return;document.body.style.setProperty("--gold",hex);document.body.style.setProperty("--brown",darken(hex,0.3))}
 function resetGalleryTheme(){document.body.style.removeProperty("--gold");document.body.style.removeProperty("--brown")}
 
+// === ALÁÍRÁS / BRANDING ===
+const BRAND_FONT_MAP={"great-vibes":"'Great Vibes',cursive","dancing":"'Dancing Script',cursive","allura":"'Allura',cursive","sacramento":"'Sacramento',cursive","pinyon":"'Pinyon Script',cursive","pacifico":"'Pacifico',cursive"};
+const BRAND_FONT_LABELS={"great-vibes":"Great Vibes","dancing":"Dancing Script","allura":"Allura","sacramento":"Sacramento","pinyon":"Pinyon Script","pacifico":"Pacifico"};
+function applyBrand(name,font){
+  const safeName=name||"SpringMoonPhoto";
+  const fontValue=BRAND_FONT_MAP[font]||BRAND_FONT_MAP["great-vibes"];
+  document.body.style.setProperty("--brand-font",fontValue);
+  document.querySelectorAll(".ls-script, .hls-script").forEach(el=>{
+    // A Beállítások mini-előnézetet ne írjuk felül (annak külön kell maradnia)
+    if(el.id==="brand-preview-script"||el.closest(".tc-preview"))return;
+    el.textContent=safeName;
+  });
+}
+
+let _brandPick={name:"SpringMoonPhoto",font:"great-vibes"};
+function selectBrandFont(font){
+  _brandPick.font=font;
+  document.querySelectorAll(".brand-font-btn").forEach(b=>b.classList.toggle("active",b.dataset.font===font));
+  const prev=document.getElementById("brand-preview-script");
+  if(prev)prev.style.fontFamily=BRAND_FONT_MAP[font]||BRAND_FONT_MAP["great-vibes"];
+}
+function updateBrandPreview(){
+  const inp=document.getElementById("set-brand-name");if(!inp)return;
+  _brandPick.name=inp.value.trim()||"SpringMoonPhoto";
+  const prev=document.getElementById("brand-preview-script");if(prev)prev.textContent=_brandPick.name;
+  // A Beállítások font-választó gombok feliratát is frissítjük élőben
+  document.querySelectorAll(".brand-font-btn .bfb-preview").forEach(el=>el.textContent=_brandPick.name);
+}
+
 
 function toggleMultiSelect(photoId){
   if(multiSelectedIds.has(photoId))multiSelectedIds.delete(photoId);
@@ -2169,7 +2243,7 @@ function setAdminTab(tab){
   if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");newDiscounts=[];renderNewDiscounts();initColorPicker("new",window.MY_PROFILE?.themeColor||"#C9A84C")}
   if(tab==="completed")renderCompletedOrders();
   if(tab==="prices")renderPricesEditor();
-  if(tab==="settings"){renderSettingsEditor();setTimeout(()=>initColorPicker("prices",window.MY_PROFILE?.themeColor||"#C9A84C"),50)}
+  if(tab==="settings"){renderSettingsEditor();_brandPick={name:window.MY_PROFILE?.brandName||"SpringMoonPhoto",font:window.MY_PROFILE?.brandFont||"great-vibes"};setTimeout(()=>initColorPicker("prices",window.MY_PROFILE?.themeColor||"#C9A84C"),50)}
   if(tab==="stats")renderStats();
 }
 
