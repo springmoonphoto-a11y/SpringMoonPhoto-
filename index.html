@@ -440,71 +440,71 @@ body.dark-mode .upload-area:hover{background:#1a1408}
   <div style="font-family:'Playfair Display',serif;font-size:2rem;color:#5C3D2E;margin-bottom:4px">SpringMoon<span style="color:#C9A84C;font-style:italic">Gallery</span></div>
   <div class="logo-sub" style="margin-bottom:20px"><span class="ls-byrow"><span class="ls-line"></span><span class="ls-by">BY</span><span class="ls-line r"></span></span><span class="ls-script">SpringMoonPhoto</span></div>
   <div class="spinner"></div>
-  <p style="color:#8A7060;font-size:.9rem">Betoltes...</p>
+  <p style="color:#8A7060;font-size:.9rem">Betöltés…</p>
 </div>
 <div id="page-login" class="login-wrap hidden">
-  <button class="logout-btn" onclick="toggleDarkMode()" title="Sotet mod" style="position:absolute;top:16px;right:16px;font-size:1.3rem">&#127771;</button>
+  <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="position:absolute;top:16px;right:16px;font-size:1.3rem">&#127771;</button>
   <div class="logo">SpringMoon<span>Gallery</span></div>
   <div class="logo-sub"><span class="ls-byrow"><span class="ls-line"></span><span class="ls-by">BY</span><span class="ls-line r"></span></span><span class="ls-script">SpringMoonPhoto</span></div>
   <div style="margin-bottom:20px"></div>
   <div id="parent-login-card" class="card">
-    <h2>Belepes a galeriaba</h2>
-    <p>Adja meg a fotostol kapott kodot</p>
-    <label>Belepesi kod</label>
+    <h2>Belépés a galériába</h2>
+    <p>Adja meg a fotóstól kapott kódot</p>
+    <label>Belépési kód</label>
     <input id="inp-code" type="text" class="code-input" placeholder="pl. BENCE2025" oninput="this.value=this.value.toUpperCase();checkCodeType()">
     <div id="individual-fields">
-      <label>Az On email cime</label>
+      <label>Az Ön email címe</label>
       <input id="inp-email" type="email" placeholder="pelda@email.com">
       <label>Gyermeke neve</label>
-      <input id="inp-child" type="text" placeholder="pl. Kovacs Bence">
+      <input id="inp-child" type="text" placeholder="pl. Kovács Bence">
     </div>
     <div id="group-info" class="hidden" style="background:#fff8ee;border:1.5px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px;font-size:.85rem;color:var(--brown)">
-      &#128101; <strong>Csoportos galeria</strong><br>Az email cimet es a gyermek nevet a rendeles leadasakor kell megadnia.
+      &#128101; <strong>Csoportos galéria</strong><br>Az email címet és a gyermek nevét a rendelés leadásakor kell megadnia.
     </div>
-    <button class="btn" onclick="handleLogin()">Belepes &rarr;</button>
+    <button class="btn" onclick="handleLogin()">Belépés &rarr;</button>
     <div id="login-error" class="error-msg hidden"></div>
-    <div class="admin-link">On fotos? <button onclick="showAdminLogin()">Admin belepes</button></div>
+    <div class="admin-link">Ön fotós? <button onclick="showAdminLogin()">Admin belépés</button></div>
   </div>
   <div id="admin-login-card" class="card hidden">
     <div id="auth-main">
-      <h2 id="auth-title">Fotos bejelentkezes</h2>
-      <p id="auth-sub">Udvozoljuk a SpringMoon Gallery fotos feluleten</p>
+      <h2 id="auth-title">Fotós bejelentkezés</h2>
+      <p id="auth-sub">Üdvözöljük a SpringMoon Gallery fotós felületén</p>
       <div style="display:flex;gap:8px;margin-bottom:20px">
-        <button id="auth-tab-login" class="type-tab active" style="flex:1;padding:10px" onclick="switchAuthMode('login')">Bejelentkezes</button>
-        <button id="auth-tab-register" class="type-tab" style="flex:1;padding:10px" onclick="switchAuthMode('register')">Regisztracio</button>
+        <button id="auth-tab-login" class="type-tab active" style="flex:1;padding:10px" onclick="switchAuthMode('login')">Bejelentkezés</button>
+        <button id="auth-tab-register" class="type-tab" style="flex:1;padding:10px" onclick="switchAuthMode('register')">Regisztráció</button>
       </div>
-      <div id="auth-name-wrap" class="hidden"><label>Fotos/ceg neve</label><input id="inp-auth-name" type="text" placeholder="pl. Bukta Anita Photo"></div>
-      <label>Email cim</label><input id="inp-auth-email" type="email" placeholder="pelda@email.com">
-      <label>Jelszo</label><input id="inp-auth-pass" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6">
-      <button id="auth-submit-btn" class="btn" onclick="handleAuth()">Bejelentkezes &rarr;</button>
+      <div id="auth-name-wrap" class="hidden"><label>Fotós / cég neve</label><input id="inp-auth-name" type="text" placeholder="pl. Bukta Anita Photo"></div>
+      <label>Email cím</label><input id="inp-auth-email" type="email" placeholder="pelda@email.com">
+      <label>Jelszó</label><input id="inp-auth-pass" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6">
+      <button id="auth-submit-btn" class="btn" onclick="handleAuth()">Bejelentkezés &rarr;</button>
       <div id="auth-error" class="error-msg hidden"></div>
-      <div id="forgot-link" class="admin-link"><button onclick="showForgotPassword()">Elfelejtett jelszo?</button></div>
-      <div class="admin-link"><button onclick="showParentLogin()">&larr; Vissza a szuloi bejelentkezeshez</button></div>
+      <div id="forgot-link" class="admin-link"><button onclick="showForgotPassword()">Elfelejtett jelszó?</button></div>
+      <div class="admin-link"><button onclick="showParentLogin()">&larr; Vissza a szülői bejelentkezéshez</button></div>
     </div>
     <div id="auth-success" class="hidden" style="text-align:center;padding:20px 0">
       <div style="font-size:3.5rem;margin-bottom:14px">&#127881;</div>
-      <h2 style="color:var(--dark);margin-bottom:8px">Sikeres regisztracio!</h2>
-      <p style="color:var(--muted);font-size:.9rem;margin-bottom:20px">Udvozoljuk a SpringMoon Gallery fotosai kozott!</p>
+      <h2 style="color:var(--dark);margin-bottom:8px">Sikeres regisztráció!</h2>
+      <p style="color:var(--muted);font-size:.9rem;margin-bottom:20px">Üdvözöljük a SpringMoon Gallery fotósai között!</p>
       <div style="background:var(--cream);border-radius:12px;padding:18px;text-align:left;margin-bottom:18px">
-        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Bejelentkezesi adatok</div>
-        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Email cim</div>
+        <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Bejelentkezési adatok</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Email cím</div>
         <div id="success-email" style="font-weight:600;color:var(--dark);margin-bottom:10px"></div>
-        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Fotos/ceg neve</div>
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:3px">Fotós / cég neve</div>
         <div id="success-name" style="font-weight:600;color:var(--dark)"></div>
       </div>
       <div style="background:#fff8ee;border:1.5px solid var(--gold);border-radius:12px;padding:14px;margin-bottom:18px;font-size:.85rem;color:var(--brown);text-align:left">
-        &#128274; <strong>Fontos:</strong> A jelszavat biztos helyen tarolja!
+        &#128274; <strong>Fontos:</strong> A jelszavát biztos helyen tárolja!
       </div>
-      <button class="btn" onclick="goToAdminAfterRegister()">Tovabb a fotos felulete &rarr;</button>
+      <button class="btn" onclick="goToAdminAfterRegister()">Tovább a fotós felületére &rarr;</button>
     </div>
     <div id="auth-forgot" class="hidden">
-      <h2 style="color:var(--dark);margin-bottom:6px">Elfelejtett jelszo</h2>
-      <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px">Adja meg az email cimet, es kuldunk egy linket az uj jelszo beallitasahoz.</p>
-      <label>Email cim</label><input id="inp-forgot-email" type="email" placeholder="pelda@email.com">
-      <button class="btn" onclick="sendPasswordReset()">Uj jelszo kerese &rarr;</button>
+      <h2 style="color:var(--dark);margin-bottom:6px">Elfelejtett jelszó</h2>
+      <p style="color:var(--muted);font-size:.88rem;margin-bottom:20px">Adja meg az email címét, és küldünk egy linket az új jelszó beállításához.</p>
+      <label>Email cím</label><input id="inp-forgot-email" type="email" placeholder="pelda@email.com">
+      <button class="btn" onclick="sendPasswordReset()">Új jelszó kérése &rarr;</button>
       <div id="forgot-error" class="error-msg hidden"></div>
       <div id="forgot-success" class="success-msg hidden"></div>
-      <div class="admin-link"><button onclick="showAuthMain()">&larr; Vissza a bejelentkezeshez</button></div>
+      <div class="admin-link"><button onclick="showAuthMain()">&larr; Vissza a bejelentkezéshez</button></div>
     </div>
   </div>
 </div>
