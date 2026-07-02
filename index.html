@@ -1321,7 +1321,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <label style="display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid var(--warm);border-radius:8px;margin-bottom:6px;cursor:pointer;background:var(--cream)">
           <input type="checkbox" id="edit-download-enabled" style="cursor:pointer;width:18px;height:18px;accent-color:var(--gold)"><span style="font-size:.9rem">📥 Képek letöltésének engedélyezése</span>
         </label>
-        <p style="font-size:.74rem;color:var(--muted);margin-bottom:14px">Ha bekapcsolod, a szülő VÍZJEL NÉLKÜL letöltheti a képeket (egyesével és egyben is). Akkor kapcsold be, ha már fizetett! A vízjel automatikusan eltűnik letöltéskor.</p>
+        <p style="font-size:.74rem;color:var(--muted);margin-bottom:14px">💡 Ezt már NEM kötelező kézzel bekapcsolni: ha a galéria „📥 Letöltések" mappájába feltöltesz képet, a letöltés automatikusan aktív lesz. Ez a kapcsoló csak akkor kell, ha kézzel ki/be szeretnéd kapcsolni.</p>
         <div id="products-msg"></div>
         <div style="display:flex;gap:9px;margin-top:4px">
           <button class="btn btn-outline btn-sm" onclick="toggleProductsForm()">Mégsem</button>
@@ -1334,7 +1334,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <button id="dpt-download" class="dpt-btn" onclick="setDetailPhotoTab('download')">📥 Letöltések <span id="dpt-download-count"></span></button>
     </div>
     <div id="dpt-raw-info" class="dpt-info">A nyers képek, amelyek közül a szülő böngészhet és rendelhet. Ezeket látja az „Összes kép" fülön.</div>
-    <div id="dpt-download-info" class="dpt-info hidden">A kész, megszerkesztett képek, amelyeket a szülő letölthet. Ezeket külön töltöd fel ide. A szülő a „📥 Letölthető" fülön látja és töltheti le (ha a Beállításoknál bekapcsoltad a letöltést).</div>
+    <div id="dpt-download-info" class="dpt-info hidden">A kész, megszerkesztett képek, amelyeket a szülő letölthet. Ezeket külön töltöd fel ide. ✅ Amint ide feltöltesz egy képet, a galéria <strong>automatikusan letölthetővé válik</strong> – nem kell külön beállítani semmit. A szülő a „📥 Letölthető" fülön látja és töltheti le, vízjel nélkül.</div>
     <div class="new-form" style="margin-bottom:20px">
       <h3 id="detail-upload-title">&#128247; Nyers képek hozzáadása</h3>
       <div class="upload-area">
@@ -1948,10 +1948,16 @@ async function saveDetailPhotos(){
   const field=_currentPhotoField();
   const merged=[..._currentPhotoArray(),...uploadedPhotosDetail];
   try{
-    await db.collection("galleries").doc(currentDetailGallery.id).update({[field]:merged});
+    const updateData={[field]:merged};
+    // Ha a Letöltések mappába töltünk fel, automatikusan letölthetővé tesszük a galériát
+    if(field==="downloadPhotos")updateData.downloadEnabled=true;
+    await db.collection("galleries").doc(currentDetailGallery.id).update(updateData);
     currentDetailGallery[field]=merged;
-    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g)g[field]=merged;
-    uploadedPhotosDetail=[];hide("upload-progress-detail");hide("save-photos-btn");document.getElementById("photo-previews-detail").innerHTML="";document.getElementById("detail-upload-msg").innerHTML='<div class="success-msg">✓ Képek mentve!</div>';setTimeout(()=>document.getElementById("detail-upload-msg").innerHTML="",2000);
+    if(field==="downloadPhotos")currentDetailGallery.downloadEnabled=true;
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g[field]=merged;if(field==="downloadPhotos")g.downloadEnabled=true}
+    uploadedPhotosDetail=[];hide("upload-progress-detail");hide("save-photos-btn");document.getElementById("photo-previews-detail").innerHTML="";
+    const okMsg=field==="downloadPhotos"?'<div class="success-msg">✓ Képek mentve! A galéria mostantól letölthető ezekkel a képekkel.</div>':'<div class="success-msg">✓ Képek mentve!</div>';
+    document.getElementById("detail-upload-msg").innerHTML=okMsg;setTimeout(()=>document.getElementById("detail-upload-msg").innerHTML="",3000);
     btn.textContent="✓ Képek mentése";btn.disabled=false;
     renderDetailPhotos();
   }catch(e){document.getElementById("detail-upload-msg").innerHTML='<div class="error-msg">Hiba történt!</div>';btn.textContent="✓ Képek mentése";btn.disabled=false}
@@ -2330,13 +2336,13 @@ function backToMessagesList(){
 
 function renderGallery(){
   document.getElementById("gallery-title").textContent=currentGallery.isGroup?currentGallery.name+" - összes kép":currentGallery.child+" képei";
-  // Letöltés fülek: a fotós által feltöltött "Letöltések" mappa alapján
+  // Letöltés fülek: elég ha van kép a "Letöltések" mappában (nem kell külön kapcsoló)
   const viewTabs=document.getElementById("gallery-view-tabs");
-  const dlEnabled=currentGallery.downloadEnabled===true;
   const downloadPhotos=currentGallery.downloadPhotos||[];
   const dlCount=downloadPhotos.length;
+  const dlEnabled=dlCount>0;// automatikusan aktív, ha van letöltési kép
   if(viewTabs){
-    if(dlEnabled&&dlCount>0){
+    if(dlCount>0){
       viewTabs.classList.remove("hidden");
       const cnt=document.getElementById("gv-download-count");if(cnt)cnt.textContent="("+dlCount+")";
     }else{viewTabs.classList.add("hidden");_galleryView="all"}
@@ -2344,7 +2350,7 @@ function renderGallery(){
   // Összes letöltése gomb CSAK a "Letölthető" nézetben
   const dlWrap=document.getElementById("download-all-wrap");
   if(dlWrap){
-    if(dlEnabled&&_galleryView==="download"&&dlCount>0){
+    if(_galleryView==="download"&&dlCount>0){
       dlWrap.classList.remove("hidden");
       const dlBtn=document.getElementById("download-all-btn");
       if(dlBtn)dlBtn.textContent="📥 Összes letöltése ("+dlCount+")";
@@ -2386,7 +2392,7 @@ function renderGallery(){
   // Chat panel inicializálása (szülő ↔ fotós)
   initParentChat();
   // "Letölthető" nézet: a fotós által feltöltött Letöltések mappa képei
-  if(_galleryView==="download"&&currentGallery.downloadEnabled===true){
+  if(_galleryView==="download"&&(currentGallery.downloadPhotos||[]).length>0){
     allPhotos=currentGallery.downloadPhotos||[];
   }
   const countLabel=document.getElementById("photo-count-label");
@@ -2430,7 +2436,7 @@ function renderGallery(){
 
 function _lightboxPhotos(){
   // Letölthető nézetben a letöltési képek, egyébként a normál képek
-  if(_galleryView==="download"&&currentGallery.downloadEnabled===true)return currentGallery.downloadPhotos||[];
+  if(_galleryView==="download"&&(currentGallery.downloadPhotos||[]).length>0)return currentGallery.downloadPhotos||[];
   return currentGallery.photos||[];
 }
 function openLightbox(idx){
@@ -2438,7 +2444,7 @@ function openLightbox(idx){
 }
 function renderLightbox(){
   const photos=_lightboxPhotos();if(!photos.length)return;const photo=photos[lightboxIndex];
-  const isDownloadView=_galleryView==="download"&&currentGallery.downloadEnabled===true;
+  const isDownloadView=_galleryView==="download"&&(currentGallery.downloadPhotos||[]).length>0;
   document.getElementById("lb-img").src=lowQ(photo.url);document.getElementById("lb-name").textContent=photo.name;document.getElementById("lb-counter").textContent=(lightboxIndex+1)+" / "+photos.length;
   const wm=document.getElementById("lb-watermark");if(WATERMARK_CONFIG.enabled&&!isDownloadView){wm.style.display="block";wm.style.backgroundImage=wmBg()}else{wm.style.display="none"}
   const lbDl=document.getElementById("lb-download-btn");if(lbDl){if(isDownloadView)lbDl.classList.remove("hidden");else lbDl.classList.add("hidden")}
