@@ -684,6 +684,14 @@ body.dark-mode .tl-dot{background:#1a130a;border-color:#2a1e0a}
 .chat-convo-name{font-family:'Playfair Display',serif;color:var(--brown);font-size:1.02rem;margin-bottom:3px;display:flex;align-items:center;gap:8px}
 .chat-convo-preview{font-size:.84rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chat-convo-unread-dot{background:#e53935;color:#fff;border-radius:99px;font-size:.68rem;padding:1px 7px;font-weight:700}
+.chat-convo-del{background:none;border:none;cursor:pointer;font-size:1rem;opacity:.5;flex-shrink:0;padding:2px}
+.chat-convo-del:hover{opacity:1}
+.chat-msg-wrap{display:flex;align-items:center;gap:6px}
+.chat-msg-wrap.from-parent{align-self:flex-end;flex-direction:row}
+.chat-msg-wrap.from-photographer{align-self:flex-start;flex-direction:row-reverse}
+.chat-msg-del{background:none;border:none;cursor:pointer;font-size:.85rem;opacity:0;transition:opacity .15s;padding:2px;flex-shrink:0}
+.chat-msg-wrap:hover .chat-msg-del{opacity:.6}
+.chat-msg-del:hover{opacity:1!important}
 body.dark-mode .chat-panel,body.dark-mode .chat-convo-card{background:rgba(255,255,255,.04)}
 body.dark-mode .chat-panel-head{background:rgba(255,255,255,.05)}
 body.dark-mode .chat-msg.from-photographer{background:rgba(255,255,255,.08);color:#e8d8a8}
@@ -2367,7 +2375,7 @@ function renderMessagesList(){
     const seen=_adminChatLastSeen(gid);
     const hasUnread=msgs.some(m=>m.sender==="parent"&&(m.createdAt||0)>seen);
     const preview=(last.sender==="photographer"?"Te: ":"")+(last.text||"");
-    return '<div class="chat-convo-card'+(hasUnread?" has-unread":"")+'" onclick="openAdminConvo(\''+gid+'\')"><div class="chat-convo-name">🧒 '+name+(hasUnread?' <span class="chat-convo-unread-dot">új</span>':'')+'</div><div class="chat-convo-preview">'+preview.replace(/</g,"&lt;")+'</div></div>';
+    return '<div class="chat-convo-card'+(hasUnread?" has-unread":"")+'" onclick="openAdminConvo(\''+gid+'\')"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="flex:1;min-width:0"><div class="chat-convo-name">🧒 '+name+(hasUnread?' <span class="chat-convo-unread-dot">új</span>':'')+'</div><div class="chat-convo-preview">'+preview.replace(/</g,"&lt;")+'</div></div><button class="chat-convo-del" onclick="deleteConversation(\''+gid+'\',event)" title="Beszélgetés törlése">🗑️</button></div></div>';
   }).join("");
 }
 
@@ -2399,10 +2407,37 @@ function renderAdminConvoMessages(){
     // Admin nézetben: a fotós üzenete jobbra, a szülőé balra
     const cls=m.sender==="photographer"?"from-parent":"from-photographer";
     const t=m.createdAt?new Date(m.createdAt).toLocaleString("hu-HU",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
-    return '<div class="chat-msg '+cls+'">'+(m.text||"").replace(/</g,"&lt;")+'<span class="cm-time">'+t+'</span></div>';
+    const delBtn=m.id?'<button class="chat-msg-del" onclick="deleteMessage(\''+m.id+'\')" title="Üzenet törlése">🗑️</button>':'';
+    return '<div class="chat-msg-wrap '+cls+'"><div class="chat-msg '+cls+'">'+(m.text||"").replace(/</g,"&lt;")+'<span class="cm-time">'+t+'</span></div>'+delBtn+'</div>';
   }).join("");
   box.scrollTop=box.scrollHeight;
   _setAdminChatLastSeen(_adminChatGalleryId);
+}
+
+async function deleteMessage(msgId){
+  if(!confirm("Törlöd ezt az üzenetet? (Csak nálad tűnik el a nézetből, ha a másik fél is látta, nála megmaradhat.)"))return;
+  try{
+    await db.collection("messages").doc(msgId).delete();
+    _allMessages=_allMessages.filter(m=>m.id!==msgId);
+    renderAdminConvoMessages();
+    if(typeof showToast==="function")showToast("✓ Üzenet törölve");
+  }catch(e){alert("Törlés sikertelen: "+e.message)}
+}
+
+async function deleteConversation(galleryId,ev){
+  if(ev)ev.stopPropagation();
+  const msgs=_allMessages.filter(m=>m.galleryId===galleryId);
+  if(!confirm("Törlöd a teljes beszélgetést? ("+msgs.length+" üzenet) Ez nem visszavonható."))return;
+  try{
+    // Kötegelt törlés
+    const batch=db.batch();
+    msgs.forEach(m=>{if(m.id)batch.delete(db.collection("messages").doc(m.id))});
+    await batch.commit();
+    _allMessages=_allMessages.filter(m=>m.galleryId!==galleryId);
+    renderMessagesList();
+    updateMessagesBadge();
+    if(typeof showToast==="function")showToast("✓ Beszélgetés törölve");
+  }catch(e){alert("Törlés sikertelen: "+e.message)}
 }
 
 async function sendAdminMessage(){
