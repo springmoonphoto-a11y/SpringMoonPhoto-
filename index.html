@@ -104,6 +104,14 @@ body.dark-mode .photo-filter-bar .pf-btn.active{background:rgba(248,232,128,.15)
 .photo-bulk-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;padding:10px 12px;background:var(--cream);border-radius:10px;border:1px solid var(--warm)}
 .detail-photo-tabs{display:flex;gap:8px;margin-bottom:10px;border-bottom:2px solid var(--warm)}
 .status-checks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.multiday-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.multiday-toggle{padding:9px 16px;border:1.5px solid var(--gold);border-radius:99px;background:var(--cream);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.86rem;color:var(--brown);font-weight:500;transition:all .15s}
+.multiday-toggle.on{background:var(--gold);color:#3a2a08;font-weight:700}
+.multiday-hint{font-size:.78rem;color:var(--muted);flex:1;min-width:180px}
+.cal-day.multi-selected{background:var(--gold)!important;color:#3a2a08!important;box-shadow:inset 0 0 0 2px var(--brown)}
+.cal-day.multi-selected .cal-day-num{color:#3a2a08!important;font-weight:700}
+body.dark-mode .multiday-toggle{background:#1a1408;color:#e8d8a8}
+body.dark-mode .multiday-toggle.on{background:#f8e880;color:#3a2a08}
 .status-check{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1.5px solid var(--warm);border-radius:99px;cursor:pointer;font-size:.8rem;color:var(--muted);background:var(--cream);transition:all .12s;user-select:none}
 .status-check:hover{border-color:var(--gold)}
 .status-check.on{font-weight:600}
@@ -1448,7 +1456,7 @@ const STATUS_LABELS={pending:"\u23f3 F\u00fcgg\u0151ben",digital:"&#128231; Digi
 const STATUS_CLASSES={pending:"status-pending",digital:"status-digital",printing:"status-printing",delivered:"status-delivered",paid:"status-paid",completed:"status-completed"};
 let galleries=[],orders=[],currentGallery=null,cart=[];
 let clients=[],_clientEditId=null,_clientSearch="";
-let bookings=[],_calMonth=new Date().getMonth(),_calYear=new Date().getFullYear(),_selectedBookingDate=null,_publicMode=false,_pendingBookingTime=null,_publicPhotographerId=null,_pendingPhotoType=null;
+let bookings=[],_calMonth=new Date().getMonth(),_calYear=new Date().getFullYear(),_selectedBookingDate=null,_publicMode=false,_pendingBookingTime=null,_publicPhotographerId=null,_pendingPhotoType=null,_multiDayMode=false,_multiSelectedDays=new Set();
 let activePhoto=null,orderType="print",selectedSize=PRINT_SIZES[0],qty=1;
 let multiSelectedIds=new Set(),multiOrderType="print",multiSelectedSize=null,multiSelectedGift=null,multiQty=1;
 let generatedCode="",uploadedPhotosNew=[];
@@ -3634,7 +3642,11 @@ function renderCalendar(forAdmin){
   const avail=_publicMode?(window._publicAvail||{}):getAvailability();
   let html='';
   if(forAdmin){
-    // (A szinkronizálás automatikusan megtörténik a naptár megnyitásakor)
+    // Többnapos kijelölés kapcsoló + panel
+    html+='<div class="multiday-bar">';
+    html+='<button class="multiday-toggle'+(_multiDayMode?" on":"")+'" onclick="toggleMultiDayMode()">'+(_multiDayMode?"✓ Több nap kijelölése (aktív)":"📅 Több nap egyszerre")+'</button>';
+    if(_multiDayMode)html+='<span class="multiday-hint">Koppints a napokra a kijelöléshez, majd állítsd be az idősávot lent.</span>';
+    html+='</div>';
   }
   html+='<div class="cal-nav">';
   html+='<button class="cal-nav-btn" onclick="navMonth(-1,'+(forAdmin?'true':'false')+')">‹</button>';
@@ -3654,6 +3666,7 @@ function renderCalendar(forAdmin){
     if(isPast)cls+=" past";
     if(isToday)cls+=" today";
     if(_selectedBookingDate===iso)cls+=" selected";
+    if(_multiDayMode&&_multiSelectedDays.has(iso))cls+=" multi-selected";
     const hasSlots=slots.length>0;
     const bookedCount=dayBookings.length;
     const allBooked=hasSlots&&bookedCount>=slots.length;
@@ -3672,15 +3685,104 @@ function renderCalendar(forAdmin){
         info='<div class="cal-day-info '+(avail===0?'full':'avail')+'">'+(avail===0?'tele':'✓')+'</div>';
       }
     }
-    const clickAction=isPast?'':(forAdmin?'onclick="selectBookingDate(\''+iso+'\',true)"':(hasSlots?'onclick="selectBookingDate(\''+iso+'\',false)"':''));
+    let clickAction;
+    if(isPast){clickAction=''}
+    else if(forAdmin){
+      clickAction=_multiDayMode?'onclick="toggleMultiDay(\''+iso+'\')"':'onclick="selectBookingDate(\''+iso+'\',true)"';
+    }else{
+      clickAction=hasSlots?'onclick="selectBookingDate(\''+iso+'\',false)"':'';
+    }
     if(!forAdmin&&!hasSlots&&!isPast)cls+=" empty"; // public-on csak az elérhető napok kattinthatók
     html+='<div class="'+cls+'" '+clickAction+'><div class="cal-day-num">'+d+'</div>'+info+'</div>';
   }
   html+='</div>';
   if(forAdmin)html+='<div id="admin-day-detail"></div><div id="admin-day-bookings-list" style="margin-top:14px"></div>';
   target.innerHTML=html;
-  if(forAdmin&&_selectedBookingDate)renderAdminDayDetail();
+  if(forAdmin&&_multiDayMode)renderMultiDayPanel();
+  else if(forAdmin&&_selectedBookingDate)renderAdminDayDetail();
   if(!forAdmin&&_selectedBookingDate)renderPublicDayDetail();
+}
+
+function toggleMultiDayMode(){
+  _multiDayMode=!_multiDayMode;
+  _selectedBookingDate=null;
+  if(!_multiDayMode)_multiSelectedDays.clear();
+  renderCalendar(true);
+}
+function toggleMultiDay(iso){
+  if(_multiSelectedDays.has(iso))_multiSelectedDays.delete(iso);
+  else _multiSelectedDays.add(iso);
+  renderCalendar(true);
+}
+function renderMultiDayPanel(){
+  const detail=document.getElementById("admin-day-detail");if(!detail)return;
+  const count=_multiSelectedDays.size;
+  let html='<div class="day-detail"><div class="day-detail-title">📅 Több nap egyszerre ('+count+' nap kijelölve)</div>';
+  if(count===0){
+    html+='<p style="color:var(--muted);font-size:.88rem;margin-top:8px">Koppints a naptárban azokra a napokra, amelyekre ugyanazt az idősávot szeretnéd beállítani (pl. naplemente-fotózás minden nap 18:00–20:00).</p>';
+  }else{
+    // Kijelölt napok listája
+    const sorted=Array.from(_multiSelectedDays).sort();
+    html+='<div style="font-size:.82rem;color:var(--brown);margin:8px 0;line-height:1.5">Kijelölt napok: '+sorted.map(d=>{const dt=new Date(d);return dt.getMonth()+1+"."+dt.getDate()+"."}).join(", ")+'</div>';
+    html+='<div class="avail-settings">';
+    html+='<div class="avail-row" style="margin-top:6px"><div><label style="font-size:.74rem;color:var(--muted)">Kezdés</label><input id="md-start" type="time" value="18:00"></div>';
+    html+='<div><label style="font-size:.74rem;color:var(--muted)">Befejezés</label><input id="md-end" type="time" value="20:00"></div></div>';
+    html+='<div class="avail-row" style="margin-top:8px;grid-template-columns:1fr"><div><label style="font-size:.74rem;color:var(--muted)">Időpont hossza (perc)</label><select id="md-duration"><option value="10">10 perc</option><option value="15">15 perc</option><option value="20">20 perc</option><option value="30" selected>30 perc</option><option value="45">45 perc</option><option value="60">60 perc</option><option value="90">90 perc</option><option value="120">120 perc</option></select></div></div>';
+    html+='<label style="font-size:.74rem;color:var(--muted);display:block;margin-top:12px;margin-bottom:4px">📝 Rövid leírás (opcionális — pl. "Naplemente fotózás")</label>';
+    html+='<textarea id="md-description" class="day-description-input" placeholder="Mit lehet ezeken a napokon foglalni?"></textarea>';
+    html+='<div class="add-btn-row" style="margin-top:12px"><button class="btn btn-outline" onclick="clearMultiDays()">Kijelölés törlése</button><button class="btn" onclick="applyMultiDayAvailability()">✓ Beállítás mind a(z) '+count+' napra</button></div>';
+    html+='<button class="btn btn-danger btn-sm" style="margin-top:8px;width:100%" onclick="clearMultiDayAvailability()">🗑️ Foglalhatóság törlése a kijelölt napokról</button>';
+    html+='</div>';
+  }
+  html+='</div>';
+  detail.innerHTML=html;
+}
+function clearMultiDays(){_multiSelectedDays.clear();renderCalendar(true)}
+
+async function applyMultiDayAvailability(){
+  if(_multiSelectedDays.size===0||!currentUser)return;
+  const start=document.getElementById("md-start").value||"18:00";
+  const end=document.getElementById("md-end").value||"20:00";
+  const duration=Number(document.getElementById("md-duration").value)||30;
+  const description=document.getElementById("md-description").value||"";
+  if(!start||!end){alert("⚠️ Kezdés és Befejezés idő kötelező");return}
+  const avail=getAvailability();
+  _multiSelectedDays.forEach(iso=>{
+    const existing=avail[iso]||{};
+    avail[iso]={...existing,enabled:true,start,end,duration,description:description||existing.description||""};
+  });
+  await _persistAvailability(avail,"✓ Beállítva "+_multiSelectedDays.size+" napra ("+start+"–"+end+")");
+  _multiSelectedDays.clear();
+  renderCalendar(true);
+}
+
+async function clearMultiDayAvailability(){
+  if(_multiSelectedDays.size===0||!currentUser)return;
+  if(!confirm("Biztosan törlöd a foglalhatóságot a kijelölt "+_multiSelectedDays.size+" napról?"))return;
+  const avail=getAvailability();
+  _multiSelectedDays.forEach(iso=>{
+    if(avail[iso])avail[iso]={...avail[iso],enabled:false};
+  });
+  await _persistAvailability(avail,"✓ Foglalhatóság törölve "+_multiSelectedDays.size+" napról");
+  _multiSelectedDays.clear();
+  renderCalendar(true);
+}
+
+// Közös mentés a fotós profilba + galéria-mirror
+async function _persistAvailability(avail,successMsg){
+  try{
+    await db.collection("photographers").doc(currentUser.uid).update({availability:avail});
+    window.MY_PROFILE.availability=avail;
+    const activeSlots=bookings.filter(b=>b.status!=="cancelled").map(b=>b.date+"T"+b.time);
+    const myGals=(galleries||[]).filter(g=>g.photographerId===currentUser.uid);
+    if(myGals.length>0){
+      const batch=db.batch();
+      myGals.forEach(g=>batch.update(db.collection("galleries").doc(g.id),{publicAvailability:avail,publicTakenSlots:activeSlots}));
+      await batch.commit();
+      myGals.forEach(g=>{g.publicAvailability=avail;g.publicTakenSlots=activeSlots});
+    }
+    if(typeof showToast==="function")showToast(successMsg);
+  }catch(e){alert("Mentési hiba: "+e.message)}
 }
 
 function navMonth(delta,forAdmin){
