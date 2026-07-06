@@ -805,6 +805,34 @@ body.dark-mode .smart-ok{background:linear-gradient(135deg,#2e2208,#3d2e12);bord
 .ps-cust-name{font-weight:600;color:var(--dark);margin-bottom:4px}
 .ps-cust-item{font-size:.82rem;color:var(--text);padding:2px 0}
 .ps-total{margin-top:14px;padding:12px;background:var(--brown);color:#fff;border-radius:10px;display:flex;justify-content:space-between;font-weight:600}
+
+/* ===== NAGY KÉPERNYŐ (asztali gép, tablet fekvő) — telefonon nem aktív ===== */
+@media(min-width:900px){
+  /* Szélesebb középső sáv */
+  .wrap{max-width:1040px;padding:28px 32px}
+  /* Galéria képek: 3 oszlop, nagyobb képek */
+  .photo-grid{grid-template-columns:repeat(3,1fr);gap:18px}
+  /* Admin galéria-képek: 4 oszlop (több fér ki a szerkesztéshez) */
+  .admin-photo-grid{grid-template-columns:repeat(4,1fr);gap:16px}
+  /* Feltöltési előnézet: több oszlop */
+  .photo-preview-grid{grid-template-columns:repeat(6,1fr)}
+  /* Galéria-lista (admin) kártyák: 2 oszlop */
+  #admin-galleries-list{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  /* Rendelés-kártyák: 2 oszlop */
+  #admin-orders,#admin-completed{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start}
+  /* Ügyfél-kártyák: 2 oszlop */
+  #clients-list{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  /* Termék/ár szekciók középre, de tágasabban */
+  .header{padding-left:32px;padding-right:32px}
+  /* Üres állapotok és szűrők a rácsokban teljes szélességet fogjanak */
+  #admin-galleries-list>.empty-state,#admin-orders>.empty-state,#admin-completed>.empty-state,#clients-list>.empty-state,#admin-galleries-list .gallery-dl-filter,#admin-galleries-list .admin-search{grid-column:1/-1}
+}
+/* ===== NAGYON SZÉLES KÉPERNYŐ (nagy monitor) ===== */
+@media(min-width:1400px){
+  .wrap{max-width:1200px}
+  .photo-grid{grid-template-columns:repeat(4,1fr)}
+  .admin-photo-grid{grid-template-columns:repeat(5,1fr)}
+}
 @media print{
   body{background:#fff!important}
   body *{visibility:hidden}
