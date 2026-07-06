@@ -889,6 +889,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="login-error" class="error-msg hidden"></div>
     <div class="admin-link">Ön fotós? <button onclick="showAdminLogin()">Admin belépés</button></div>
     <button class="booking-link-btn" onclick="openBookingPage()" style="margin-top:14px">📅 Időpontfoglalás</button>
+    <button class="booking-link-btn" onclick="openInquiryPage()" style="margin-top:10px">💬 Ajánlatkérés</button>
   </div>
   <div id="admin-login-card" class="card hidden">
     <div id="auth-main">
@@ -949,10 +950,21 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       </div>
       <div id="public-calendar-wrap"></div>
       <div id="public-day-detail"></div>
-      <div id="inquiry-board-wrap" style="margin-top:28px"></div>
     </div>
     <div id="booking-form-wrap" class="hidden"></div>
     <div id="booking-confirmation-wrap" class="hidden"></div>
+  </div>
+</div>
+<div id="page-inquiry" class="hidden">
+  <div class="header">
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-byrow"><span class="hls-line"></span><span class="hls-by">&#9670; BY &#9670;</span><span class="hls-line r"></span></span><span class="hls-script">SpringMoonPhoto</span></div></div>
+    <div class="header-right">
+      <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="font-size:1.1rem">🌗</button>
+      <button class="logout-btn" onclick="showPage('page-login')">← Vissza</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div id="inquiry-board-wrap"></div>
   </div>
 </div>
 <div id="page-gallery" class="hidden">
@@ -4417,6 +4429,13 @@ async function copySmsContent(){
 }
 
 // === PUBLIKUS FOGLALÁSI OLDAL ===
+async function openInquiryPage(){
+  _publicMode=true;
+  showPage("page-inquiry");
+  // A fotós adatai kellenek a photographerId-hoz
+  await loadPublicPhotographerData();
+  loadInquiryBoard();
+}
 async function openBookingPage(){
   _publicMode=true;
   showPage("page-booking");
@@ -4429,8 +4448,6 @@ async function openBookingPage(){
   _calMonth=new Date().getMonth();
   _calYear=new Date().getFullYear();
   renderCalendar(false);
-  // Ajánlatkérő üzenőfal betöltése
-  loadInquiryBoard();
 }
 
 // === AJÁNLATKÉRŐ ÜZENŐFAL (nyilvános) ===
