@@ -4502,48 +4502,25 @@ let _inquiries=[];
 function renderInquiryBoard(){
   const wrap=document.getElementById("inquiry-board-wrap");if(!wrap)return;
   let html='<div class="inquiry-board">';
-  html+='<div class="inquiry-head"><h3>💬 Ajánlatkérés</h3><p>Van kérdésed egy fotózásról? Írj bátran! Nem kell hozzá belépés, bárki kérdezhet.</p></div>';
-  html+='<div class="inquiry-form">';
-  html+='<div class="iq-row"><input id="iq-name" type="text" placeholder="Neved (vagy becenév)"><input id="iq-email" type="email" placeholder="Email (ha választ kérsz, opcionális)"></div>';
+  html+='<div class="inquiry-head"><h3>💬 Ajánlatkérés</h3><p>Van kérdésed egy fotózásról? Írj bátran! Nem kell hozzá belépés. Az üzeneted közvetlenül a fotóshoz érkezik — mások nem látják.</p></div>';
+  html+='<div class="inquiry-form" id="inquiry-form-box">';
+  html+='<div class="iq-row"><input id="iq-name" type="text" placeholder="Neved (vagy becenév)"><input id="iq-email" type="email" placeholder="Email (hogy tudjak válaszolni)"></div>';
+  html+='<input id="iq-phone" type="tel" placeholder="Telefonszám (opcionális)" style="width:100%;padding:11px 14px;border:1.5px solid var(--warm);border-radius:10px;font-family:\'DM Sans\',sans-serif;font-size:.92rem;margin-bottom:8px;background:var(--white);color:var(--text)">';
   html+='<textarea id="iq-text" placeholder="Miben segíthetek? Pl. Mennyibe kerül egy családi fotózás? Van-e szabad időpont júliusban?"></textarea>';
-  html+='<button class="inquiry-send-btn" id="iq-send-btn" onclick="sendInquiry()">Kérdés elküldése</button>';
+  html+='<button class="inquiry-send-btn" id="iq-send-btn" onclick="sendInquiry()">Üzenet elküldése</button>';
   html+='</div>';
-  html+='<div class="inquiry-list" id="inquiry-list"></div>';
+  html+='<div id="inquiry-thankyou" style="display:none;padding:30px 18px;text-align:center"><div style="font-size:3rem;margin-bottom:10px">💌</div><h3 style="font-family:Playfair Display,serif;color:var(--brown);margin-bottom:6px">Köszönöm az érdeklődést!</h3><p style="color:var(--muted);font-size:.9rem">Megkaptam az üzeneted, és hamarosan válaszolok a megadott elérhetőségen.</p></div>';
   html+='</div>';
   wrap.innerHTML=html;
-  renderInquiryList();
-}
-function renderInquiryList(){
-  const list=document.getElementById("inquiry-list");if(!list)return;
-  if(_inquiries.length===0){
-    list.innerHTML='<div class="inquiry-empty">Még nincs kérdés. Legyél te az első! 😊</div>';
-    return;
-  }
-  // Csak azok láthatók, amikre a fotós engedélyezte a megjelenítést VAGY minden (itt: minden, de válasszal együtt)
-  const sorted=[..._inquiries].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
-  list.innerHTML=sorted.map(iq=>{
-    const t=iq.createdAt?new Date(iq.createdAt).toLocaleDateString("hu-HU",{month:"long",day:"numeric"}):"";
-    const name=(iq.name||"Érdeklődő").replace(/</g,"&lt;");
-    const text=(iq.text||"").replace(/</g,"&lt;");
-    let ans="";
-    if(iq.answer)ans='<div class="inquiry-answer"><div class="ia-label">✦ SpringMoonPhoto válasza</div><div class="ia-text">'+iq.answer.replace(/</g,"&lt;")+'</div></div>';
-    return '<div class="inquiry-item"><div class="inquiry-q"><div class="iq-avatar">🙂</div><div class="inquiry-q-body"><div class="inquiry-q-name">'+name+'</div><div class="inquiry-q-text">'+text+'</div><div class="inquiry-q-time">'+t+'</div></div></div>'+ans+'</div>';
-  }).join("");
 }
 async function loadInquiryBoard(){
   renderInquiryBoard();
-  try{
-    let pid=_publicPhotographerId;
-    let q=db.collection("inquiries");
-    if(pid)q=q.where("photographerId","==",pid);
-    const snap=await q.get();
-    _inquiries=snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderInquiryList();
-  }catch(e){}
 }
 async function sendInquiry(){
   const name=(document.getElementById("iq-name").value||"").trim();
   const email=(document.getElementById("iq-email").value||"").trim();
+  const phoneEl=document.getElementById("iq-phone");
+  const phone=phoneEl?phoneEl.value.trim():"";
   const text=(document.getElementById("iq-text").value||"").trim();
   if(!text){alert("Írd le a kérdésed!");return}
   const btn=document.getElementById("iq-send-btn");if(btn){btn.disabled=true;btn.textContent="Küldés…"}
@@ -4552,18 +4529,16 @@ async function sendInquiry(){
       photographerId:_publicPhotographerId||null,
       name:name||"Érdeklődő",
       email:email||"",
+      phone:phone||"",
       text,
       answer:"",
       createdAt:Date.now()
     });
-    document.getElementById("iq-name").value="";
-    document.getElementById("iq-email").value="";
-    document.getElementById("iq-text").value="";
-    if(btn){btn.disabled=false;btn.textContent="Kérdés elküldése"}
-    showToast("✓ Kérdésed elküldve! Hamarosan válaszolok.");
-    loadInquiryBoard();
+    // Privát: nem mutatunk listát, csak köszönőt
+    const formBox=document.getElementById("inquiry-form-box");if(formBox)formBox.style.display="none";
+    const ty=document.getElementById("inquiry-thankyou");if(ty)ty.style.display="block";
   }catch(e){
-    if(btn){btn.disabled=false;btn.textContent="Kérdés elküldése"}
+    if(btn){btn.disabled=false;btn.textContent="Üzenet elküldése"}
     alert("Nem sikerült elküldeni: "+e.message);
   }
 }
