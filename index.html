@@ -1902,7 +1902,7 @@ function toggleTooltip(btn){const w=btn.parentElement;document.querySelectorAll(
 document.addEventListener("click",function(e){if(!e.target.closest(".tt-wrap"))document.querySelectorAll(".tt-wrap.active").forEach(w=>w.classList.remove("active"))})
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
-function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail","page-booking"].forEach(p=>hide(p));const el=document.getElementById(id);el.classList.remove("hidden");void el.offsetWidth;window.scrollTo({top:0,behavior:"smooth"})}
+function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail","page-booking","page-inquiry"].forEach(p=>hide(p));const el=document.getElementById(id);el.classList.remove("hidden");void el.offsetWidth;window.scrollTo({top:0,behavior:"smooth"})}
 function generateCode(name){const base=name.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"").slice(0,6);return base+Math.floor(1000+Math.random()*9000)}
 function getStatusBadge(status){const s=status||"pending";return '<span class="status-badge '+STATUS_CLASSES[s]+'">'+STATUS_LABELS[s]+'</span>'}
 function saveCart(){try{localStorage.setItem("fotolux_cart_"+(currentGallery?currentGallery.id:""),JSON.stringify(cart))}catch(e){}}
