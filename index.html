@@ -3815,45 +3815,46 @@ function renderAdminInquiries(){
     const t=iq.createdAt?new Date(iq.createdAt).toLocaleString("hu-HU",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
     const name=(iq.name||"Érdeklődő").replace(/</g,"&lt;");
     const text=(iq.text||"").replace(/</g,"&lt;");
-    const email=iq.email?('<a href="mailto:'+iq.email+'" style="color:var(--gold)">'+iq.email+'</a>'):'<span style="color:var(--muted)">nincs email megadva</span>';
+    const emailHtml=iq.email?('<a href="mailto:'+iq.email+'" style="color:var(--gold)">'+iq.email+'</a>'):'<span style="color:var(--muted)">nincs email megadva</span>';
+    const phoneHtml=iq.phone?(' · 📞 <a href="tel:'+iq.phone+'" style="color:var(--gold)">'+iq.phone+'</a>'):'';
     let html2='<div style="background:var(--white);border-radius:10px;padding:12px 14px;margin-top:8px">';
     html2+='<div style="font-weight:600;color:var(--brown);font-size:.9rem">'+name+' <span style="font-weight:400;color:var(--muted);font-size:.76rem">· '+t+'</span></div>';
     html2+='<div style="font-size:.9rem;margin:4px 0;line-height:1.45">'+text+'</div>';
-    html2+='<div style="font-size:.78rem;margin-bottom:8px">✉️ '+email+'</div>';
-    if(iq.answer){
-      html2+='<div style="background:var(--cream);border-radius:8px;padding:8px 11px;margin-bottom:6px"><div style="font-size:.72rem;color:var(--gold);font-weight:700">✦ A válaszod</div><div style="font-size:.86rem">'+iq.answer.replace(/</g,"&lt;")+'</div></div>';
-      html2+='<button class="btn btn-outline btn-sm" style="width:auto" onclick="editInquiryAnswer(\''+iq.id+'\')">✏️ Válasz módosítása</button> ';
-    }else{
-      html2+='<div style="display:flex;gap:6px;flex-wrap:wrap"><input id="iq-ans-'+iq.id+'" type="text" placeholder="Válasz írása… (megjelenik nyilvánosan a falon)" style="flex:1;min-width:160px;padding:8px 11px;border:1.5px solid var(--warm);border-radius:8px;font-size:.86rem;background:var(--white);color:var(--text)"><button class="btn btn-sm" style="width:auto" onclick="answerInquiry(\''+iq.id+'\')">Válasz</button></div>';
+    html2+='<div style="font-size:.78rem;margin-bottom:8px">✉️ '+emailHtml+phoneHtml+'</div>';
+    if(iq.answered){
+      html2+='<div style="font-size:.78rem;color:#2a7a2a;margin-bottom:6px">✅ Megválaszolva</div>';
     }
-    html2+='<button class="btn btn-danger btn-sm" style="width:auto;margin-top:6px" onclick="deleteInquiry(\''+iq.id+'\')">🗑️ Törlés</button>';
+    // Válasz gombok: email (ha van email) + telefon (ha van)
+    html2+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+    if(iq.email)html2+='<button class="btn btn-sm" style="width:auto" onclick="replyInquiryByEmail(\''+iq.id+'\')">✉️ Válasz emailben</button>';
+    if(iq.phone)html2+='<button class="btn btn-outline btn-sm" style="width:auto" onclick="window.location.href=\'tel:'+iq.phone+'\'">📞 Hívás</button>';
+    html2+='<button class="btn btn-danger btn-sm" style="width:auto" onclick="deleteInquiry(\''+iq.id+'\')">🗑️ Törlés</button>';
+    html2+='</div>';
+    if(!iq.email&&!iq.phone)html2+='<div style="font-size:.76rem;color:var(--muted);margin-top:6px">⚠️ Az érdeklődő nem adott meg elérhetőséget, így nem tudsz válaszolni neki.</div>';
     html2+='</div>';
     return html2;
   }).join("");
   html+='</div>';
   box.innerHTML=html;
 }
-async function answerInquiry(id){
-  const inp=document.getElementById("iq-ans-"+id);if(!inp)return;
-  const answer=inp.value.trim();if(!answer)return;
-  try{
-    await db.collection("inquiries").doc(id).update({answer});
-    const iq=_adminInquiries.find(x=>x.id===id);if(iq)iq.answer=answer;
-    renderAdminInquiries();
-    if(typeof showToast==="function")showToast("✓ Válasz elmentve — megjelenik a nyilvános falon");
-  }catch(e){alert("Hiba: "+e.message)}
+
+function replyInquiryByEmail(id){
+  const iq=_adminInquiries.find(x=>x.id===id);if(!iq||!iq.email)return;
+  const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
+  const subject="Válasz az érdeklődésedre · "+brand;
+  let body="Kedves "+(iq.name||"Érdeklődő")+"!\n\n";
+  body+="Köszönöm, hogy írtál! A kérdésedre válaszolva:\n\n";
+  body+="[ide írd a válaszod]\n\n";
+  body+="── A te üzeneted volt ──\n\""+(iq.text||"")+"\"\n\n";
+  body+="Ha bármi további kérdésed van, írj bátran!\n\nSzeretettel,\n"+brand;
+  _activeContactData={type:"email",to:iq.email,subject,body,name:iq.name||"Érdeklődő"};
+  showContactModal();
+  // Megjelöljük megválaszoltként
+  db.collection("inquiries").doc(id).update({answered:true}).then(()=>{
+    iq.answered=true;renderAdminInquiries();
+  }).catch(e=>{});
 }
-function editInquiryAnswer(id){
-  const iq=_adminInquiries.find(x=>x.id===id);if(!iq)return;
-  const box=document.getElementById("admin-inquiries-box");
-  // Egyszerű: prompt-tal
-  const newAns=prompt("Válasz módosítása:",iq.answer||"");
-  if(newAns===null)return;
-  db.collection("inquiries").doc(id).update({answer:newAns.trim()}).then(()=>{
-    iq.answer=newAns.trim();renderAdminInquiries();
-    if(typeof showToast==="function")showToast("✓ Válasz módosítva");
-  }).catch(e=>alert("Hiba: "+e.message));
-}
+
 async function deleteInquiry(id){
   if(!confirm("Biztosan törlöd ezt az ajánlatkérést?"))return;
   try{
@@ -4504,7 +4505,7 @@ function renderInquiryBoard(){
   let html='<div class="inquiry-board">';
   html+='<div class="inquiry-head"><h3>💬 Ajánlatkérés</h3><p>Van kérdésed egy fotózásról? Írj bátran! Nem kell hozzá belépés. Az üzeneted közvetlenül a fotóshoz érkezik — mások nem látják.</p></div>';
   html+='<div class="inquiry-form" id="inquiry-form-box">';
-  html+='<div class="iq-row"><input id="iq-name" type="text" placeholder="Neved (vagy becenév)"><input id="iq-email" type="email" placeholder="Email (hogy tudjak válaszolni)"></div>';
+  html+='<div class="iq-row"><input id="iq-name" type="text" placeholder="Neved (vagy becenév)"><input id="iq-email" type="email" placeholder="Email cím * (ide válaszolok)"></div>';
   html+='<input id="iq-phone" type="tel" placeholder="Telefonszám (opcionális)" style="width:100%;padding:11px 14px;border:1.5px solid var(--warm);border-radius:10px;font-family:\'DM Sans\',sans-serif;font-size:.92rem;margin-bottom:8px;background:var(--white);color:var(--text)">';
   html+='<textarea id="iq-text" placeholder="Miben segíthetek? Pl. Mennyibe kerül egy családi fotózás? Van-e szabad időpont júliusban?"></textarea>';
   html+='<button class="inquiry-send-btn" id="iq-send-btn" onclick="sendInquiry()">Üzenet elküldése</button>';
@@ -4523,6 +4524,8 @@ async function sendInquiry(){
   const phone=phoneEl?phoneEl.value.trim():"";
   const text=(document.getElementById("iq-text").value||"").trim();
   if(!text){alert("Írd le a kérdésed!");return}
+  if(!email){alert("Kérlek add meg az email címed, hogy tudjak válaszolni!");return}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert("Az email cím nem tűnik érvényesnek. Ellenőrizd, kérlek!");return}
   const btn=document.getElementById("iq-send-btn");if(btn){btn.disabled=true;btn.textContent="Küldés…"}
   try{
     await db.collection("inquiries").add({
