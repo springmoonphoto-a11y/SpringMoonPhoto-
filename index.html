@@ -609,6 +609,10 @@ body.dark-mode .gallery-view-tabs .gv-tab.active{color:#f8e880;border-bottom-col
 .zoom-controls button.zc-reset{font-size:.86rem}
 #zoom-level{color:#fff;font-size:.86rem;min-width:56px;text-align:center}
 .zoom-name{color:rgba(255,255,255,.85);font-size:.86rem;text-align:center;padding:8px 12px 0}
+.zoom-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(20,14,6,.6);border:none;color:#fff;width:46px;height:46px;border-radius:50%;font-size:1.6rem;cursor:pointer;z-index:8;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.zoom-nav:hover{background:rgba(201,168,76,.9)}
+.zoom-nav-prev{left:10px}.zoom-nav-next{right:10px}
+.zoom-counter{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(20,14,6,.65);color:#fff;font-size:.78rem;padding:4px 12px;border-radius:20px;z-index:8;pointer-events:none}
 .lightbox{position:fixed;inset:0;background:rgba(20,14,6,.94);z-index:400;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .lightbox-wm{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .lightbox-wm span{font-family:'Playfair Display',serif;color:rgba(255,255,255,.45);font-size:1.6rem;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.5);transform:rotate(-30deg);text-align:center;letter-spacing:.1em;text-transform:uppercase;line-height:1.3}
@@ -1482,6 +1486,9 @@ body.dark-mode .upload-area:hover{background:#1a1408}
   <div class="zoom-stage" id="zoom-stage">
     <img id="zoom-img" src="" alt="" oncontextmenu="return false" ondragstart="return false">
     <div id="zoom-watermark" class="watermark-overlay"><span id="zoom-wm-text" class="watermark-text">SpringMoonPhoto<br>MINTA</span></div>
+    <button id="zoom-prev" class="zoom-nav zoom-nav-prev" onclick="zoomNav(-1)" title="Előző kép">&#8249;</button>
+    <button id="zoom-next" class="zoom-nav zoom-nav-next" onclick="zoomNav(1)" title="Következő kép">&#8250;</button>
+    <div id="zoom-counter" class="zoom-counter"></div>
   </div>
   <div id="zoom-name" class="zoom-name"></div>
   <div class="zoom-controls">
@@ -1962,7 +1969,8 @@ function lowQ(url){if(!url||url.indexOf("/upload/")<0)return url;return url.repl
 // ===== NAGYÍTÓ (részletek megtekintése) =====
 // Nagyobb, de továbbra is védett felbontás (vízjel + jobbklikk tiltás marad)
 function zoomQ(url){if(!url||url.indexOf("/upload/")<0)return url;return url.replace("/upload/","/upload/q_70,w_1800/")}
-let _zoomScale=1,_zoomX=0,_zoomY=0,_zoomDrag=null,_zoomPinch=null;
+let _zoomScale=1,_zoomX=0,_zoomY=0,_zoomDrag=null,_zoomPinch=null,_zoomSwipe=null;
+let _zoomPhotos=[],_zoomIndex=0,_zoomSource=null;
 
 function openZoom(url,name){
   const ov=document.getElementById("zoom-overlay");if(!ov)return;
@@ -1976,6 +1984,7 @@ function openZoom(url,name){
   if(WATERMARK_CONFIG.enabled&&!isDownloadView){wm.style.display="block";wm.style.backgroundImage=wmBg()}
   else wm.style.display="none";
   _zoomScale=1;_zoomX=0;_zoomY=0;applyZoom();
+  _updateZoomCounter();
   ov.classList.remove("hidden");
   document.body.style.overflow="hidden";
   const hint=document.getElementById("zoom-hint");
@@ -1984,16 +1993,50 @@ function openZoom(url,name){
 function openZoomFromSheet(){
   const photos=currentGallery?(currentGallery.photos||[]):[];
   const p=photos[sheetIndex];
-  if(p)openZoom(p.url,p.name);
+  if(!p)return;
+  _zoomPhotos=photos;_zoomIndex=sheetIndex;_zoomSource="sheet";
+  openZoom(p.url,p.name);
 }
 function openZoomFromLightbox(){
   const photos=_lightboxPhotos();
   const p=photos[lightboxIndex];
-  if(p)openZoom(p.url,p.name);
+  if(!p)return;
+  _zoomPhotos=photos;_zoomIndex=lightboxIndex;_zoomSource="lightbox";
+  openZoom(p.url,p.name);
+}
+// Lapozás a nagyítón belül
+function zoomNav(dir){
+  if(!_zoomPhotos.length)return;
+  _zoomIndex+=dir;
+  if(_zoomIndex<0)_zoomIndex=_zoomPhotos.length-1;
+  if(_zoomIndex>=_zoomPhotos.length)_zoomIndex=0;
+  const p=_zoomPhotos[_zoomIndex];if(!p)return;
+  const img=document.getElementById("zoom-img");
+  if(img)img.src=zoomQ(p.url);
+  const nm=document.getElementById("zoom-name");
+  if(nm)nm.textContent=p.name||"";
+  _zoomScale=1;_zoomX=0;_zoomY=0;applyZoom();
+  _updateZoomCounter();
+}
+function _updateZoomCounter(){
+  const c=document.getElementById("zoom-counter");
+  if(c)c.textContent=_zoomPhotos.length?((_zoomIndex+1)+" / "+_zoomPhotos.length):"";
+  const nav=_zoomPhotos.length>1;
+  const pv=document.getElementById("zoom-prev"),nx=document.getElementById("zoom-next");
+  if(pv)pv.style.display=nav?"flex":"none";
+  if(nx)nx.style.display=nav?"flex":"none";
 }
 function closeZoom(){
   const ov=document.getElementById("zoom-overlay");if(ov)ov.classList.add("hidden");
   document.body.style.overflow="";
+  // Ha a nagyítóban lapoztál, a mögöttes nézet is arra a képre ugorjon
+  try{
+    if(_zoomSource==="sheet"&&_zoomPhotos[_zoomIndex]&&_zoomIndex!==sheetIndex){
+      openSheet(_zoomPhotos[_zoomIndex]);
+    }else if(_zoomSource==="lightbox"&&_zoomPhotos[_zoomIndex]&&_zoomIndex!==lightboxIndex){
+      lightboxIndex=_zoomIndex;renderLightbox();
+    }
+  }catch(e){}
 }
 function applyZoom(){
   const img=document.getElementById("zoom-img");if(!img)return;
@@ -2048,6 +2091,9 @@ function _initZoomHandlers(){
       _zoomDrag=null;
     }else if(e.touches.length===1&&_zoomScale>1){
       _zoomDrag={x:e.touches[0].clientX,y:e.touches[0].clientY,ox:_zoomX,oy:_zoomY};
+    }else if(e.touches.length===1){
+      // Nem nagyított állapotban: oldalra húzás = lapozás
+      _zoomSwipe={x:e.touches[0].clientX,y:e.touches[0].clientY};
     }
   },{passive:true});
   stage.addEventListener("touchmove",function(e){
@@ -2066,7 +2112,12 @@ function _initZoomHandlers(){
     }
   },{passive:false});
   stage.addEventListener("touchend",function(e){
-    if(e.touches.length===0){_zoomPinch=null;_zoomDrag=null}
+    if(_zoomSwipe&&e.changedTouches&&e.changedTouches.length){
+      const dx=e.changedTouches[0].clientX-_zoomSwipe.x;
+      const dy=e.changedTouches[0].clientY-_zoomSwipe.y;
+      if(Math.abs(dx)>55&&Math.abs(dy)<70)zoomNav(dx<0?1:-1);
+    }
+    if(e.touches.length===0){_zoomPinch=null;_zoomDrag=null;_zoomSwipe=null}
   },{passive:true});
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",_initZoomHandlers);
@@ -2348,6 +2399,8 @@ document.addEventListener("keydown",function(e){
     if(e.key==="Escape"){closeZoom();return}
     if(e.key==="+"||e.key==="="){zoomBy(0.5);return}
     if(e.key==="-"){zoomBy(-0.5);return}
+    if(e.key==="ArrowLeft"&&_zoomScale<=1){zoomNav(-1);return}
+    if(e.key==="ArrowRight"&&_zoomScale<=1){zoomNav(1);return}
     return;
   }
   if(!document.getElementById("lightbox").classList.contains("hidden")){if(e.key==="ArrowLeft")lightboxNav(-1);else if(e.key==="ArrowRight")lightboxNav(1);else if(e.key==="Escape")closeLightbox()}
