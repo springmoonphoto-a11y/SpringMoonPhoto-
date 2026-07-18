@@ -933,11 +933,11 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="individual-fields">
       <label>Az Ön email címe</label>
       <input id="inp-email" type="email" placeholder="pelda@email.com">
-      <label>Gyermeke neve</label>
-      <input id="inp-child" type="text" placeholder="pl. Kovács Bence">
+      <label>Megrendelő neve</label>
+      <input id="inp-child" type="text" placeholder="pl. Kovács Bence vagy cégnév">
     </div>
     <div id="group-info" class="hidden" style="background:#fff8ee;border:1.5px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px;font-size:.85rem;color:var(--brown)">
-      &#128101; <strong>Csoportos galéria</strong><br>Az email címet és a gyermek nevét a rendelés leadásakor kell megadnia.
+      &#128101; <strong>Csoportos galéria</strong><br>Az email címet és a nevet a rendelés leadásakor kell megadnia.
     </div>
     <button class="btn" onclick="handleLogin()">Belépés &rarr;</button>
     <div id="login-error" class="error-msg hidden"></div>
@@ -1187,7 +1187,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <label>Telefonszám *</label><input id="order-phone" type="tel" placeholder="pl. +36 30 123 4567">
       <div id="group-only-fields" class="hidden">
         <label>Az Ön email címe *</label><input id="group-order-email" type="email" placeholder="pelda@email.com">
-        <label>Gyermek neve *</label><input id="group-order-child" type="text" placeholder="pl. Kovács Bence">
+        <label>Név (kire szól a rendelés) *</label><input id="group-order-child" type="text" placeholder="pl. Kovács Bence">
       </div>
     </div>
     <div id="discount-box" class="hidden" style="background:var(--white);border:1.5px solid var(--warm);border-radius:14px;padding:16px;margin-top:14px;box-shadow:var(--shadow-sm)">
@@ -1200,7 +1200,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     </div>
     <div id="social-consent-box" class="hidden" style="background:var(--white);border:2px solid var(--gold);border-radius:14px;padding:18px;margin-top:18px;box-shadow:var(--shadow-sm)">
       <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">📸 Hozzájárulás a képek közzétételéhez</h3>
-      <p style="font-size:.88rem;color:var(--text);line-height:1.5;margin-bottom:14px">Hozzájárul ahhoz, hogy gyermeke fotói megjelenjenek a <strong>SpringMoonPhoto – Bukta Anita</strong> közösségi média felületein?</p>
+      <p style="font-size:.88rem;color:var(--text);line-height:1.5;margin-bottom:14px">Hozzájárul ahhoz, hogy a fotók megjelenjenek a <strong>SpringMoonPhoto – Bukta Anita</strong> közösségi média felületein?</p>
       <div style="display:flex;gap:10px;margin-bottom:8px">
         <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);font-size:.95rem;font-weight:500" id="consent-yes-label">
           <input type="radio" name="social-consent" value="yes" onchange="updateConsent('yes')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px"><span>✅ Igen, hozzájárulok</span>
@@ -1288,7 +1288,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
           <div style="flex:1"><div style="font-weight:500;color:var(--dark);font-size:.92rem">&#128101; Csoportos galéria</div><div style="font-size:.75rem;color:var(--muted);margin-top:2px">Pl. ovis csoport - bárki bejelentkezhet a kóddal</div></div>
         </label>
         <div id="individual-gallery-fields">
-          <label>Gyerek teljes neve *</label><input id="new-child" type="text" placeholder="pl. Kiss Péter" oninput="updateCode()">
+          <label>Megrendelő teljes neve *</label><input id="new-child" type="text" placeholder="pl. Kiss Péter vagy Barber Shop" oninput="updateCode()">
           <label>Szülő email címe *</label><input id="new-email" type="email" placeholder="szulo@email.com">
         </div>
         <div id="group-gallery-fields" class="hidden">
@@ -1378,7 +1378,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       </div>
       <div id="edit-form" class="hidden" style="margin-top:16px;border-top:1px solid var(--warm);padding-top:16px">
         <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">👤 Személyes adatok</h3>
-        <label>Gyerek neve</label><input type="text" id="edit-child" placeholder="pl. Kovács Bence">
+        <label>Megrendelő neve</label><input type="text" id="edit-child" placeholder="pl. Kovács Bence vagy cégnév">
         <label>Szülő email címe</label><input type="email" id="edit-email" placeholder="szulo@email.com">
         <label>Belépési kód</label>
         <p style="font-size:.74rem;color:var(--muted);margin-bottom:6px">A kódot kézzel is átírhatod. Ha a nevet javítod, a kód NEM változik automatikusan.</p>
@@ -2081,8 +2081,8 @@ async function handleLogin(){
   if(found.expiresAt&&found.expiresAt<Date.now()){const expDate=new Date(found.expiresAt).toLocaleDateString("hu-HU");err.textContent="Sajnáljuk, ez a galéria lejárt "+expDate+"-án/én. Kérjük vegye fel a kapcsolatot a fotóssal.";show("login-error");return}
   if(!found.isGroup){
     const email=document.getElementById("inp-email").value.trim().toLowerCase();const child=document.getElementById("inp-child").value.trim().toLowerCase();
-    if(!email||!child){err.textContent="Kérjük töltse ki az email címet és a gyermek nevét.";show("login-error");return}
-    if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email cím vagy a gyerek neve nem egyezik.";show("login-error");return}
+    if(!email||!child){err.textContent="Kérjük töltse ki az email címet és a megrendelő nevét.";show("login-error");return}
+    if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email cím vagy a megrendelő neve nem egyezik.";show("login-error");return}
   }
   const btn=document.querySelector('button.btn[onclick="handleLogin()"]');
   const origTxt=btn?btn.textContent:"";
@@ -3148,7 +3148,7 @@ async function sendOrder(){
   if(!socialConsent){alert("Kérjük válaszoljon a képek közzétételére vonatkozó kérdésre!");document.getElementById("consent-warning").style.color="#c0392b";document.getElementById("social-consent-box").scrollIntoView({behavior:"smooth"});return}
   if(currentGallery.isGroup){
     const groupEmail=document.getElementById("group-order-email").value.trim().toLowerCase();const groupChild=document.getElementById("group-order-child").value.trim();
-    if(!groupEmail||!groupChild){alert("Kérjük adja meg az email címét és a gyermek nevét a rendelés leadásához!");document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});return}
+    if(!groupEmail||!groupChild){alert("Kérjük adja meg az email címét és a nevet a rendelés leadásához!");document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});return}
   }
   showOrderReview();
 }
@@ -3164,7 +3164,7 @@ function showOrderReview(){
   custHtml+='<div class="review-customer-row"><span class="label">Név</span><span class="value">'+parentName+'</span></div>';
   custHtml+='<div class="review-customer-row"><span class="label">Telefon</span><span class="value">'+phone+'</span></div>';
   custHtml+='<div class="review-customer-row"><span class="label">Email</span><span class="value">'+orderEmail+'</span></div>';
-  if(isGroup)custHtml+='<div class="review-customer-row"><span class="label">Gyermek</span><span class="value">'+orderChild+'</span></div>';
+  if(isGroup)custHtml+='<div class="review-customer-row"><span class="label">Név</span><span class="value">'+orderChild+'</span></div>';
   custHtml+='<div class="review-customer-row"><span class="label">Közzététel</span><span class="value">'+(socialConsent==="yes"?"✓ Engedélyezem":"✗ Nem engedélyezem")+'</span></div>';
   document.getElementById("review-customer").innerHTML=custHtml;
   // Tételek blokk
@@ -4397,13 +4397,13 @@ function notifyDownloadReady(){
   const childName=g.child||"";
   const code=g.code||"";
   const url="https://spring-moon-foto.vercel.app";
-  let body="Kedves Szülő!\n\n";
-  body+="Örömmel értesítelek, hogy "+childName+" elkészült, megszerkesztett képei elérhetők és letölthetők az online galériában.\n\n";
+  let body="Kedves "+(childName||"Megrendelő")+"!\n\n";
+  body+="Örömmel értesítelek, hogy az elkészült, megszerkesztett képek elérhetők és letölthetők az online galériában.\n\n";
   body+="Belépés:\n1. Nyisd meg: "+url+"\n2. Add meg a kódot: "+code+"\n\n";
   body+="Belépés után a „📥 Letölthető\" fülön találod a megrendelt képeidet, amelyeket vízjel nélkül, eredeti minőségben letölthetsz – egyesével vagy egyben is.\n\n";
   body+="Ha bármi kérdésed lenne, írj nyugodtan!\n\nSzeretettel,\n"+brand;
   const subject=childName+" képei letölthetők · "+brand;
-  _activeContactData={type:"email",to:email,subject,body,name:childName||"Szülő"};
+  _activeContactData={type:"email",to:email,subject,body,name:childName||"Megrendelő"};
   showContactModal();
 }
 
@@ -4689,7 +4689,7 @@ function showBookingForm(time){
   html+='<label class="phototype-opt" id="pt-opt-csalad"><input type="radio" name="phototype" value="Szülővel / családdal" onchange="setPhotoType(\'Szülővel / családdal\')"><span>👨‍👩‍👧 Szülővel / családdal</span></label>';
   html+='<label class="phototype-opt" id="pt-opt-mindketto"><input type="radio" name="phototype" value="Egyéni és családi is" onchange="setPhotoType(\'Egyéni és családi is\')"><span>✨ Egyéni és családi is</span></label>';
   html+='</div>';
-  html+='<label>Megjegyzés</label><textarea id="bk-notes" rows="3" placeholder="Bármilyen extra információ (pl. gyermek neve, testvérek)..."></textarea>';
+  html+='<label>Megjegyzés</label><textarea id="bk-notes" rows="3" placeholder="Bármilyen extra információ (pl. név, résztvevők száma)..."></textarea>';
   html+='<div id="bk-form-error" class="error-msg hidden" style="margin-top:10px"></div>';
   html+='<div class="add-btn-row" style="margin-top:16px"><button class="btn btn-outline" onclick="cancelBookingForm()">Mégsem</button><button class="btn" id="bk-submit-btn" onclick="submitBooking()">Foglalás véglegesítése</button></div></div>';
   wrap.innerHTML=html;
@@ -5255,7 +5255,7 @@ function regenEditCode(){document.getElementById("edit-code").value=generateCode
 
 async function saveEdit(){
   const child=document.getElementById("edit-child").value.trim();const email=document.getElementById("edit-email").value.trim().toLowerCase();const code=document.getElementById("edit-code").value.trim().toUpperCase();const msg=document.getElementById("edit-msg");
-  if(!child||!email){msg.innerHTML='<div class="error-msg">Töltsd ki a gyerek nevét és az email címet!</div>';return}
+  if(!child||!email){msg.innerHTML='<div class="error-msg">Töltsd ki a megrendelő nevét és az email címet!</div>';return}
   if(!code){msg.innerHTML='<div class="error-msg">A belépési kód nem lehet üres!</div>';return}
   // Kód-ütközés ellenőrzése: másik galéria nem használhatja ugyanazt a kódot
   const collision=galleries.find(g=>g.id!==currentDetailGallery.id&&(g.code||"").toUpperCase()===code);
@@ -5285,7 +5285,7 @@ async function createGallery(){
     galleryData={name:groupName,code:finalCode,child:groupName,parentEmail:"",isGroup:true,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim(),themeColor:getThemeColorFromPicker("new")||"#C9A84C"};
   }else{
     const child=document.getElementById("new-child").value.trim();const email=document.getElementById("new-email").value.trim().toLowerCase();
-    if(!child||!email){errDiv.textContent="A gyerek neve és az email cím kötelező.";show("new-form-error");return}
+    if(!child||!email){errDiv.textContent="A megrendelő neve és az email cím kötelező.";show("new-form-error");return}
     const existing=galleries.find(g=>!g.isGroup&&g.parentEmail&&g.parentEmail.toLowerCase()===email);
     const finalCode=existing?existing.code:(generatedCode||generateCode(child));
     galleryData={name:child+" – Iskolai fotók 2025",code:finalCode,child,parentEmail:email,isGroup:false,createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim(),themeColor:getThemeColorFromPicker("new")||"#C9A84C"};
