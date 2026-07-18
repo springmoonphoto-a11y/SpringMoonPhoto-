@@ -1391,7 +1391,8 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <div class="gallery-detail-actions">
         <button class="btn btn-blue btn-sm" onclick="toggleEditForm()">&#128100; Személyes adatok</button>
         <button class="btn btn-outline btn-sm" onclick="toggleProductsForm()">&#9881;&#65039; Beállítások</button>
-        <button class="btn btn-gold btn-sm" onclick="notifyDownloadReady()">&#9993;&#65039; Értesítő küldése</button>
+        <button class="btn btn-blue btn-sm" onclick="inviteToGallery()">&#9993;&#65039; Galéria küldése (válogatás)</button>
+        <button class="btn btn-gold btn-sm" onclick="notifyDownloadReady()">&#128229; Kész képek értesítő</button>
         <button class="btn btn-gold btn-sm" onclick="copyGallerySettings()">&#128203; Másolás</button>
         <button class="btn btn-green btn-sm" onclick="showPrintSummary()">&#128424;&#65039; Nyomtatási összesítő</button>
         <button class="btn btn-danger btn-sm" onclick="deleteCurrentGallery()">&#128465;&#65039; Törlés</button>
@@ -4591,6 +4592,42 @@ async function diagnoseSyncStatus(){
 
 // === Kapcsolatfelvétel az ügyféllel — popup többféle opcióval ===
 let _activeContactData=null;
+
+// Meghívó email: a galéria elkészült, jöhet a válogatás/rendelés
+function inviteToGallery(){
+  if(!currentDetailGallery){alert("Nincs kiválasztott galéria");return}
+  const g=currentDetailGallery;
+  const email=g.parentEmail||"";
+  if(!email&&!g.isGroup){alert("Ehhez a galériához nincs megadva email cím. Add meg a 👤 Személyes adatoknál.");return}
+  const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
+  const name=g.child||"";
+  const code=g.code||"";
+  const url="https://spring-moon-foto.vercel.app";
+  const photoCount=(g.photos||[]).length;
+  let body="Kedves "+(name||"Megrendelő")+"!\n\n";
+  body+="Elkészült a galériád"+(photoCount?" – "+photoCount+" képet töltöttem fel":"")+", és mostantól megnézheted az online galériában.\n\n";
+  body+="BELÉPÉS:\n";
+  body+="1. Nyisd meg: "+url+"\n";
+  body+="2. Belépési kód: "+code+"\n";
+  body+="3. Email cím: "+(email||"a saját email címed")+"\n";
+  body+="4. Megrendelő neve: "+(name||"a fenti név")+"\n\n";
+  body+="HOGYAN VÁLOGASS:\n";
+  body+="• Koppints egy képre a nagyobb nézethez, a 🔍 gombbal pedig ki is nagyíthatod, hogy a részleteket is jól lásd.\n";
+  body+="• A szívecskével kedvencnek jelölheted azokat, amik tetszenek.\n";
+  body+="• Ha megvan a végleges választás, koppints a képre és tedd a kosárba – digitális fájlként vagy nyomtatva is kérheted.\n";
+  body+="• A rendelést a kosárból tudod véglegesíteni.\n\n";
+  if(g.expiresAt){
+    body+="⏰ A galéria eddig érhető el: "+new Date(g.expiresAt).toLocaleDateString("hu-HU")+"\n\n";
+  }
+  body+="💡 TIPP: A galériát alkalmazásként is a telefonodra teheted, hogy egy koppintással elérd!\n";
+  body+="• Androidon (Chrome): nyisd meg a linket, majd a böngésző menüjében (⋮) válaszd a „Kezdőképernyőre helyezés\" lehetőséget.\n";
+  body+="• iPhone-on (Safari): a Megosztás ikonra (□↑) koppintva „Hozzáadás a kezdőképernyőhöz\".\n\n";
+  body+="A képeken látható vízjel csak a válogatás idejére van rajtuk – a megrendelt képeket természetesen vízjel nélkül kapod meg.\n\n";
+  body+="Ha bármi kérdésed van, írj bátran!\n\nSzeretettel,\n"+brand;
+  const subject=(name?name+" – ":"")+"elkészült a galériád · "+brand;
+  _activeContactData={type:"email",to:email,subject,body,name:name||"Megrendelő"};
+  showContactModal();
+}
 
 // Értesítő email a szülőnek, hogy letölthetők a képek
 function notifyDownloadReady(){
