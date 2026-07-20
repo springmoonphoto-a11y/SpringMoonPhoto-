@@ -577,6 +577,9 @@ body.dark-mode .gallery-dl-filter .gdf-btn.active{background:rgba(248,232,128,.1
 body.dark-mode .gallery-dl-badge.has-dl{background:rgba(120,200,120,.2);color:#a0e0a0}
 body.dark-mode .gallery-dl-badge.no-dl{background:rgba(255,160,40,.2);color:#ffc070}
 .dl-log-box{border-radius:12px;padding:12px 16px;margin-bottom:14px}
+.fav-log-box{border-radius:12px;padding:12px 16px;margin-bottom:14px;background:#ffe4ec;color:#8a1c47;border:1px solid #f5b8cd}
+body.dark-mode .fav-log-box{background:rgba(240,100,150,.16);color:#f7b6cd;border-color:rgba(240,100,150,.3)}
+.fav-badge{position:absolute;top:6px;left:6px;background:rgba(255,255,255,.92);border-radius:99px;padding:2px 7px;font-size:.8rem;z-index:3;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .dl-log-box.has-dl{background:#d4f0c0;color:#2a5a2a}
 .dl-log-box.no-dl{background:#ffe9cc;color:#9a4a00}
 body.dark-mode .dl-log-box.has-dl{background:rgba(120,200,120,.18);color:#a8e0a8}
@@ -2307,6 +2310,7 @@ async function handleLogin(){
         localStorage.setItem("lastParentChild",document.getElementById("inp-child").value.trim());
       }
     }catch(e){}
+    _visitorEmail=(document.getElementById("inp-email").value||"").trim().toLowerCase()||(currentGallery.parentEmail||"").toLowerCase();
     loadCart();loadFavorites();
     _galleryView="all";
     renderGallery();showPage("page-gallery");
@@ -2911,8 +2915,51 @@ let sheetTouchStartX=0,sheetTouchStartY=0,sheetTouchActive=false;
 document.addEventListener("touchstart",function(e){if(!document.getElementById("overlay").classList.contains("hidden")&&e.target.closest(".sheet-photo-wrap")){sheetTouchStartX=e.touches[0].clientX;sheetTouchStartY=e.touches[0].clientY;sheetTouchActive=true}},{passive:true});
 document.addEventListener("touchend",function(e){if(sheetTouchActive){const dx=e.changedTouches[0].clientX-sheetTouchStartX;const dy=e.changedTouches[0].clientY-sheetTouchStartY;if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.4){if(dx>0)sheetNav(-1);else sheetNav(1)}sheetTouchActive=false}},{passive:true});
 
-function saveFavorites(){try{localStorage.setItem("fotolux_favs_"+(currentGallery?currentGallery.id:""),JSON.stringify(favorites))}catch(e){}}
-function loadFavorites(){try{const s=localStorage.getItem("fotolux_favs_"+(currentGallery?currentGallery.id:""));favorites=s?JSON.parse(s):[]}catch(e){favorites=[]}}
+// ===== KEDVENCEK (adatbázisban tárolva, hogy ne vesszenek el) =====
+let _visitorEmail="";
+let _favSaveTimer=null;
+function _favDocId(){
+  if(!currentGallery)return "";
+  const em=(_visitorEmail||currentGallery.parentEmail||"vendeg").toLowerCase().replace(/[^a-z0-9]/g,"_");
+  return currentGallery.id+"__"+em;
+}
+function saveFavorites(){
+  // Gyors helyi mentés (azonnali visszajelzéshez)
+  try{localStorage.setItem("fotolux_favs_"+(currentGallery?currentGallery.id:""),JSON.stringify(favorites))}catch(e){}
+  // Adatbázis mentés (kis késleltetéssel, hogy gyors kattintgatásnál ne írjon feleslegesen sokat)
+  if(!currentGallery)return;
+  clearTimeout(_favSaveTimer);
+  _favSaveTimer=setTimeout(()=>{
+    const photos=currentGallery.photos||[];
+    const names=favorites.map(id=>{const p=photos.find(x=>x.id===id);return p?p.name:null}).filter(Boolean);
+    db.collection("favorites").doc(_favDocId()).set({
+      photographerId:currentGallery.photographerId||null,
+      galleryId:currentGallery.id,
+      galleryName:currentGallery.isGroup?(currentGallery.name||""):(currentGallery.child||""),
+      parentEmail:_visitorEmail||currentGallery.parentEmail||"",
+      photoIds:favorites,
+      photoNames:names,
+      updatedAt:Date.now()
+    }).catch(e=>{});
+  },700);
+}
+async function loadFavorites(){
+  // Először a helyi másolat (azonnal látszik)
+  try{const s=localStorage.getItem("fotolux_favs_"+(currentGallery?currentGallery.id:""));favorites=s?JSON.parse(s):[]}catch(e){favorites=[]}
+  if(!currentGallery)return;
+  // Majd az adatbázisból (ez a mérvadó, más eszközről is)
+  try{
+    const doc=await db.collection("favorites").doc(_favDocId()).get();
+    if(doc.exists){
+      const d=doc.data();
+      if(Array.isArray(d.photoIds)){
+        favorites=d.photoIds;
+        try{localStorage.setItem("fotolux_favs_"+currentGallery.id,JSON.stringify(favorites))}catch(e){}
+        renderGallery();
+      }
+    }
+  }catch(e){}
+}
 function toggleFavorite(photoId){const idx=favorites.indexOf(photoId);if(idx>=0)favorites.splice(idx,1);else favorites.push(photoId);saveFavorites();renderGallery()}
 
 function toggleDarkMode(){document.body.classList.toggle("dark-mode");const isDark=document.body.classList.contains("dark-mode");try{localStorage.setItem("fotolux_dark_mode",isDark?"1":"0")}catch(e){}}
@@ -5200,6 +5247,39 @@ function openGalleryDetail(galleryId){
   renderDetailPhotos();showPage("page-gallery-detail");
   // Letöltési napló betöltése és megjelenítése
   renderDownloadLog(galleryId);
+  renderClientFavorites(galleryId);
+}
+
+// Az ügyfél által kedvencnek jelölt képek (admin nézet)
+let _clientFavIds=[];
+async function renderClientFavorites(galleryId){
+  _clientFavIds=[];
+  let box=document.getElementById("detail-fav-box");
+  if(!box){
+    box=document.createElement("div");box.id="detail-fav-box";
+    const grid=document.getElementById("detail-photo-grid");
+    grid.parentNode.insertBefore(box,grid);
+  }
+  box.innerHTML="";
+  try{
+    const snap=await db.collection("favorites").where("galleryId","==",galleryId).get();
+    if(snap.empty){box.innerHTML="";return}
+    let html="";
+    snap.docs.forEach(d=>{
+      const f=d.data();
+      const names=f.photoNames||[];
+      if(Array.isArray(f.photoIds))_clientFavIds=_clientFavIds.concat(f.photoIds);
+      if(names.length===0)return;
+      const who=f.parentEmail||"Ügyfél";
+      const upd=f.updatedAt?new Date(f.updatedAt).toLocaleString("hu-HU",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+      html+='<div class="fav-log-box"><strong>❤️ Kedvencnek jelölt képek ('+names.length+' db)</strong>';
+      html+='<div style="font-size:.8rem;margin-top:3px;opacity:.85">'+who+(upd?" · "+upd:"")+'</div>';
+      html+='<div style="font-size:.86rem;margin-top:6px;line-height:1.5">'+names.join(" · ")+'</div>';
+      html+='</div>';
+    });
+    box.innerHTML=html;
+    if(_clientFavIds.length)renderDetailPhotos();
+  }catch(e){box.innerHTML='<div style="font-size:.8rem;color:var(--muted)">A kedvencek nem elérhetők (hiányzó „favorites" Firestore szabály).</div>'}
 }
 
 async function renderDownloadLog(galleryId){
@@ -5394,8 +5474,9 @@ function renderDetailPhotos(){
       badge='<div class="ordered-badge" title="Megrendelte: '+buyers+' ('+types+')">⭐ '+ord.count+' db</div>';
     }
     const safeName=(p.name||"").replace(/"/g,'&quot;');
+    const favMark=(_clientFavIds&&_clientFavIds.indexOf(p.id)>=0)?'<div class="fav-badge" title="Az ügyfél kedvencnek jelölte">❤️</div>':'';
     const jsName=(p.name||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'");
-    return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy">'+badge+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div></div>';
+    return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy">'+badge+favMark+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div></div>';
   }).join("");
   updateBulkBar();
 }
