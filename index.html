@@ -5256,40 +5256,18 @@ function openGalleryDetail(galleryId){
 let _clientFavIds=[];
 async function renderClientFavorites(galleryId){
   _clientFavIds=[];
-  let box=document.getElementById("detail-fav-box");
-  if(!box){
-    box=document.createElement("div");box.id="detail-fav-box";
-    // A fülek fölé, rögtön a gombok alá – hogy egyből látszódjon
-    const tabs=document.querySelector("#page-gallery-detail .detail-photo-tabs");
-    const grid=document.getElementById("detail-photo-grid");
-    if(tabs)tabs.parentNode.insertBefore(box,tabs);
-    else if(grid)grid.parentNode.insertBefore(box,grid);
-    else return;
-  }
-  box.innerHTML="";
+  // A régi felső sávot eltávolítjuk, ha volt (most a szűrő gomb mutatja a kedvenceket)
+  const oldBox=document.getElementById("detail-fav-box");
+  if(oldBox)oldBox.remove();
   try{
     const snap=await db.collection("favorites").where("galleryId","==",galleryId).get();
-    if(snap.empty){box.innerHTML='<div class="fav-log-box" style="opacity:.75"><strong>❤️ Kedvencek</strong><div style="font-size:.84rem;margin-top:3px">Ebből a galériából még senki nem jelölt ki kedvenc képet.</div></div>';return}
-    let html="";
+    if(snap.empty)return;
     snap.docs.forEach(d=>{
       const f=d.data();
-      const names=f.photoNames||[];
       if(Array.isArray(f.photoIds))_clientFavIds=_clientFavIds.concat(f.photoIds);
-      if(names.length===0){
-        const cnt=(f.photoIds||[]).length;
-        if(cnt)html+='<div class="fav-log-box"><strong>❤️ Kedvencnek jelölt képek ('+cnt+' db)</strong><div style="font-size:.8rem;margin-top:3px;opacity:.85">'+(f.parentEmail||"Ügyfél")+'</div><div style="font-size:.82rem;margin-top:4px">A képek nevei nem elérhetők, de a rácsban ❤️ jelöli őket.</div></div>';
-        return;
-      }
-      const who=f.parentEmail||"Ügyfél";
-      const upd=f.updatedAt?new Date(f.updatedAt).toLocaleString("hu-HU",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
-      html+='<div class="fav-log-box"><strong>❤️ Kedvencnek jelölt képek ('+names.length+' db)</strong>';
-      html+='<div style="font-size:.8rem;margin-top:3px;opacity:.85">'+who+(upd?" · "+upd:"")+'</div>';
-      html+='<div style="font-size:.86rem;margin-top:6px;line-height:1.5">'+names.join(" · ")+'</div>';
-      html+='</div>';
     });
-    box.innerHTML=html;
     if(_clientFavIds.length)renderDetailPhotos();
-  }catch(e){box.innerHTML='<div style="font-size:.8rem;color:var(--muted)">A kedvencek nem elérhetők (hiányzó „favorites" Firestore szabály).</div>'}
+  }catch(e){}
 }
 
 async function renderDownloadLog(galleryId){
