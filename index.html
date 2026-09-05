@@ -1593,6 +1593,7 @@ const DEFAULT_GIFT_ITEMS=[
 ];
 let PRINT_SIZES=JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
 let DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
+let COMBO_DISCOUNT=0;// kombó kedvezmény (Ft), ha ugyanabból a képből papír ÉS digitális is van
 let GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
 let ENABLED_PRODUCTS={print:true,digital:true,gift:true};
 let WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
@@ -1622,6 +1623,7 @@ async function loadGalleryPrices(gallery){
       else PRINT_SIZES=JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
       if(typeof data.digitalPrice==="number")DIGITAL_PRICE=data.digitalPrice;
       else DIGITAL_PRICE=DEFAULT_DIGITAL_PRICE;
+      COMBO_DISCOUNT=typeof data.comboDiscount==="number"?data.comboDiscount:0;
       if(data.giftItems)GIFT_ITEMS=data.giftItems;
       else GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
     }
@@ -1660,6 +1662,7 @@ async function loadMyPrices(){
       const data=doc.data();
       PRINT_SIZES=data.printSizes||JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
       DIGITAL_PRICE=typeof data.digitalPrice==="number"?data.digitalPrice:DEFAULT_DIGITAL_PRICE;
+      COMBO_DISCOUNT=typeof data.comboDiscount==="number"?data.comboDiscount:0;
       GIFT_ITEMS=data.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
       ENABLED_PRODUCTS=data.enabledProducts||{print:true,digital:true,gift:true};
       WATERMARK_CONFIG=data.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"};
@@ -1747,6 +1750,9 @@ function renderPricesEditor(){
   html+='<button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%" onclick="addPrintSize()">+ Új méret hozzáadása</button>';
   html+='</div><div class="new-form" style="margin-top:14px"><h3>💾 Digitális kép ára</h3>';
   html+='<div style="display:flex;gap:10px;align-items:center"><span style="flex:1;font-weight:500">Digitális JPG fájl</span><input type="number" id="price-digital" value="'+DIGITAL_PRICE+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
+  html+='</div><div class="new-form" style="margin-top:14px"><h3>🎉 Kombó kedvezmény</h3>';
+  html+='<p style="font-size:.8rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Ha a megrendelő UGYANABBÓL a képből papírképet ÉS digitális fájlt is kér, ennyi kedvezményt kap – automatikusan levonva az összesítőnél. Írj 0-t, ha nem szeretnél ilyen kedvezményt.</p>';
+  html+='<div style="display:flex;gap:10px;align-items:center"><span style="flex:1;font-weight:500">Kedvezmény képenként</span><input type="number" id="price-combo" value="'+COMBO_DISCOUNT+'" min="0" step="50" style="width:120px;margin-bottom:0;text-align:right"><span style="color:var(--muted)">Ft</span></div>';
   html+='</div><div class="new-form" style="margin-top:14px"><h3>🎁 Ajándéktárgy árak</h3>';
   html+='<div id="price-gift-list"></div>';
   html+='<button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%" onclick="addGiftItem()">+ Új ajándéktárgy hozzáadása</button>';
@@ -1796,9 +1802,11 @@ async function savePrices(){
   const msg=document.getElementById("save-prices-msg");
   readCurrentPrices();
   const newDigital=parseInt(document.getElementById("price-digital").value);
+  const newCombo=parseInt(document.getElementById("price-combo").value);
   try{
-    await db.collection("photographers").doc(currentUser.uid).update({printSizes:PRINT_SIZES,digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,giftItems:GIFT_ITEMS});
+    await db.collection("photographers").doc(currentUser.uid).update({printSizes:PRINT_SIZES,digitalPrice:isNaN(newDigital)?DIGITAL_PRICE:newDigital,giftItems:GIFT_ITEMS,comboDiscount:isNaN(newCombo)?0:newCombo});
     DIGITAL_PRICE=isNaN(newDigital)?DIGITAL_PRICE:newDigital;
+    COMBO_DISCOUNT=isNaN(newCombo)?0:newCombo;
     msg.innerHTML='<div class="success-msg">✓ Az árlistát sikeresen mentettük!</div>';
     setTimeout(()=>msg.innerHTML="",3000);
   }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt a mentés során.</div>';}
@@ -3369,6 +3377,26 @@ function updateCartUI(){
 function showGallery(){showPage("page-gallery");renderGallery()}
 function showCart(){showPage("page-cart");hide("cart-success");renderCartItems()}
 
+// Kombó kedvezmény: hány képnél van EGYSZERRE papírkép és digitális a kosárban
+function _calcComboDiscount(){
+  if(!COMBO_DISCOUNT||COMBO_DISCOUNT<=0)return {amount:0,count:0};
+  const byPhoto={};
+  cart.forEach(i=>{
+    const key=(i.photo&&(i.photo.id||i.photo.name))||"";
+    if(!key)return;
+    if(!byPhoto[key])byPhoto[key]={print:0,digital:0};
+    if(i.type==="digital")byPhoto[key].digital+=i.qty;
+    else if(i.type==="print")byPhoto[key].print+=i.qty;
+  });
+  let count=0;
+  Object.keys(byPhoto).forEach(k=>{
+    // Ahány párosítás létrejön (a kevesebbik oldal határozza meg)
+    const pairs=Math.min(byPhoto[k].print,byPhoto[k].digital);
+    count+=pairs;
+  });
+  return {amount:count*COMBO_DISCOUNT,count};
+}
+
 function renderCartItems(){
   const itemsDiv=document.getElementById("cart-items");
   if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("social-consent-box");hide("order-contact-form");hide("discount-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
@@ -3383,8 +3411,14 @@ function renderCartItems(){
   }).join("");
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
   document.getElementById("cart-total-rows").innerHTML=cart.map(i=>{let lbl;if(i.type==="digital")lbl="Digitális";else if(i.type==="gift")lbl=i.giftLabel;else lbl=i.size.label;return '<div class="cart-total-row"><span>'+i.photo.name+' ('+lbl+') × '+i.qty+'</span><span>'+fmt(i.totalPrice)+'</span></div>'}).join("");
-  if(activeDiscount){const discAmount=Math.round(total*activeDiscount.percent/100);const finalTotal=total-discAmount;document.getElementById("cart-total-rows").innerHTML+='<div class="cart-total-row" style="border-top:1px solid rgba(255,255,255,.2);padding-top:6px;margin-top:6px;opacity:1"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span style="color:#90ee90">-'+fmt(discAmount)+'</span></div>';document.getElementById("cart-grand-total").textContent=fmt(finalTotal)}
-  else{document.getElementById("cart-grand-total").textContent=fmt(total)}
+  // KOMBÓ KEDVEZMÉNY: ugyanabból a képből papír ÉS digitális is → kedvezmény képenként
+  const comboInfo=_calcComboDiscount();
+  if(comboInfo.amount>0){
+    document.getElementById("cart-total-rows").innerHTML+='<div class="cart-total-row" style="border-top:1px solid rgba(255,255,255,.2);padding-top:6px;margin-top:6px"><span>🎉 Kombó kedvezmény ('+comboInfo.count+' kép papír+digitális)</span><span style="color:#90ee90">-'+fmt(comboInfo.amount)+'</span></div>';
+  }
+  const afterCombo=total-comboInfo.amount;
+  if(activeDiscount){const discAmount=Math.round(afterCombo*activeDiscount.percent/100);const finalTotal=afterCombo-discAmount;document.getElementById("cart-total-rows").innerHTML+='<div class="cart-total-row" style="border-top:1px solid rgba(255,255,255,.2);padding-top:6px;margin-top:6px;opacity:1"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span style="color:#90ee90">-'+fmt(discAmount)+'</span></div>';document.getElementById("cart-grand-total").textContent=fmt(finalTotal)}
+  else{document.getElementById("cart-grand-total").textContent=fmt(afterCombo)}
   show("cart-total-box");show("social-consent-box");show("order-btn");show("back-btn");
   show("order-contact-form");if(currentGallery&&currentGallery.isGroup)show("group-only-fields");else hide("group-only-fields");
   if(currentGallery&&currentGallery.discounts&&currentGallery.discounts.length>0)show("discount-box");else hide("discount-box");
@@ -3445,7 +3479,9 @@ function showOrderReview(){
   let totalHtml='<div class="review-section-title">💰 Fizetendő</div>';
   totalHtml+='<div class="review-total-row"><span>Részösszeg</span><span>'+fmt(subtotal)+'</span></div>';
   let total=subtotal;
-  if(activeDiscount){const discAmount=Math.round(subtotal*activeDiscount.percent/100);total=subtotal-discAmount;totalHtml+='<div class="review-total-row review-discount"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span>-'+fmt(discAmount)+'</span></div>'}
+  const combo=_calcComboDiscount();
+  if(combo.amount>0){total-=combo.amount;totalHtml+='<div class="review-total-row review-discount"><span>🎉 Kombó kedvezmény ('+combo.count+' kép papír+digitális)</span><span>-'+fmt(combo.amount)+'</span></div>'}
+  if(activeDiscount){const discAmount=Math.round(total*activeDiscount.percent/100);total=total-discAmount;totalHtml+='<div class="review-total-row review-discount"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span>-'+fmt(discAmount)+'</span></div>'}
   totalHtml+='<div class="review-total-row review-grand"><span>Fizetendő összesen</span><span>'+fmt(total)+'</span></div>';
   document.getElementById("review-totals").innerHTML=totalHtml;
   document.getElementById("order-review-modal").classList.remove("hidden");
@@ -3474,8 +3510,10 @@ async function placeOrder(){
   const btn=document.getElementById("order-btn");btn.textContent="Küldés...";btn.disabled=true;btn.classList.add("btn-loading");
   try{
     const subtotal=cart.reduce((s,i)=>s+i.totalPrice,0);let total=subtotal;let discountInfo=null;
-    if(activeDiscount){const discAmount=Math.round(subtotal*activeDiscount.percent/100);total=subtotal-discAmount;discountInfo={code:activeDiscount.code,percent:activeDiscount.percent,amount:discAmount}}
-    await db.collection("orders").add({child:orderChild,parentName,parentEmail:orderEmail,phone,discount:discountInfo,subtotal,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",socialConsent,fromGroupGallery:currentGallery.isGroup||false,photographerId:currentGallery.photographerId||null,photographerName:currentGallery.photographerName||null,items:cart.map(i=>({photoId:i.photo.id||null,photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,giftId:i.giftId||null,giftLabel:i.giftLabel||null,mugText:i.mugText||null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
+    const combo=_calcComboDiscount();
+    if(combo.amount>0)total-=combo.amount;
+    if(activeDiscount){const discAmount=Math.round(total*activeDiscount.percent/100);total=total-discAmount;discountInfo={code:activeDiscount.code,percent:activeDiscount.percent,amount:discAmount}}
+    await db.collection("orders").add({child:orderChild,parentName,parentEmail:orderEmail,phone,discount:discountInfo,comboDiscount:combo.amount>0?{count:combo.count,amount:combo.amount}:null,subtotal,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",socialConsent,fromGroupGallery:currentGallery.isGroup||false,photographerId:currentGallery.photographerId||null,photographerName:currentGallery.photographerName||null,items:cart.map(i=>({photoId:i.photo.id||null,photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,giftId:i.giftId||null,giftLabel:i.giftLabel||null,mugText:i.mugText||null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
     sendNewOrderEmail({photographerId:currentGallery.photographerId,child:orderChild,parentName,parentEmail:orderEmail,phone,total,date:new Date().toLocaleString("hu-HU"),items:cart.map(i=>({photoName:i.photo.name,type:i.type,sizeLabel:i.size?i.size.label:null,giftLabel:i.giftLabel,qty:i.qty,totalPrice:i.totalPrice}))}).catch(e=>{});
     document.getElementById("success-child-name").textContent=(currentGallery.isGroup?orderChild:currentGallery.child)+" képei";
     document.getElementById("success-total").textContent=fmt(total);
