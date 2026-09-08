@@ -1,6 +1,6 @@
 // SpringMoonGallery Service Worker
 // Verziószámot növelni minden új deployment előtt, hogy a cache frissüljön
-const CACHE = "springmoon-v77";
+const CACHE = "springmoon-v78";
 const SHELL = ["/", "/index.html", "/manifest.json"];
 
 self.addEventListener("install", e => {
