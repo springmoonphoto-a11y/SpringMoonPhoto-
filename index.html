@@ -2996,13 +2996,14 @@ function _needDownloadGate(){return !_hasDownloadInfo()}
 // Megnyitja a kaput; a callback a beküldés után fut
 function openDownloadGate(){
   const m=document.getElementById("dl-gate-modal");if(!m)return;
-  // Előkitöltés a belépési adatokból
+  // Nincs automatikus előkitöltés – az ügyfél maga írja be a nevét és email címét
   const nameInp=document.getElementById("dl-gate-name");
   const emailInp=document.getElementById("dl-gate-email");
-  if(nameInp&&!nameInp.value)nameInp.value=(currentGallery&&!currentGallery.isGroup&&currentGallery.child)||"";
-  if(emailInp&&!emailInp.value)emailInp.value=_visitorEmail||(currentGallery&&currentGallery.parentEmail)||"";
+  if(nameInp)nameInp.value="";
+  if(emailInp)emailInp.value="";
   document.getElementById("dl-gate-err").textContent="";
   m.classList.remove("hidden");
+  if(nameInp)setTimeout(()=>nameInp.focus(),100);
 }
 function closeDownloadGate(){
   const m=document.getElementById("dl-gate-modal");if(m)m.classList.add("hidden");
