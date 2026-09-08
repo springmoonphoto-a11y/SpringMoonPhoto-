@@ -1302,7 +1302,6 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <button id="atab-calendar" class="admin-tab" onclick="setAdminTab('calendar')">📅 Naptár</button>
       <button id="atab-reviews" class="admin-tab" onclick="setAdminTab('reviews')">⭐ Vélemények</button>
       <button id="atab-messages" class="admin-tab" onclick="setAdminTab('messages')">💬 Üzenetek <span id="atab-messages-badge"></span></button>
-      <button id="atab-new" class="admin-tab" onclick="setAdminTab('new')">+ Új</button>
     </div>
     <div id="admin-orders-wrap">
       <div id="bulk-bar" class="bulk-bar hidden">
@@ -3998,10 +3997,11 @@ function onClientSearchChange(v){_clientSearch=v;renderClientCards()}
 function generateGalleryFromClient(clientId){
   const c=clients.find(x=>x.id===clientId);
   if(!c)return;
-  // Átváltás az + Új fülre
-  setAdminTab("new");
-  // Egy pillanat, hogy a fül DOM-ja biztosan készen legyen
+  // Átváltás a Galériák fülre és az új galéria űrlap megnyitása
+  setAdminTab("galleries");
   setTimeout(()=>{
+    const slot=document.getElementById("new-gallery-slot");
+    if(slot&&slot.classList.contains("hidden"))toggleNewGalleryForm();
     // Egyéni galéria mód (ne csoportos)
     const groupCheckbox=document.getElementById("new-is-group");
     if(groupCheckbox&&groupCheckbox.checked){groupCheckbox.checked=false;toggleGroupGallery()}
@@ -5270,7 +5270,7 @@ function renderReviews(){
 }
 
 function setAdminTab(tab){
-  ["orders","completed","galleries","stats","prices","settings","clients","calendar","reviews","messages","new"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
+  ["orders","completed","galleries","stats","prices","settings","clients","calendar","reviews","messages"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
   document.getElementById("admin-orders-wrap").classList.toggle("hidden",tab!=="orders");
   document.getElementById("admin-completed").classList.toggle("hidden",tab!=="completed");
   document.getElementById("admin-galleries").classList.toggle("hidden",tab!=="galleries");
@@ -5281,8 +5281,6 @@ function setAdminTab(tab){
   document.getElementById("admin-calendar").classList.toggle("hidden",tab!=="calendar");
   document.getElementById("admin-reviews").classList.toggle("hidden",tab!=="reviews");
   document.getElementById("admin-messages").classList.toggle("hidden",tab!=="messages");
-  document.getElementById("admin-new").classList.toggle("hidden",tab!=="new");
-  if(tab==="new"){uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");newDiscounts=[];renderNewDiscounts();initColorPicker("new",window.MY_PROFILE?.themeColor||"#C9A84C")}
   if(tab==="completed")renderCompletedOrders();
   if(tab==="prices")renderPricesEditor();
   if(tab==="settings"){renderSettingsEditor();_brandPick={name:window.MY_PROFILE?.brandName||"SpringMoonPhoto",font:window.MY_PROFILE?.brandFont||"great-vibes"};setTimeout(()=>initColorPicker("prices",window.MY_PROFILE?.themeColor||"#C9A84C"),50)}
@@ -5373,7 +5371,9 @@ async function loadDownloadsForGalleries(){
 function renderAdminGalleries(){
   const div=document.getElementById("admin-galleries");
   if(!document.getElementById("admin-gallery-search")){
-    div.innerHTML='<input type="text" id="admin-gallery-search" class="admin-search" placeholder="🔍 Keresés név, kód vagy email alapján..." oninput="renderAdminGalleryList()">'
+    div.innerHTML='<button class="btn btn-gold" id="new-gallery-toggle" style="width:100%;margin-bottom:14px" onclick="toggleNewGalleryForm()">➕ Új galéria létrehozása</button>'
+      +'<div id="new-gallery-slot" class="hidden"></div>'
+      +'<input type="text" id="admin-gallery-search" class="admin-search" placeholder="🔍 Keresés név, kód vagy email alapján..." oninput="renderAdminGalleryList()">'
       +'<div id="admin-class-filter" class="gallery-dl-filter"></div>'
       +'<div class="gallery-dl-filter"><button class="gdf-btn active" id="gdf-all" onclick="setGalleryDlFilter(\'all\')">Összes galéria</button><button class="gdf-btn" id="gdf-nodl" onclick="setGalleryDlFilter(\'nodl\')">📭 Még nem töltötték le</button><button class="gdf-btn" id="gdf-dl" onclick="setGalleryDlFilter(\'dl\')">✅ Letöltötték</button></div>'
       +'<div id="admin-galleries-list"></div>';
@@ -5382,6 +5382,27 @@ function renderAdminGalleries(){
   // Letöltések betöltése a háttérben, majd újrarender
   loadDownloadsForGalleries().then(()=>renderAdminGalleryList());
   renderAdminGalleryList();
+}
+// Az "Új galéria" űrlap megjelenítése a Galériák fülön belül (áthelyezve a régi + Új fülről)
+function toggleNewGalleryForm(){
+  const slot=document.getElementById("new-gallery-slot");
+  const formBlock=document.getElementById("admin-new");
+  const btn=document.getElementById("new-gallery-toggle");
+  if(!slot||!formBlock)return;
+  if(slot.classList.contains("hidden")){
+    // Behúzzuk az űrlapot a slotba
+    slot.appendChild(formBlock);
+    formBlock.classList.remove("hidden");
+    slot.classList.remove("hidden");
+    btn.textContent="✖ Bezárás";
+    // Inicializálás (mint a régi + Új fül megnyitásakor)
+    uploadedPhotosNew=[];const pv=document.getElementById("photo-previews-new");if(pv)pv.innerHTML="";hide("upload-progress-new");newDiscounts=[];if(typeof renderNewDiscounts==="function")renderNewDiscounts();if(typeof initColorPicker==="function")initColorPicker("new",window.MY_PROFILE?.themeColor||"#C9A84C");
+    slot.scrollIntoView({behavior:"smooth",block:"start"});
+  }else{
+    slot.classList.add("hidden");
+    formBlock.classList.add("hidden");
+    btn.textContent="➕ Új galéria létrehozása";
+  }
 }
 let _galleryClassFilter="all";
 function renderClassFilterBar(){
@@ -5922,6 +5943,9 @@ async function createGallery(){
     document.getElementById("new-expires-at").value="";document.getElementById("new-promo-text").value="";document.getElementById("new-gallery-message").value="";
     newDiscounts=[];renderNewDiscounts();toggleGroupGallery();
     uploadedPhotosNew=[];document.getElementById("photo-previews-new").innerHTML="";hide("upload-progress-new");hide("code-box");
+    // Az űrlap becsukása, vissza a galériákhoz (a form a slotban van)
+    const slot=document.getElementById("new-gallery-slot");const formBlock=document.getElementById("admin-new");const tbtn=document.getElementById("new-gallery-toggle");
+    if(slot){slot.classList.add("hidden")}if(formBlock){formBlock.classList.add("hidden")}if(tbtn){tbtn.textContent="➕ Új galéria létrehozása"}
     renderAdmin();setAdminTab("galleries");
   }catch(e){errDiv.textContent="Hiba történt. Próbáld újra.";show("new-form-error");}
   finally{btn.disabled=false;btn.textContent="✓ Galéria létrehozása"}
