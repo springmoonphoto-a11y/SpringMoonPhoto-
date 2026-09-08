@@ -3032,21 +3032,20 @@ async function submitDownloadGate(){
 async function saveDownloaderAsClient(name,email){
   if(!currentGallery||!currentGallery.photographerId)return;
   try{
-    // Már létezik ilyen email ennél a fotósnál?
-    const snap=await db.collection("clients")
-      .where("photographerId","==",currentGallery.photographerId)
-      .where("email","==",email).get();
-    if(!snap.empty)return;// már ügyfél, nem duplikálunk
-    await db.collection("clients").add({
+    // Determinisztikus dokumentum-azonosító: fotós + email → így nem lesz duplikátum,
+    // és nincs szükség előzetes olvasásra (amit a nem bejelentkezett szülő nem tudna megtenni)
+    const safeEmail=email.toLowerCase().replace(/[^a-z0-9]/g,"_");
+    const docId="dl_"+currentGallery.photographerId+"_"+safeEmail;
+    await db.collection("clients").doc(docId).set({
       photographerId:currentGallery.photographerId,
       name:name,
-      email:email,
+      email:email.toLowerCase(),
       phone:"",
       notes:"Automatikusan hozzáadva letöltéskor – "+(currentGallery.isGroup?currentGallery.name:(currentGallery.child||""))+" galéria",
       source:"letöltés",
       children:[],
       createdAt:Date.now()
-    });
+    },{merge:true});
   }catch(e){}
 }
 
@@ -3139,8 +3138,18 @@ function setReviewStars(n){
   });
 }
 function closeReviewModal(){document.getElementById("review-modal").classList.remove("show")}
+function toggleReviewAnon(){
+  const anon=document.getElementById("review-anon");
+  const nameInp=document.getElementById("review-name");
+  if(!anon||!nameInp)return;
+  if(anon.checked){nameInp.value="";nameInp.disabled=true;nameInp.style.opacity="0.5";nameInp.placeholder="Névtelen vélemény"}
+  else{nameInp.disabled=false;nameInp.style.opacity="1";nameInp.placeholder="Neved (nem kötelező)"}
+}
 async function submitReview(){
   const text=(document.getElementById("review-text").value||"").trim();
+  const anon=document.getElementById("review-anon");
+  const isAnon=anon&&anon.checked;
+  const nameVal=isAnon?"":((document.getElementById("review-name").value||"").trim());
   if(_reviewStars===0&&!text){closeReviewModal();return}// ha semmit nem adott meg, csak zárjuk be
   const btn=document.getElementById("review-submit-btn");if(btn){btn.disabled=true;btn.textContent="Küldés…"}
   try{
@@ -3150,6 +3159,8 @@ async function submitReview(){
       galleryId:(currentGallery&&currentGallery.id)||"",
       stars:_reviewStars||null,
       text:text||"",
+      name:nameVal||"",
+      anonymous:isAnon?true:false,
       createdAt:Date.now()
     });
     try{localStorage.setItem("reviewed_"+(currentGallery&&currentGallery.id),"1")}catch(e){}
@@ -5355,7 +5366,8 @@ function renderReviews(){
     const stars=r.stars>0?('<div class="review-card-stars">'+"★".repeat(r.stars)+"☆".repeat(5-r.stars)+'</div>'):'';
     const text=r.text?('<div class="review-card-text">„'+r.text.replace(/</g,"&lt;")+'”</div>'):'<div class="review-card-text" style="color:var(--muted);font-style:normal">(Csak csillagos értékelés, szöveg nélkül)</div>';
     const date=r.createdAt?new Date(r.createdAt).toLocaleDateString("hu-HU",{year:"numeric",month:"long",day:"numeric"}):"";
-    return '<div class="review-card">'+stars+text+'<div class="review-card-meta">🔒 Névtelen · '+date+'</div></div>';
+    const who=(r.name&&!r.anonymous)?("👤 "+r.name.replace(/</g,"&lt;")):"🔒 Névtelen";
+    return '<div class="review-card">'+stars+text+'<div class="review-card-meta">'+who+' · '+date+'</div></div>';
   }).join("");
   wrap.innerHTML=summary+cards;
 }
@@ -6065,7 +6077,11 @@ if("serviceWorker" in navigator){
       <span class="rstar" data-v="5" onclick="setReviewStars(5)">★</span>
     </div>
     <textarea id="review-text" placeholder="Írj pár szót, ha szeretnél… (nem kötelező)"></textarea>
-    <div class="review-anon-note">🔒 A vélemény névtelen, nem kell nevet megadnod.</div>
+    <input id="review-name" type="text" placeholder="Neved (nem kötelező)" style="width:100%;padding:11px 14px;border:1.5px solid var(--warm);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.92rem;margin-bottom:8px;background:var(--white);color:var(--text)">
+    <label style="display:flex;align-items:center;gap:8px;justify-content:center;font-size:.82rem;color:var(--muted);margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" id="review-anon" onchange="toggleReviewAnon()" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer">
+      <span>Névtelenül szeretném véleményezni</span>
+    </label>
     <div class="review-modal-actions">
       <button onclick="closeReviewModal()">Most nem</button>
       <button class="submit" id="review-submit-btn" onclick="submitReview()">Küldés</button>
