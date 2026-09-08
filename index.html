@@ -62,6 +62,16 @@ input:focus{border-color:var(--gold);background:var(--white)}
 .error-msg{color:#c0392b;font-size:.84rem;margin-top:10px;background:#fdf2f2;padding:10px;border-radius:8px;text-align:center}
 .success-msg{color:#2e7d50;font-size:.84rem;margin-top:10px;background:#f0fdf4;padding:10px;border-radius:8px;text-align:center}
 .admin-link{margin-top:16px;text-align:center;font-size:.84rem;color:var(--muted)}
+.privacy-content{background:var(--white);border-radius:16px;padding:28px 24px;box-shadow:var(--shadow-sm);line-height:1.6}
+.privacy-content .pp-title{font-family:'Playfair Display',serif;color:var(--brown);font-size:1.7rem;margin-bottom:4px}
+.privacy-content .pp-sub{color:var(--muted);font-style:italic;margin-bottom:20px;font-size:.9rem}
+.privacy-content h2{font-family:'Playfair Display',serif;color:var(--brown);font-size:1.15rem;margin:22px 0 8px}
+.privacy-content h3{color:var(--dark);font-size:1rem;margin:14px 0 6px;font-weight:600}
+.privacy-content p{margin-bottom:12px;font-size:.92rem;color:var(--text)}
+.privacy-content ul{margin:0 0 12px 20px;padding:0}
+.privacy-content li{margin-bottom:6px;font-size:.92rem;color:var(--text)}
+.privacy-content .pp-foot{margin-top:20px;color:var(--muted);font-style:italic;font-size:.86rem}
+body.dark-mode .privacy-content{background:rgba(255,255,255,.04)}
 .admin-link button{background:none;border:none;color:var(--gold);cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif}
 .header{background:var(--white);border-bottom:1px solid var(--warm);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(92,61,46,.06)}
 .header-logo{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--brown);display:inline-flex;flex-direction:column;line-height:1.1;gap:2px}
@@ -1019,6 +1029,18 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     </div>
   </div>
   </div>
+  <div style="width:100%;text-align:center;margin-top:24px;padding-bottom:10px"><button onclick="showPrivacyPolicy()" style="background:none;border:none;color:var(--muted);cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;font-size:.8rem">Adatkezelési tájékoztató</button></div>
+</div>
+<div id="page-privacy" class="hidden">
+  <div class="header">
+    <div class="header-logo">SpringMoon<span>Gallery</span><div class="header-logo-sub"><span class="hls-byrow"><span class="hls-line"></span><span class="hls-by">&#9670; BY &#9670;</span><span class="hls-line r"></span></span><span class="hls-script">SpringMoonPhoto</span></div></div>
+    <div class="header-right">
+      <button class="logout-btn" onclick="history.length>1?history.back():showPage('page-login')" id="privacy-back-btn">← Vissza</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <div id="privacy-content" class="privacy-content"></div>
+  </div>
 </div>
 <div id="page-booking" class="hidden">
   <div class="header">
@@ -1581,7 +1603,11 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="review-customer" class="review-section"></div>
     <div id="review-items" class="review-section"></div>
     <div id="review-totals" class="review-section"></div>
-    <div style="display:flex;gap:9px;margin-top:18px">
+    <label id="gdpr-consent-box" style="display:flex;align-items:flex-start;gap:9px;margin-top:16px;padding:12px;background:var(--cream);border-radius:10px;cursor:pointer;font-size:.85rem;line-height:1.5">
+      <input type="checkbox" id="gdpr-consent" style="margin-top:2px;width:18px;height:18px;accent-color:var(--gold);flex-shrink:0" onchange="document.getElementById('gdpr-consent-box').style.borderColor='transparent'">
+      <span>Elolvastam és elfogadom az <button type="button" onclick="event.preventDefault();showPrivacyPolicy()" style="background:none;border:none;color:var(--gold);text-decoration:underline;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:0">adatkezelési tájékoztatót</button>, és hozzájárulok adataim kezeléséhez a rendelés teljesítése céljából.</span>
+    </label>
+    <div style="display:flex;gap:9px;margin-top:14px">
       <button class="btn btn-outline" onclick="closeOrderReview()" style="flex:1;width:auto">← Módosítok</button>
       <button class="btn btn-gold" id="review-confirm-btn" onclick="confirmOrder()" style="flex:2;width:auto">✓ Megerősítem és elküldöm</button>
     </div>
@@ -2191,7 +2217,102 @@ function toggleTooltip(btn){const w=btn.parentElement;document.querySelectorAll(
 document.addEventListener("click",function(e){if(!e.target.closest(".tt-wrap"))document.querySelectorAll(".tt-wrap.active").forEach(w=>w.classList.remove("active"))})
 function show(id){document.getElementById(id).classList.remove("hidden")}
 function hide(id){document.getElementById(id).classList.add("hidden")}
-function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail","page-booking","page-inquiry"].forEach(p=>hide(p));const el=document.getElementById(id);el.classList.remove("hidden");void el.offsetWidth;window.scrollTo({top:0,behavior:"smooth"})}
+function showPrivacyPolicy(){
+  const c=document.getElementById("privacy-content");
+  if(c&&!c.dataset.loaded){c.innerHTML=_privacyPolicyHTML();c.dataset.loaded="1"}
+  showPage("page-privacy");
+}
+function _privacyPolicyHTML(){
+  return `
+  <h1 class="pp-title">Adatkezelési tájékoztató</h1>
+  <p class="pp-sub">SpringMoonPhoto – online fotógaléria és fotószolgáltatás</p>
+
+  <h2>1. Bevezetés</h2>
+  <p>Bukta Anita egyéni vállalkozó (a továbbiakban: Adatkezelő), a SpringMoonPhoto néven végzett fotós tevékenysége és az ehhez kapcsolódó online galéria-szolgáltatás működtetése során felelősséggel kezeli az ügyfelei, megrendelői és a fényképeken szereplő személyek adatait.</p>
+  <p>Minden személyes adat kezelése az Európai Parlament és a Tanács (EU) 2016/679 rendeletével (GDPR), valamint az információs önrendelkezési jogról és az információszabadságról szóló 2011. évi CXII. törvénnyel összhangban történik. Az Adatkezelő magára nézve kötelezőnek ismeri el jelen tájékoztató tartalmát.</p>
+
+  <h2>2. Az Adatkezelő adatai</h2>
+  <p><strong>Név:</strong> Bukta Anita egyéni vállalkozó<br>
+  <strong>Márkanév:</strong> SpringMoonPhoto<br>
+  <strong>Székhely:</strong> 3377 Szihalom, Gárdonyi Géza út 22.<br>
+  <strong>Nyilvántartási szám:</strong> 59590819<br>
+  <strong>Adószám:</strong> 90401950-1-30<br>
+  <strong>E-mail:</strong> springmoonphoto@gmail.com<br>
+  <strong>Telefon:</strong> +36 20 292 0749<br>
+  <strong>Weboldal:</strong> spring-moon-foto.vercel.app</p>
+
+  <h2>3. Adatfeldolgozók (a szolgáltatás technikai háttere)</h2>
+  <p>Az Adatkezelő a szolgáltatás működtetéséhez az alábbi külső szolgáltatók rendszereit veszi igénybe. Ezek a szolgáltatók az Adatkezelő megbízásából, adatfeldolgozóként járnak el:</p>
+  <ul>
+    <li><strong>Vercel Inc.</strong> – a weboldal (online galéria) működtetése és megjelenítése.</li>
+    <li><strong>Google Firebase (Google Ireland Ltd.)</strong> – a galériákhoz tartozó adatok (nevek, e-mail címek, rendelések, üzenetek) tárolása.</li>
+    <li><strong>Cloudinary Ltd.</strong> – a feltöltött fényképek tárolása és megjelenítése.</li>
+    <li><strong>EmailJS</strong> – rendelési és galéria-értesítő e-mailek küldése.</li>
+  </ul>
+
+  <h2>4. A kezelt adatok köre, célja és jogalapja</h2>
+  <h3>4.1. Fénykép, mint személyes adat</h3>
+  <p>A GDPR 4. cikk 1. pontja értelmében a természetes személyről készített fénykép személyes adatnak minősül, így az ilyen fényképeket kezelő fotós szolgáltató adatkezelőnek minősül.</p>
+  <p><strong>Kezelt adat:</strong> az érintettekről (gyermekekről, felnőttekről) készített fényképek.<br>
+  <strong>Az adatkezelés célja:</strong> a megrendelt fotószolgáltatás teljesítése, a fényképek elkészítése, szerkesztése, a megrendelő számára történő átadása.<br>
+  <strong>Az adatkezelés jogalapja:</strong> az érintett – gyermek esetén a szülő/gondviselő – hozzájárulása (GDPR 6. cikk (1) a) pont), illetve a megbízási szerződés teljesítése (GDPR 6. cikk (1) b) pont).</p>
+  <h3>4.2. Az online galériához megadott adatok</h3>
+  <p>Az online galériába való belépéshez és a rendelés leadásához az érintett a következő adatokat adhatja meg: megrendelő / gyermek neve, e-mail cím (amennyiben megadásra kerül), telefonszám (opcionális), valamint a rendeléshez kapcsolódó adatok (kiválasztott képek, termékek).</p>
+  <p><strong>Az adatkezelés célja:</strong> a galériához való hozzáférés biztosítása, a rendelés feldolgozása és teljesítése, kapcsolattartás.<br>
+  <strong>Az adatkezelés jogalapja:</strong> az érintett hozzájárulása és a szerződés teljesítése.</p>
+  <h3>4.3. Ajánlatkérés</h3>
+  <p>Az ajánlatkérő űrlapon megadott név, e-mail cím és telefonszám kizárólag az ajánlat elkészítéséhez és a kapcsolatfelvételhez kerül felhasználásra. Amennyiben nem jön létre megbízás, ezek az adatok nem kerülnek további felhasználásra.</p>
+
+  <h2>5. Iskolai, óvodai és csoportos fotózás</h2>
+  <p>Csoportos (iskolai, óvodai) fotózás esetén a fotózást megrendelő intézmény (megbízó) kötelezettsége, hogy a résztvevőket – gyermekek esetén a szülőket, gondviselőket – előzetesen tájékoztassa arról, hogy a rendezvényen fotós szolgáltató dolgozik, és róluk fényképfelvétel készül, amely a belépési kóddal védett online galériában elérhetővé válik.</p>
+  <p>Az elkészült fényképek megjelenéséhez gyermekek esetén a szülő, gondviselő hozzájárulása szükséges. Amennyiben valamely érintett vagy a gyermek szülője a fényképfelvétel elkészülte után nem járul hozzá a megjelenéshez, ezt írásban jelezheti az Adatkezelő fenti elérhetőségein, és az Adatkezelő a kérdéses fényképet haladéktalanul eltávolítja az online felületről.</p>
+
+  <h2>6. Az online galéria működése és biztonsága</h2>
+  <p>Az elkészült fényképek egyéni vagy csoportos, belépési kóddal védett galériában érhetők el. A böngészés során a fényképek csökkentett felbontásban, vízjellel ellátva jelennek meg. A vízjel nélküli, teljes minőségű fényképeket az érintett a megrendelés teljesítését (kifizetését) követően, letöltés útján kapja meg.</p>
+  <p>A galéria elérhetősége (link és belépési kód) kizárólag a megrendelőnek kerül átadásra. A belépési kód, illetve a galéria elérhetőségének a megrendelő általi további megosztásáért az Adatkezelő nem vállal felelősséget. Amennyiben a galéria elérhetősége illetéktelen kezekbe kerül, kérjük ezt haladéktalanul jelezni.</p>
+
+  <h2>7. Az adatok tárolásának ideje</h2>
+  <ul>
+    <li>Az online galéria a fotózást követően 3 hónapig érhető el, ezt követően az Adatkezelő a galériát lezárhatja vagy törölheti.</li>
+    <li>Az elkészült fényképeket az Adatkezelő adatmentés céljából, biztonságos tárolón a fotózást követően legfeljebb 1 évig őrzi meg, ezt követően törli.</li>
+    <li>A megrendeléshez, számlázáshoz kapcsolódó adatokat az Adatkezelő a mindenkori számviteli és adójogszabályokban előírt ideig kötelezően megőrzi.</li>
+  </ul>
+
+  <h2>8. Adattovábbítás harmadik félnek</h2>
+  <p>Az Adatkezelő a személyes adatokat harmadik félnek nem adja át, kivéve a jelen tájékoztató 3. pontjában megjelölt adatfeldolgozókat, valamint a jogszabályban meghatározott eseteket (pl. hatósági megkeresés).</p>
+
+  <h2>9. Közösségi média</h2>
+  <p>Amennyiben az Adatkezelő a fényképeket referenciaként közösségi oldalain (pl. Facebook, Instagram) közzéteszi, azt kizárólag az érintett – gyermek esetén a szülő, gondviselő – kifejezett hozzájárulásával teszi. A hozzájárulás bármikor visszavonható a fenti elérhetőségeken.</p>
+
+  <h2>10. Az érintett jogai</h2>
+  <p>Az érintett a fenti e-mail elérhetőségen keresztül bármikor élhet az alábbi jogaival, amelyekre az Adatkezelő legfeljebb 15 napon belül válaszol:</p>
+  <ul>
+    <li>Tájékoztatáshoz való jog</li>
+    <li>Helyesbítéshez való jog</li>
+    <li>Törléshez való jog</li>
+    <li>Az adatkezelés korlátozásához (zároláshoz) való jog</li>
+    <li>Tiltakozáshoz való jog</li>
+    <li>A hozzájárulás visszavonásának joga</li>
+  </ul>
+
+  <h2>11. Jogorvoslati lehetőség</h2>
+  <p>Amennyiben az érintett úgy ítéli meg, hogy az adatkezelés jogellenes, elsőként az Adatkezelőt kérjük megkeresni a fenti elérhetőségeken. Ezen túl az érintett panasszal fordulhat a felügyeleti hatósághoz:</p>
+  <p><strong>Nemzeti Adatvédelmi és Információszabadság Hatóság (NAIH)</strong><br>
+  Cím: 1055 Budapest, Falk Miksa utca 9-11.<br>
+  Postacím: 1363 Budapest, Pf.: 9.<br>
+  Telefon: +36 (1) 391-1400<br>
+  E-mail: ugyfelszolgalat@naih.hu<br>
+  Weboldal: www.naih.hu</p>
+
+  <h2>12. Sütik (cookie-k)</h2>
+  <p>Az online galéria a működéséhez szükséges technikai adatokat tárolhat a látogató eszközén (pl. a bejelentkezési állapot, a kedvencnek jelölt képek megjegyzése). Ezek az adatok a szolgáltatás használatát segítik, és önmagukban nem alkalmasak a látogató személyének azonosítására.</p>
+
+  <h2>13. A tájékoztató módosítása</h2>
+  <p>Az Adatkezelő fenntartja a jogot jelen tájékoztató módosítására. A módosításokról az érintetteket a weboldalon keresztül tájékoztatja.</p>
+  <p class="pp-foot">SpringMoonPhoto – Bukta Anita e.v.</p>
+  `;
+}
+function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail","page-booking","page-inquiry","page-privacy"].forEach(p=>hide(p));const el=document.getElementById(id);el.classList.remove("hidden");void el.offsetWidth;window.scrollTo({top:0,behavior:"smooth"})}
 function generateCode(name){const base=name.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"").slice(0,6);return base+Math.floor(1000+Math.random()*9000)}
 function getStatusBadge(status){const s=status||"pending";return '<span class="status-badge '+STATUS_CLASSES[s]+'">'+STATUS_LABELS[s]+'</span>'}
 function saveCart(){try{localStorage.setItem("fotolux_cart_"+(currentGallery?currentGallery.id:""),JSON.stringify(cart))}catch(e){}}
@@ -3503,12 +3624,19 @@ function showOrderReview(){
   if(activeDiscount){const discAmount=Math.round(total*activeDiscount.percent/100);total=total-discAmount;totalHtml+='<div class="review-total-row review-discount"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span>-'+fmt(discAmount)+'</span></div>'}
   totalHtml+='<div class="review-total-row review-grand"><span>Fizetendő összesen</span><span>'+fmt(total)+'</span></div>';
   document.getElementById("review-totals").innerHTML=totalHtml;
+  const gdpr=document.getElementById("gdpr-consent");if(gdpr){gdpr.checked=false;document.getElementById("gdpr-consent-box").style.border="none"}
   document.getElementById("order-review-modal").classList.remove("hidden");
 }
 
 function closeOrderReview(e){if(e&&e.target!==document.getElementById("order-review-modal"))return;document.getElementById("order-review-modal").classList.add("hidden")}
 
 async function confirmOrder(){
+  const gdpr=document.getElementById("gdpr-consent");
+  if(gdpr&&!gdpr.checked){
+    document.getElementById("gdpr-consent-box").style.border="1.5px solid #c0392b";
+    document.getElementById("gdpr-consent-box").scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
   const cbtn=document.getElementById("review-confirm-btn");
   cbtn.disabled=true;cbtn.classList.add("btn-loading");cbtn.textContent="Küldés...";
   try{
@@ -3532,7 +3660,7 @@ async function placeOrder(){
     const combo=_calcComboDiscount();
     if(combo.amount>0)total-=combo.amount;
     if(activeDiscount){const discAmount=Math.round(total*activeDiscount.percent/100);total=total-discAmount;discountInfo={code:activeDiscount.code,percent:activeDiscount.percent,amount:discAmount}}
-    await db.collection("orders").add({child:orderChild,parentName,parentEmail:orderEmail,phone,discount:discountInfo,comboDiscount:combo.amount>0?{count:combo.count,amount:combo.amount}:null,subtotal,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",socialConsent,fromGroupGallery:currentGallery.isGroup||false,photographerId:currentGallery.photographerId||null,photographerName:currentGallery.photographerName||null,items:cart.map(i=>({photoId:i.photo.id||null,photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,giftId:i.giftId||null,giftLabel:i.giftLabel||null,mugText:i.mugText||null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
+    await db.collection("orders").add({child:orderChild,parentName,parentEmail:orderEmail,phone,discount:discountInfo,comboDiscount:combo.amount>0?{count:combo.count,amount:combo.amount}:null,subtotal,galleryId:currentGallery.id,date:new Date().toLocaleString("hu-HU"),createdAt:Date.now(),total,status:"pending",socialConsent,gdprConsent:true,gdprConsentAt:Date.now(),fromGroupGallery:currentGallery.isGroup||false,photographerId:currentGallery.photographerId||null,photographerName:currentGallery.photographerName||null,items:cart.map(i=>({photoId:i.photo.id||null,photoName:i.photo.name,photoUrl:i.photo.url,type:i.type,sizeLabel:i.size?i.size.label:null,giftId:i.giftId||null,giftLabel:i.giftLabel||null,mugText:i.mugText||null,qty:i.qty,unitPrice:i.unitPrice,totalPrice:i.totalPrice}))});
     sendNewOrderEmail({photographerId:currentGallery.photographerId,child:orderChild,parentName,parentEmail:orderEmail,phone,total,date:new Date().toLocaleString("hu-HU"),items:cart.map(i=>({photoName:i.photo.name,type:i.type,sizeLabel:i.size?i.size.label:null,giftLabel:i.giftLabel,qty:i.qty,totalPrice:i.totalPrice}))}).catch(e=>{});
     document.getElementById("success-child-name").textContent=(currentGallery.isGroup?orderChild:currentGallery.child)+" képei";
     document.getElementById("success-total").textContent=fmt(total);
@@ -5242,11 +5370,29 @@ function renderAdminGalleries(){
   const div=document.getElementById("admin-galleries");
   if(!document.getElementById("admin-gallery-search")){
     div.innerHTML='<input type="text" id="admin-gallery-search" class="admin-search" placeholder="🔍 Keresés név, kód vagy email alapján..." oninput="renderAdminGalleryList()">'
+      +'<div id="admin-class-filter" class="gallery-dl-filter"></div>'
       +'<div class="gallery-dl-filter"><button class="gdf-btn active" id="gdf-all" onclick="setGalleryDlFilter(\'all\')">Összes galéria</button><button class="gdf-btn" id="gdf-nodl" onclick="setGalleryDlFilter(\'nodl\')">📭 Még nem töltötték le</button><button class="gdf-btn" id="gdf-dl" onclick="setGalleryDlFilter(\'dl\')">✅ Letöltötték</button></div>'
       +'<div id="admin-galleries-list"></div>';
   }
+  renderClassFilterBar();
   // Letöltések betöltése a háttérben, majd újrarender
   loadDownloadsForGalleries().then(()=>renderAdminGalleryList());
+  renderAdminGalleryList();
+}
+let _galleryClassFilter="all";
+function renderClassFilterBar(){
+  const bar=document.getElementById("admin-class-filter");if(!bar)return;
+  // Összegyűjtjük az osztályokat a bulkClass mezőkből
+  const classes=[...new Set(galleries.map(g=>g.bulkClass).filter(c=>c&&c.trim()))].sort();
+  if(classes.length===0){bar.style.display="none";return}
+  bar.style.display="flex";
+  let html='<button class="gdf-btn'+(_galleryClassFilter==="all"?" active":"")+'" onclick="setGalleryClassFilter(\'all\')">Összes osztály</button>';
+  html+=classes.map(c=>'<button class="gdf-btn'+(_galleryClassFilter===c?" active":"")+'" onclick="setGalleryClassFilter(\''+c.replace(/'/g,"\\'")+'\')">🎓 '+c+'</button>').join("");
+  bar.innerHTML=html;
+}
+function setGalleryClassFilter(c){
+  _galleryClassFilter=c;
+  renderClassFilterBar();
   renderAdminGalleryList();
 }
 function setGalleryDlFilter(f){
@@ -5262,6 +5408,8 @@ function renderAdminGalleryList(){
   // Letöltés-szűrő
   if(_galleryDlFilter==="nodl")filtered=filtered.filter(g=>!_downloadsByGallery[g.id]);
   else if(_galleryDlFilter==="dl")filtered=filtered.filter(g=>_downloadsByGallery[g.id]);
+  // Osztály-szűrő
+  if(_galleryClassFilter&&_galleryClassFilter!=="all")filtered=filtered.filter(g=>g.bulkClass===_galleryClassFilter);
   if(galleries.length===0){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">📁</span><div class="empty-state-title">Még nincs galériád</div><div class="empty-state-text">Az <strong>+ Új</strong> fülön hozhatsz létre új galériát a szülők számára.</div></div>';return}
   if(filtered.length===0){
     let emptyTxt=q?'Próbálj más kifejezést. Te kerested: „'+q+'"':(_galleryDlFilter==="nodl"?'Minden galériából letöltöttek már! 🎉':'Még egyik galériából sem töltöttek le.');
@@ -5425,6 +5573,34 @@ async function dedupePhotos(){
     if(typeof showToast==="function")showToast("✓ "+dupeCount+" duplikátum eltávolítva");
   }catch(e){alert("Hiba: "+e.message)}
 }
+// Nyers képek átmásolása a Letöltések mappába (kijelölt vagy összes)
+async function copyToDownloads(onlySelected){
+  const rawPhotos=currentDetailGallery.photos||[];
+  let source=rawPhotos;
+  if(onlySelected)source=rawPhotos.filter(p=>_selectedPhotos.has(p.name));
+  if(source.length===0){alert("Nincs átmásolható kép.");return}
+  const existing=currentDetailGallery.downloadPhotos||[];
+  const existingNames=new Set(existing.map(p=>p.name));
+  // Csak azokat másoljuk, amik még nincsenek a Letöltésekben (név alapján)
+  const toAdd=source.filter(p=>!existingNames.has(p.name)).map((p,i)=>({id:"d"+Date.now()+i,url:p.url,name:p.name}));
+  const skipped=source.length-toAdd.length;
+  if(toAdd.length===0){alert("Ezek a képek már mind a Letöltések mappában vannak.");return}
+  let confirmMsg=toAdd.length+" kép átmásolása a Letöltések mappába. A galéria ezzel automatikusan letölthetővé válik, a szülők vízjel nélkül tölthetik.";
+  if(skipped>0)confirmMsg+="\n\n("+skipped+" kép már bent van, azokat kihagyom.)";
+  confirmMsg+="\n\nFolytatod?";
+  if(!confirm(confirmMsg))return;
+  const merged=[...existing,...toAdd];
+  try{
+    await db.collection("galleries").doc(currentDetailGallery.id).update({downloadPhotos:merged,downloadEnabled:true});
+    currentDetailGallery.downloadPhotos=merged;currentDetailGallery.downloadEnabled=true;
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.downloadPhotos=merged;g.downloadEnabled=true}
+    _selectedPhotos.clear();
+    renderDetailPhotos();
+    if(typeof showToast==="function")showToast("✓ "+toAdd.length+" kép átmásolva a Letöltésekbe");
+    alert("✓ Kész! "+toAdd.length+" kép a Letöltések mappába került. A galéria mostantól letölthető.");
+  }catch(e){alert("Hiba történt: "+e.message)}
+}
+
 async function deleteSelectedPhotos(){
   if(_selectedPhotos.size===0)return;
   const field=_currentPhotoField();
@@ -5503,13 +5679,16 @@ function renderDetailPhotos(){
   }
   // Tömeges sáv: letöltési nézetben MINDIG elérhető (gyakran kell tömegesen törölni), nyersben csak szűrt nézetben
   let bulkBar="";
-  if(isDownloadTab||_photoFilter!=="all"){
-    bulkBar='<div class="photo-bulk-bar">';
-    bulkBar+='<button class="pb-btn" onclick="selectAllShown()">☑️ Összes kijelölése</button>';
-    bulkBar+='<button class="pb-btn danger" id="pb-delete-btn" onclick="deleteSelectedPhotos()"'+(_selectedPhotos.size===0?" disabled":"")+'>🗑️ Kijelöltek törlése ('+_selectedPhotos.size+')</button>';
-    if(_selectedPhotos.size>0)bulkBar+='<button class="pb-btn" onclick="clearPhotoSelection()">Mégsem</button>';
-    bulkBar+='</div>';
+  bulkBar='<div class="photo-bulk-bar">';
+  bulkBar+='<button class="pb-btn" onclick="selectAllShown()">☑️ Összes kijelölése</button>';
+  bulkBar+='<button class="pb-btn danger" id="pb-delete-btn" onclick="deleteSelectedPhotos()"'+(_selectedPhotos.size===0?" disabled":"")+'>🗑️ Kijelöltek törlése ('+_selectedPhotos.size+')</button>';
+  if(_selectedPhotos.size>0)bulkBar+='<button class="pb-btn" onclick="clearPhotoSelection()">Mégsem</button>';
+  // A Nyers képek fülön: átmásolás a Letöltésekbe (kijelölt vagy összes)
+  if(!isDownloadTab&&photos.length>0){
+    if(_selectedPhotos.size>0)bulkBar+='<button class="pb-btn" style="border-color:var(--gold);color:#7a5500;font-weight:600" onclick="copyToDownloads(true)">📥 Kijelöltek a Letöltésekbe ('+_selectedPhotos.size+')</button>';
+    bulkBar+='<button class="pb-btn" style="border-color:var(--gold);color:#7a5500;font-weight:600" onclick="copyToDownloads(false)">📥 Összes átmásolása a Letöltésekbe</button>';
   }
+  bulkBar+='</div>';
   // Szűrés (csak nyers nézetben van szűrő)
   let shown=photos.map((p,i)=>({p,i})).filter(({p})=>{
     if(isDownloadTab)return true;
