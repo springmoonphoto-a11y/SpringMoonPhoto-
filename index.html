@@ -5399,6 +5399,12 @@ function setAdminTab(tab){
 
 // === ADMIN KÉP-NAGYÍTÓ (rendelt képekhez) ===
 let _adminImgList=[],_adminImgIdx=0;
+let _detailShownPhotos=[];// a galéria-részletben jelenleg (szűrve) látszó képek, a nagyításhoz
+function openAdminImgFromGrid(shownIdx){
+  const list=_detailShownPhotos;
+  if(!list||!list[shownIdx])return;
+  openAdminImg(list[shownIdx].url,list[shownIdx].name,encodeURIComponent(JSON.stringify(list)));
+}
 // Hozzájárulás badge a közzétételhez
 function consentBadge(o){
   if(o.socialConsent==="yes")return '<div class="order-card-meta" style="margin-top:4px"><span style="display:inline-block;padding:3px 10px;border-radius:99px;background:#d4f0c0;color:#2a5a2a;font-size:.74rem;font-weight:600">📸 Közzétételhez hozzájárult</span></div>';
@@ -5831,7 +5837,7 @@ function renderDetailPhotos(){
     grid.innerHTML=filterBar+bulkBar+'<div class="empty-state" style="grid-column:1/-1"><span class="empty-state-icon">🔍</span><div class="empty-state-text">Nincs ilyen kép.</div></div>';
     return;
   }
-  grid.innerHTML=filterBar+bulkBar+shown.map(({p,i})=>{
+  grid.innerHTML=filterBar+bulkBar+shown.map(({p,i},shownIdx)=>{
     const ord=orderedMap[p.name];
     const isSel=_selectedPhotos.has(p.name);
     let badge="";
@@ -5843,8 +5849,10 @@ function renderDetailPhotos(){
     const safeName=(p.name||"").replace(/"/g,'&quot;');
     const favMark=(_clientFavIds&&_clientFavIds.indexOf(p.id)>=0)?'<div class="fav-badge" title="Az ügyfél kedvencnek jelölte">❤️</div>':'';
     const jsName=(p.name||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'");
-    return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy">'+badge+favMark+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div></div>';
+    return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy" style="cursor:zoom-in" onclick="openAdminImgFromGrid('+shownIdx+')">'+badge+favMark+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="event.stopPropagation();togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="event.stopPropagation();document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="event.stopPropagation();deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div></div>';
   }).join("");
+  // A jelenleg szűrve látszó képek listája a nagyító lapozásához
+  _detailShownPhotos=shown.map(({p})=>({url:p.url,name:p.name}));
   updateBulkBar();
 }
 
