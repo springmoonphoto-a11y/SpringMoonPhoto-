@@ -4994,7 +4994,13 @@ function notifyDownloadReady(){
   body+="Örömmel értesítelek, hogy az elkészült, megszerkesztett képek elérhetők és letölthetők az online galériában.\n\n";
   body+="Belépés:\n1. Nyisd meg: "+url+"\n2. Add meg a kódot: "+code+"\n\n";
   body+="Belépés után a „📥 Letölthető\" fülön találod a megrendelt képeidet, amelyeket vízjel nélkül, eredeti minőségben letölthetsz – egyesével vagy egyben is.\n\n";
+  body+="💡 Ha a megrendelteken felül további képeket is szeretnél, kedvezményes áron, 1.500 Ft/db áron tudod megvásárolni őket. Ha ezt szeretnéd, válaszd ki, mely képeket kérnéd, és utald át a kiválasztott képek összegét az alábbi számlaszámra, a névre és a galéria kódjára hivatkozva:\n\n";
+  body+="Kedvezményezett neve: Bukta Anita\n";
+  body+="Számlaszám: 11773391-00491127-00000000\n";
+  body+="Közlemény: "+(childName||"a galéria neve")+"\n\n";
+  body+="Az utalás beérkezése után a kiválasztott extra képeket is feltöltöm a letölthetők közé.\n\n";
   body+="Ha bármi kérdésed lenne, írj nyugodtan!\n\nSzeretettel,\n"+brand;
+
   const subject=childName+" képei letölthetők · "+brand;
   _activeContactData={type:"email",to:email,subject,body,name:childName||"Megrendelő"};
   showContactModal();
@@ -5069,7 +5075,10 @@ function closeContactModal(){
 function openInGmail(){
   _syncContactModalEdits();
   const d=_activeContactData;if(!d||d.type!=="email")return;
-  const url="https://mail.google.com/mail/?view=cm&fs=1&to="+encodeURIComponent(d.to)+"&su="+encodeURIComponent(d.subject)+"&body="+encodeURIComponent(d.body);
+  // A springmoonphoto@gmail.com fiókot kérjük konkrétan, hogy ne a böngészőben épp
+  // aktív (esetleg másik) Google-fiókból nyisson meg levelet
+  const myEmail="springmoonphoto@gmail.com";
+  const url="https://mail.google.com/mail/u/"+encodeURIComponent(myEmail)+"/?view=cm&fs=1&to="+encodeURIComponent(d.to)+"&su="+encodeURIComponent(d.subject)+"&body="+encodeURIComponent(d.body);
   window.open(url,"_blank","noopener");
   closeContactModal();
 }
