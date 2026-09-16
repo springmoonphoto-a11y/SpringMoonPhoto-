@@ -5030,8 +5030,8 @@ function showContactModal(){
   if(d.type==="email"){
     html+='<h3>✉️ Email küldése — '+d.name+'</h3>';
     html+='<div class="contact-modal-field"><div class="contact-modal-label">Címzett</div><div class="contact-modal-value">'+d.to+'</div></div>';
-    html+='<div class="contact-modal-field"><div class="contact-modal-label">Tárgy</div><div class="contact-modal-value">'+d.subject+'</div></div>';
-    html+='<div class="contact-modal-field"><div class="contact-modal-label">Üzenet</div><div class="contact-modal-value">'+d.body+'</div></div>';
+    html+='<div class="contact-modal-field"><div class="contact-modal-label">Tárgy <span style="font-weight:400;color:var(--muted)">(szerkeszthető)</span></div><input id="contact-modal-subject" type="text" value="'+d.subject.replace(/"/g,"&quot;")+'" style="width:100%;padding:10px 12px;border:1.5px solid var(--warm);border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.92rem;background:var(--white);color:var(--text)"></div>';
+    html+='<div class="contact-modal-field"><div class="contact-modal-label">Üzenet <span style="font-weight:400;color:var(--muted)">(szerkeszthető)</span></div><textarea id="contact-modal-body" rows="12" style="width:100%;padding:10px 12px;border:1.5px solid var(--warm);border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.9rem;line-height:1.5;background:var(--white);color:var(--text);resize:vertical">'+d.body+'</textarea></div>';
     html+='<div class="contact-modal-actions">';
     html+='<button class="primary" onclick="openInGmail()">📧 Megnyitás Gmail-ben (új fülön)</button>';
     html+='<button onclick="openInDefaultMail()">✉️ Megnyitás email klienssel</button>';
@@ -5040,7 +5040,7 @@ function showContactModal(){
   }else if(d.type==="sms"){
     html+='<h3>💬 SMS üzenet — '+d.name+'</h3>';
     html+='<div class="contact-modal-field"><div class="contact-modal-label">Telefonszám</div><div class="contact-modal-value">'+d.to+'</div></div>';
-    html+='<div class="contact-modal-field"><div class="contact-modal-label">Üzenet</div><div class="contact-modal-value">'+d.body+'</div></div>';
+    html+='<div class="contact-modal-field"><div class="contact-modal-label">Üzenet <span style="font-weight:400;color:var(--muted)">(szerkeszthető)</span></div><textarea id="contact-modal-body" rows="8" style="width:100%;padding:10px 12px;border:1.5px solid var(--warm);border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.9rem;line-height:1.5;background:var(--white);color:var(--text);resize:vertical">'+d.body+'</textarea></div>';
     html+='<div class="contact-modal-actions">';
     html+='<button class="primary" onclick="openInSmsApp()">💬 SMS app megnyitása (mobilon működik)</button>';
     html+='<button onclick="copySmsContent()">📋 Üzenet másolása vágólapra</button>';
@@ -5051,6 +5051,15 @@ function showContactModal(){
   modal.classList.add("show");
 }
 
+// A módosított tárgy/szöveg visszaírása a küldés előtt (az esetleges szerkesztést megtartva)
+function _syncContactModalEdits(){
+  const d=_activeContactData;if(!d)return;
+  const subjEl=document.getElementById("contact-modal-subject");
+  const bodyEl=document.getElementById("contact-modal-body");
+  if(subjEl)d.subject=subjEl.value;
+  if(bodyEl)d.body=bodyEl.value;
+}
+
 function closeContactModal(){
   const modal=document.getElementById("contact-modal");
   if(modal)modal.classList.remove("show");
@@ -5058,6 +5067,7 @@ function closeContactModal(){
 }
 
 function openInGmail(){
+  _syncContactModalEdits();
   const d=_activeContactData;if(!d||d.type!=="email")return;
   const url="https://mail.google.com/mail/?view=cm&fs=1&to="+encodeURIComponent(d.to)+"&su="+encodeURIComponent(d.subject)+"&body="+encodeURIComponent(d.body);
   window.open(url,"_blank","noopener");
@@ -5065,6 +5075,7 @@ function openInGmail(){
 }
 
 function openInDefaultMail(){
+  _syncContactModalEdits();
   const d=_activeContactData;if(!d||d.type!=="email")return;
   const url="mailto:"+d.to+"?subject="+encodeURIComponent(d.subject)+"&body="+encodeURIComponent(d.body);
   // Anchor click — megbízhatóbb, mint a window.location.href
@@ -5073,6 +5084,7 @@ function openInDefaultMail(){
 }
 
 function openInSmsApp(){
+  _syncContactModalEdits();
   const d=_activeContactData;if(!d||d.type!=="sms")return;
   const url="sms:"+d.to+"?body="+encodeURIComponent(d.body);
   const a=document.createElement("a");a.href=url;document.body.appendChild(a);a.click();document.body.removeChild(a);
@@ -5085,6 +5097,7 @@ function showToast(msg){
 }
 
 async function copyEmailContent(){
+  _syncContactModalEdits();
   const d=_activeContactData;if(!d)return;
   const text="Címzett: "+d.to+"\n\nTárgy: "+d.subject+"\n\n"+d.body;
   try{
@@ -5095,6 +5108,7 @@ async function copyEmailContent(){
 }
 
 async function copySmsContent(){
+  _syncContactModalEdits();
   const d=_activeContactData;if(!d)return;
   const text=d.body;
   try{
