@@ -4152,7 +4152,8 @@ function renderReminders(){
 function renderClientsList(){
   const wrap=document.getElementById("admin-clients");if(!wrap)return;
   let html='<div class="client-search-bar"><input id="client-search" type="text" placeholder="Keresés név, email, telefon, intézmény, gyermek..." value="'+(_clientSearch||"").replace(/"/g,'&quot;')+'" oninput="onClientSearchChange(this.value)"></div>';
-  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px"><button class="btn" onclick="showClientForm()">+ Új ügyfél</button><button class="btn btn-outline" id="sync-bookings-btn" onclick="manualSyncBookings()">🔄 Foglalások szink.</button></div>';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><button class="btn" onclick="showClientForm()">+ Új ügyfél</button><button class="btn btn-outline" id="sync-bookings-btn" onclick="manualSyncBookings()">🔄 Foglalások szink.</button></div>';
+  html+='<button class="btn btn-outline" id="sync-galleries-btn" style="width:100%;margin-bottom:14px" onclick="manualSyncGalleries()">🔄 Galériák szinkronizálása ügyfelekkel</button>';
   html+='<div id="client-cards-list"></div>';
   wrap.innerHTML=html;
   renderClientCards();
@@ -4373,6 +4374,50 @@ async function manualSyncBookings(){
   else if(result.created>0)msg="✓ "+result.created+" új ügyfél foglalásból";
   else if(result.found>0)msg="✓ Minden foglalás már szinkronban ("+result.found+" foglalás már ügyfél)";
   else msg="ℹ️ Nincs szinkronizálható foglalás";
+  if(typeof showToast==="function")showToast(msg);else alert(msg);
+  renderClientsList();
+}
+
+// Galériák ügyfélként való importálása (azoknál, ahol van email cím)
+async function autoImportGalleriesAsClients(){
+  if(!currentUser)return{created:0,found:0,error:0};
+  let createdCount=0,foundCount=0,errorCount=0,lastError=null;
+  for(const g of galleries){
+    if(g.isGroup)continue;// csoportos galériánál nincs egyéni email
+    if(!g.child||!g.parentEmail)continue;// email nélküli (pl. iskolai) galériát nem tudunk párosítani
+    const gEmail=_normalizeEmail(g.parentEmail);
+    if(!gEmail)continue;
+    const existing=clients.find(c=>_normalizeEmail(c.email)===gEmail&&gEmail);
+    if(existing){foundCount++;continue}
+    try{
+      const cdata={
+        photographerId:currentUser.uid,
+        name:g.child,email:g.parentEmail||"",phone:"",
+        address:"",partnerName:"",birthDate:"",weddingDate:"",
+        children:[],tags:["galéria"],
+        notes:"Automatikusan hozzáadva galériából: "+(g.child||"")+(g.code?" ("+g.code+")":""),
+        createdAt:Date.now(),updatedAt:Date.now()
+      };
+      const ref=await db.collection("clients").add(cdata);
+      clients.push({id:ref.id,...cdata});
+      createdCount++;
+    }catch(e){
+      errorCount++;lastError=e.message||String(e);
+    }
+  }
+  if(createdCount>0)clients.sort((a,b)=>(a.name||"").localeCompare(b.name||"","hu"));
+  return{created:createdCount,found:foundCount,error:errorCount,lastError};
+}
+async function manualSyncGalleries(){
+  const btn=document.getElementById("sync-galleries-btn");
+  if(btn){btn.disabled=true;btn.textContent="🔄 Szinkronizálás..."}
+  const result=await autoImportGalleriesAsClients();
+  if(btn){btn.disabled=false;btn.textContent="🔄 Galériák szinkronizálása ügyfelekkel"}
+  let msg="";
+  if(result.error&&result.error>0)msg="❌ Hiba: "+(result.lastError||"ismeretlen");
+  else if(result.created>0)msg="✓ "+result.created+" új ügyfél galériából";
+  else if(result.found>0)msg="✓ Minden galéria már szinkronban ("+result.found+" galéria már ügyfél)";
+  else msg="ℹ️ Nincs szinkronizálható galéria (email nélküli galériáknál ezt nem lehet megtenni)";
   if(typeof showToast==="function")showToast(msg);else alert(msg);
   renderClientsList();
 }
