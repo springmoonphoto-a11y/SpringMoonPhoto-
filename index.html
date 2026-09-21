@@ -545,7 +545,9 @@ body.dark-mode input[type="time"]::-webkit-calendar-picker-indicator,body.dark-m
 .empty-msg{text-align:center;color:var(--muted);padding:36px;font-style:italic}
 .spinner{display:inline-block;width:28px;height:28px;border:3px solid var(--warm);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.upload-area{border:2px dashed var(--gold);border-radius:12px;padding:20px;text-align:center;cursor:pointer;margin-bottom:14px;background:#fffdf7;position:relative}
+.upload-area{border:2px dashed var(--gold);border-radius:12px;padding:20px;text-align:center;cursor:pointer;margin-bottom:14px;background:#fffdf7;position:relative;transition:background .15s,border-color .15s}
+.upload-area.dragover{background:#fff3d6;border-color:#b8860b;border-style:solid}
+body.dark-mode .upload-area.dragover{background:#2e2008}
 .upload-area:hover{background:#fff8ee}
 .upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .upload-icon{font-size:2rem;margin-bottom:8px}
@@ -1405,10 +1407,10 @@ body.dark-mode .upload-area:hover{background:#1a1408}
           <button class="regen-btn" onclick="regenCode()">&#128260;</button>
         </div>
         <label style="margin-bottom:10px">&#128247; Képek feltöltése</label>
-        <div class="upload-area">
+        <div class="upload-area" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleNewDrop(event)">
           <input type="file" id="file-input-new" accept="image/*" multiple onchange="handleFileSelectNew(event)">
           <div class="upload-icon">&#128247;</div>
-          <div class="upload-text"><strong>Koppints ide a képek kiválasztásához</strong></div>
+          <div class="upload-text"><strong>Koppints ide a képek kiválasztásához</strong><br>vagy húzd ide a mappát is</div>
         </div>
         <div id="upload-progress-new" class="upload-progress hidden">
           <span id="upload-status-new">Feltöltés...</span>
@@ -1509,10 +1511,10 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="dpt-download-info" class="dpt-info hidden">A kész, megszerkesztett képek, amelyeket a szülő letölthet. Ezeket külön töltöd fel ide. ✅ Amint ide feltöltesz egy képet, a galéria <strong>automatikusan letölthetővé válik</strong> – nem kell külön beállítani semmit. A szülő a „📥 Letölthető" fülön látja és töltheti le, vízjel nélkül.</div>
     <div class="new-form" style="margin-bottom:20px">
       <h3 id="detail-upload-title">&#128247; Nyers képek hozzáadása</h3>
-      <div class="upload-area">
+      <div class="upload-area" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleDetailDrop(event)">
         <input type="file" id="file-input-detail" accept="image/*" multiple onchange="handleFileSelectDetail(event)">
         <div class="upload-icon">&#128247;</div>
-        <div class="upload-text"><strong>Koppints ide a képek kiválasztásához</strong><br>Telefonról vagy gépről is</div>
+        <div class="upload-text"><strong>Koppints ide a képek kiválasztásához</strong><br>Telefonról vagy gépről is · húzd ide az egész mappát is</div>
       </div>
       <div id="upload-progress-detail" class="upload-progress hidden">
         <span id="upload-status-detail">Feltöltés...</span>
@@ -2386,6 +2388,17 @@ async function uploadPhoto(file,i,total,progressId,statusId){
 
 async function handleFileSelectNew(event){
   const files=Array.from(event.target.files);if(!files.length)return;
+  await _processNewFiles(files);
+  event.target.value="";
+}
+async function handleNewDrop(event){
+  event.preventDefault();
+  event.currentTarget.classList.remove("dragover");
+  const files=await _extractFilesFromDrop(event);
+  if(files.length===0){alert("Nem találtam képfájlt a behúzott mappában/elemekben.");return}
+  await _processNewFiles(files);
+}
+async function _processNewFiles(files){
   show("upload-progress-new");document.getElementById("progress-fill-new").style.width="0%";document.getElementById("upload-status-new").textContent="Előkészítés...";
   try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-new","upload-status-new");uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1)})}document.getElementById("upload-status-new").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsNew()}
   catch(e){document.getElementById("upload-status-new").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
@@ -2413,11 +2426,52 @@ function _currentPhotoArray(){return (_detailPhotoTab==="download"?currentDetail
 
 async function handleFileSelectDetail(event){
   const files=Array.from(event.target.files);if(!files.length)return;
+  await _processDetailFiles(files);
+  event.target.value="";
+}
+async function handleDetailDrop(event){
+  event.preventDefault();
+  event.currentTarget.classList.remove("dragover");
+  const files=await _extractFilesFromDrop(event);
+  if(files.length===0){alert("Nem találtam képfájlt a behúzott mappában/elemekben.");return}
+  await _processDetailFiles(files);
+}
+async function _processDetailFiles(files){
   show("upload-progress-detail");document.getElementById("progress-fill-detail").style.width="0%";document.getElementById("upload-status-detail").textContent="Előkészítés...";
   const existingCount=_currentPhotoArray().length;
   const prefix=_detailPhotoTab==="download"?"Kép ":"Portré ";
   try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-detail","upload-status-detail");uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:prefix+(existingCount+uploadedPhotosDetail.length+1)})}document.getElementById("upload-status-detail").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsDetail();show("save-photos-btn")}
   catch(e){document.getElementById("upload-status-detail").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
+}
+// Mappa (vagy fájlok) ráhúzásának feldolgozása — a mappa tartalmát is rekurzívan beolvassa
+async function _extractFilesFromDrop(event){
+  const files=[];
+  const isImage=(name,type)=>/^image\//.test(type||"")||/\.(jpe?g|png|webp|heic|heif|tiff?|bmp)$/i.test(name||"");
+  const items=event.dataTransfer&&event.dataTransfer.items;
+  if(items&&items.length&&items[0].webkitGetAsEntry){
+    async function readEntry(entry){
+      if(!entry)return;
+      if(entry.isFile){
+        await new Promise(resolve=>{
+          entry.file(file=>{if(isImage(file.name,file.type))files.push(file);resolve()},()=>resolve());
+        });
+      }else if(entry.isDirectory){
+        const reader=entry.createReader();
+        let batch;
+        do{
+          batch=await new Promise(resolve=>reader.readEntries(res=>resolve(res),()=>resolve([])));
+          for(const sub of batch)await readEntry(sub);
+        }while(batch.length>0);
+      }
+    }
+    const entries=[];
+    for(let i=0;i<items.length;i++){const e=items[i].webkitGetAsEntry&&items[i].webkitGetAsEntry();if(e)entries.push(e)}
+    for(const entry of entries)await readEntry(entry);
+  }else{
+    const dtFiles=event.dataTransfer&&event.dataTransfer.files;
+    if(dtFiles)for(let i=0;i<dtFiles.length;i++){if(isImage(dtFiles[i].name,dtFiles[i].type))files.push(dtFiles[i])}
+  }
+  return files;
 }
 function renderPreviewsDetail(){document.getElementById("photo-previews-detail").innerHTML=uploadedPhotosDetail.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosDetail.splice('+i+',1);renderPreviewsDetail()">×</button></div>').join("")}
 
