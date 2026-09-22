@@ -2430,8 +2430,12 @@ async function handleNewDrop(event){
   await _processNewFiles(files);
 }
 async function _processNewFiles(files){
+  const existingNames=new Set(uploadedPhotosNew.map(p=>(p.origName||"").toLowerCase()).filter(Boolean));
+  const newFiles=files.filter(f=>!existingNames.has((f.name||"").toLowerCase()));
+  const skipped=files.length-newFiles.length;
+  if(newFiles.length===0){alert("Mind a(z) "+skipped+" kép már ki van választva.");return}
   show("upload-progress-new");document.getElementById("progress-fill-new").style.width="0%";document.getElementById("upload-status-new").textContent="Előkészítés...";
-  try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-new","upload-status-new");uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1)})}document.getElementById("upload-status-new").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsNew()}
+  try{for(let i=0;i<newFiles.length;i++){const url=await uploadPhoto(newFiles[i],i,newFiles.length,"progress-fill-new","upload-status-new");uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1),origName:newFiles[i].name})}document.getElementById("upload-status-new").textContent="✓ "+newFiles.length+" kép feltöltve!"+(skipped>0?" ("+skipped+" már ki volt választva)":"");renderPreviewsNew()}
   catch(e){document.getElementById("upload-status-new").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
 }
 function renderPreviewsNew(){document.getElementById("photo-previews-new").innerHTML=uploadedPhotosNew.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosNew.splice('+i+',1);uploadedPhotosNew.forEach((x,j)=>x.name=\'Portré \'+(j+1));renderPreviewsNew()">×</button></div>').join("")}
@@ -2468,11 +2472,31 @@ async function handleDetailDrop(event){
   await _processDetailFiles(files);
 }
 async function _processDetailFiles(files){
-  show("upload-progress-detail");document.getElementById("progress-fill-detail").style.width="0%";document.getElementById("upload-status-detail").textContent="Előkészítés...";
-  const existingCount=_currentPhotoArray().length;
+  // Duplikátum-szűrés: az eredeti fájlnév alapján kihagyjuk, ami már fent van
+  // (a galériában elmentve VAGY a most feltöltésre váró előnézetben)
+  const existingArr=_currentPhotoArray();
+  const existingNames=new Set(
+    existingArr.map(p=>(p.origName||"").toLowerCase()).filter(Boolean)
+    .concat(uploadedPhotosDetail.map(p=>(p.origName||"").toLowerCase()).filter(Boolean))
+  );
+  const newFiles=files.filter(f=>!existingNames.has((f.name||"").toLowerCase()));
+  const skipped=files.length-newFiles.length;
+  if(newFiles.length===0){
+    alert(skipped>0?"Mind a(z) "+skipped+" kép már fent van ebben a mappában – nincs új kép a behúzott mappában.":"Nincs feltölthető kép.");
+    return;
+  }
+  show("upload-progress-detail");document.getElementById("progress-fill-detail").style.width="0%";
+  document.getElementById("upload-status-detail").textContent=skipped>0?("Előkészítés... ("+skipped+" kép már megvolt, kihagyva)"):"Előkészítés...";
+  const existingCount=existingArr.length;
   const prefix=_detailPhotoTab==="download"?"Kép ":"Portré ";
-  try{for(let i=0;i<files.length;i++){const url=await uploadPhoto(files[i],i,files.length,"progress-fill-detail","upload-status-detail");uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:prefix+(existingCount+uploadedPhotosDetail.length+1)})}document.getElementById("upload-status-detail").textContent="✓ "+files.length+" kép feltöltve!";renderPreviewsDetail();show("save-photos-btn")}
-  catch(e){document.getElementById("upload-status-detail").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
+  try{
+    for(let i=0;i<newFiles.length;i++){
+      const url=await uploadPhoto(newFiles[i],i,newFiles.length,"progress-fill-detail","upload-status-detail");
+      uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:prefix+(existingCount+uploadedPhotosDetail.length+1),origName:newFiles[i].name});
+    }
+    document.getElementById("upload-status-detail").textContent="✓ "+newFiles.length+" új kép feltöltve!"+(skipped>0?" ("+skipped+" már megvolt, kihagyva)":"");
+    renderPreviewsDetail();show("save-photos-btn");
+  }catch(e){document.getElementById("upload-status-detail").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
 }
 // Mappa (vagy fájlok) ráhúzásának feldolgozása — a mappa tartalmát is rekurzívan beolvassa
 async function _extractFilesFromDrop(event){
