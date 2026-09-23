@@ -513,6 +513,9 @@ body.dark-mode input[type="time"]::-webkit-calendar-picker-indicator,body.dark-m
 .admin-img-overlay.show{display:flex}
 .admin-img-overlay img{max-width:94vw;max-height:82vh;object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.6)}
 .admin-img-overlay .aio-name{color:#fff;margin-top:14px;font-family:'Playfair Display',serif;font-size:1.1rem;text-align:center}
+.aio-delete{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);background:#c0392b;border:none;color:#fff;font-size:.92rem;font-weight:600;padding:11px 22px;border-radius:99px;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.aio-delete:hover{background:#a53225}
+.aio-delete.hidden{display:none}
 .admin-img-overlay .aio-close{position:absolute;top:18px;right:22px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.6rem;width:46px;height:46px;border-radius:50%;cursor:pointer;line-height:1}
 .admin-img-overlay .aio-close:hover{background:rgba(255,255,255,.3)}
 .admin-img-overlay .aio-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;font-size:2rem;width:52px;height:52px;border-radius:50%;cursor:pointer;line-height:1}
@@ -5582,14 +5585,17 @@ function setAdminTab(tab){
   if(tab==="calendar"){_publicMode=false;_selectedBookingDate=null;loadBookings().then(async()=>{await autoImportBookingsAsClients();await syncPublicAvailability();await syncPublicTakenSlots();renderCalendar(true)})}
 }
 
-// === ADMIN KÉP-NAGYÍTÓ (rendelt képekhez) ===
-let _adminImgList=[],_adminImgIdx=0;
+// === ADMIN KÉP-NAGYÍTÓ (rendelt képekhez és galéria-részlethez) ===
+let _adminImgList=[],_adminImgIdx=0,_adminImgContext=null;// context: "gallery" | "order" | null
 let _detailShownPhotos=[];// a galéria-részletben jelenleg (szűrve) látszó képek, a nagyításhoz
 function openAdminImgFromGrid(shownIdx){
   const list=_detailShownPhotos;
   if(!list||!list[shownIdx])return;
+  _adminImgContext="gallery";
   openAdminImg(list[shownIdx].url,list[shownIdx].name,encodeURIComponent(JSON.stringify(list)));
 }
+// A rendelési kártyákról nyitott nagyítónál törlés nem elérhető (más a kontextus)
+function openAdminImgOrder(url,name,listJson){_adminImgContext="order";openAdminImg(url,name,listJson)}
 // Hozzájárulás badge a közzétételhez
 function consentBadge(o){
   if(o.socialConsent==="yes")return '<div class="order-card-meta" style="margin-top:4px"><span style="display:inline-block;padding:3px 10px;border-radius:99px;background:#d4f0c0;color:#2a5a2a;font-size:.74rem;font-weight:600">📸 Közzétételhez hozzájárult</span></div>';
@@ -5610,13 +5616,37 @@ function showAdminImg(){
   if(url.indexOf("/upload/")>-1&&url.indexOf("/upload/c_")===-1)url=url.replace("/upload/","/upload/w_1400,q_auto/");
   document.getElementById("aio-img").src=url;
   document.getElementById("aio-name").textContent=item.name+(_adminImgList.length>1?(" ("+(_adminImgIdx+1)+"/"+_adminImgList.length+")"):"");
+  const delBtn=document.getElementById("aio-delete-btn");
+  if(delBtn)delBtn.classList.toggle("hidden",_adminImgContext!=="gallery");
+}
+// Kép törlése közvetlenül a nagyított nézetből (csak galéria-rácsból nyitva elérhető)
+async function deleteCurrentAdminImg(){
+  if(_adminImgContext!=="gallery")return;
+  const item=_adminImgList[_adminImgIdx];if(!item)return;
+  if(!confirm("Biztosan törlöd ezt a képet a galériából? Ez nem visszavonható."))return;
+  const field=_currentPhotoField();
+  const arr=_currentPhotoArray();
+  const idx=item.id?arr.findIndex(p=>p.id===item.id):arr.findIndex(p=>p.url===item.url&&p.name===item.name);
+  if(idx<0){alert("A kép már nem található a galériában.");closeAdminImg();renderDetailPhotos();return}
+  const newArr=[...arr];newArr.splice(idx,1);
+  try{
+    await db.collection("galleries").doc(currentDetailGallery.id).update({[field]:newArr});
+    currentDetailGallery[field]=newArr;
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g)g[field]=newArr;
+    // Eltávolítás a nagyító listájából is, majd lépés a következő képre (vagy bezárás, ha nincs több)
+    _adminImgList.splice(_adminImgIdx,1);
+    if(_adminImgList.length===0){closeAdminImg()}
+    else{if(_adminImgIdx>=_adminImgList.length)_adminImgIdx=_adminImgList.length-1;showAdminImg()}
+    renderDetailPhotos();
+    if(typeof showToast==="function")showToast("✓ Kép törölve");
+  }catch(e){alert("Hiba történt a törlés során: "+e.message)}
 }
 function navAdminImg(dir){
   if(_adminImgList.length<2)return;
   _adminImgIdx=(_adminImgIdx+dir+_adminImgList.length)%_adminImgList.length;
   showAdminImg();
 }
-function closeAdminImg(){document.getElementById("admin-img-overlay").classList.remove("show")}
+function closeAdminImg(){document.getElementById("admin-img-overlay").classList.remove("show");_adminImgContext=null}
 document.addEventListener("keydown",e=>{
   if(!document.getElementById("admin-img-overlay").classList.contains("show"))return;
   if(e.key==="Escape")closeAdminImg();
@@ -5629,7 +5659,7 @@ function renderAdminOrders(){
   const activeOrders=orders.filter(o=>o.status!=="completed");
   if(activeOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📭</span><div class="empty-state-title">Nincs aktív rendelés</div><div class="empty-state-text">Az új rendelések itt fognak megjelenni, amint a szülők leadják.</div></div>';return}
   div.innerHTML=activeOrders.map(o=>{
-    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImg(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
+    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div></div><div class="order-card-total">'+fmt(o.total)+(o.discount?' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>':'')+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
   }).join("");
 }
@@ -5639,7 +5669,7 @@ function renderCompletedOrders(){
   const completedOrders=orders.filter(o=>o.status==="completed");
   if(completedOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">✅</span><div class="empty-state-title">Még nincs teljesített rendelés</div><div class="empty-state-text">Az "Aktív" fülön lévő rendeléseket "Teljesítve" státuszra állítva itt jelennek majd meg.</div></div>';return}
   div.innerHTML=completedOrders.map(o=>{
-    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImg(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
+    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div></div><div class="order-card-total">'+fmt(o.total)+(o.discount?' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>':'')+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Törlés</button></div></div></div></div>';
   }).join("");
 }
@@ -6061,7 +6091,7 @@ function renderDetailPhotos(){
     return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy" style="cursor:zoom-in" onclick="openAdminImgFromGrid('+shownIdx+')">'+badge+favMark+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="event.stopPropagation();togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="event.stopPropagation();document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="event.stopPropagation();deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div></div>';
   }).join("");
   // A jelenleg szűrve látszó képek listája a nagyító lapozásához
-  _detailShownPhotos=shown.map(({p})=>({url:p.url,name:p.name}));
+  _detailShownPhotos=shown.map(({p})=>({id:p.id,url:p.url,name:p.name}));
   updateBulkBar();
 }
 
@@ -6386,6 +6416,7 @@ if("serviceWorker" in navigator){
   <button class="aio-nav aio-next" onclick="navAdminImg(1)" title="Következő">›</button>
   <img id="aio-img" src="" alt="">
   <div class="aio-name" id="aio-name"></div>
+  <button id="aio-delete-btn" class="aio-delete hidden" onclick="deleteCurrentAdminImg()" title="Kép törlése a galériából">🗑️ Kép törlése</button>
 </div>
 </body>
 </html>
