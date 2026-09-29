@@ -2367,7 +2367,25 @@ function _privacyPolicyHTML(){
   <p class="pp-foot">SpringMoonPhoto – Bukta Anita e.v.</p>
   `;
 }
-function showPage(id){["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail","page-booking","page-inquiry","page-privacy"].forEach(p=>hide(p));const el=document.getElementById(id);el.classList.remove("hidden");void el.offsetWidth;window.scrollTo({top:0,behavior:"smooth"})}
+let _historyInitialized=false,_isPopstateNav=false;
+function showPage(id){
+  ["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail","page-booking","page-inquiry","page-privacy"].forEach(p=>hide(p));
+  const el=document.getElementById(id);el.classList.remove("hidden");void el.offsetWidth;window.scrollTo({top:0,behavior:"smooth"});
+  // A böngésző/telefon "vissza" gombja appon belül lépjen vissza, ne az egész alkalmazásból léptessen ki
+  if(!_isPopstateNav){
+    try{
+      if(!_historyInitialized){history.replaceState({springmoonPage:id},"");_historyInitialized=true}
+      else{const cur=history.state&&history.state.springmoonPage;if(cur!==id)history.pushState({springmoonPage:id},"")}
+    }catch(e){}
+  }
+}
+window.addEventListener("popstate",function(e){
+  const targetPage=e.state&&e.state.springmoonPage;
+  if(!targetPage)return;// legkülső szint – itt a telefon a megszokott módon léphet ki
+  _isPopstateNav=true;
+  showPage(targetPage);
+  _isPopstateNav=false;
+});
 function generateCode(name){const base=name.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g,"").slice(0,6);return base+Math.floor(1000+Math.random()*9000)}
 function getStatusBadge(status){const s=status||"pending";return '<span class="status-badge '+STATUS_CLASSES[s]+'">'+STATUS_LABELS[s]+'</span>'}
 function saveCart(){try{localStorage.setItem("fotolux_cart_"+(currentGallery?currentGallery.id:""),JSON.stringify(cart))}catch(e){}}
@@ -2390,13 +2408,43 @@ async function loadData(){
   try{const cn=localStorage.getItem("appBrandName");const cf=localStorage.getItem("appBrandFont");if(cn||cf)applyBrand(cn||"SpringMoonPhoto",cf||"great-vibes")}catch(e){}
   try{const ca=localStorage.getItem("appAvatar");if(ca)applyAvatar(ca)}catch(e){}
   try{const gs=await db.collection("galleries").orderBy("createdAt","desc").get();galleries=gs.docs.map(d=>({id:d.id,...d.data()}))}catch(e){}
-  orders=[];showPage("page-login");
-  // Mentett login adatok visszatöltése
-  prefillSavedLogins();
+  orders=[];
+  // Megvárjuk, hogy a Firebase eldöntse: van-e érvényes, korábban bejelentkezett admin-munkamenet
+  await _authReadyPromise;
+  if(currentUser){
+    // Van érvényes admin-bejelentkezés — automatikusan visszaléptetjük az admin felületre,
+    // ideális esetben pontosan oda, ahol frissítés előtt tartott
+    try{
+      await loadPhotographerData();await loadMyPrices();
+      showPage("page-admin");renderAdmin();
+      const lastGalleryId=sessionStorage.getItem("adminLastGalleryId");
+      const lastTab=sessionStorage.getItem("adminLastTab");
+      if(lastGalleryId&&galleries.find(g=>g.id===lastGalleryId)){openGalleryDetail(lastGalleryId)}
+      else if(lastTab){setAdminTab(lastTab)}
+    }catch(e){showPage("page-login");prefillSavedLogins()}
+  }else{
+    showPage("page-login");
+    prefillSavedLogins();
+    // Ha korábban már belépett egy galériába ezen az eszközön, automatikusan visszaléptetjük
+    const savedCode=localStorage.getItem("lastParentCode");
+    if(savedCode){try{await handleLogin()}catch(e){}}
+  }
 }
 
+// Az induláskori Firebase-bejelentkezés ellenőrzése — a loadData() megvárja ezt,
+// hogy frissítés után ne a bejelentkező képernyő villanjon fel feleslegesen
+let _resolveAuthReady;
+const _authReadyPromise=new Promise(res=>{_resolveAuthReady=res});
+let _authReadyResolved=false;
 firebase.auth().onAuthStateChanged(async function(user){
-  if(user){const doc=await db.collection("photographers").doc(user.uid).get();const data=doc.exists?doc.data():{name:user.email,email:user.email};currentUser={uid:user.uid,email:data.email,name:data.name}}
+  if(user){
+    try{
+      const doc=await db.collection("photographers").doc(user.uid).get();
+      const data=doc.exists?doc.data():{name:user.email,email:user.email};
+      currentUser={uid:user.uid,email:data.email,name:data.name};
+    }catch(e){currentUser=null}
+  }else{currentUser=null}
+  if(!_authReadyResolved){_authReadyResolved=true;_resolveAuthReady()}
 });
 
 async function compressImage(file,maxSizeMB){
@@ -2682,6 +2730,7 @@ async function loadPhotographerData(){
 
 async function logout(){
   cart=[];currentGallery=null;
+  try{sessionStorage.removeItem("adminLastTab");sessionStorage.removeItem("adminLastGalleryId")}catch(e){}
   // Galéria-szintű szín leszedése, visszatérés a globálishoz (vagy ha nincs, akkor default)
   resetGalleryTheme();
   try{const cachedTheme=localStorage.getItem("appThemeColor");if(cachedTheme&&/^#[0-9A-Fa-f]{6}$/.test(cachedTheme))applyGalleryTheme(cachedTheme)}catch(e){}
@@ -5561,6 +5610,7 @@ function renderReviews(){
 }
 
 function setAdminTab(tab){
+  try{sessionStorage.setItem("adminLastTab",tab);sessionStorage.removeItem("adminLastGalleryId")}catch(e){}
   ["orders","completed","galleries","stats","prices","settings","clients","calendar","reviews","messages"].forEach(t=>document.getElementById("atab-"+t).classList.toggle("active",t===tab));
   document.getElementById("admin-orders-wrap").classList.toggle("hidden",tab!=="orders");
   document.getElementById("admin-completed").classList.toggle("hidden",tab!=="completed");
@@ -5826,6 +5876,7 @@ async function applyBulkStatus(){
 
 function openGalleryDetail(galleryId){
   currentDetailGallery=galleries.find(g=>g.id===galleryId);if(!currentDetailGallery)return;
+  try{sessionStorage.setItem("adminLastGalleryId",galleryId)}catch(e){}
   uploadedPhotosDetail=[];document.getElementById("photo-previews-detail").innerHTML="";hide("upload-progress-detail");hide("save-photos-btn");document.getElementById("detail-upload-msg").innerHTML="";
   document.getElementById("detail-name").textContent=currentDetailGallery.child+" galériája";
   let metaText=currentDetailGallery.parentEmail||"";
