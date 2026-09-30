@@ -111,6 +111,9 @@ body.dark-mode .privacy-content{background:rgba(255,255,255,.04)}
 .admin-photo-card .replace-photo-btn:hover{background:var(--gold);color:#3a2a08}
 .admin-photo-card.replacing{opacity:.5;pointer-events:none}
 .admin-photo-card .photo-label{position:absolute;bottom:0;left:0;right:0;background:rgba(26,18,8,.5);color:#fff;font-size:.72rem;padding:5px 8px}
+.photo-restrict-select{position:absolute;top:8px;right:8px;z-index:4;font-size:.68rem;padding:3px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.4);background:rgba(20,14,6,.65);color:#fff;max-width:120px;cursor:pointer}
+.photo-restrict-select.active{background:#c0392b;border-color:#c0392b;font-weight:600}
+.photo-restrict-select option{color:#1a1208;background:#fff}
 .admin-photo-card.ordered{box-shadow:0 0 0 4px var(--gold),var(--shadow-sm)}
 .admin-photo-card .ordered-badge{position:absolute;top:8px;left:8px;background:linear-gradient(135deg,#f4d36a,#e0a020);color:#3a2a08;font-size:.72rem;font-weight:700;padding:4px 10px;border-radius:99px;box-shadow:0 2px 6px rgba(0,0,0,.25);display:flex;align-items:center;gap:4px;z-index:2}
 .photo-filter-bar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
@@ -788,6 +791,7 @@ body.dark-mode .admin-search:focus{border-color:var(--gold)}
 .tt-wrap.active .tt-content{display:block;animation:ttFade .18s ease-out}
 @keyframes ttFade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .photo-select-btn{position:absolute;bottom:8px;right:8px;width:34px;height:34px;border-radius:50%;background:rgba(20,14,6,.65);border:2px solid rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;transition:all .2s ease;color:#fff;font-size:1.1rem;font-weight:700;padding:0;line-height:1;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.photo-select-btn.photo-select-locked{cursor:default;opacity:.75;font-size:.95rem}
 .photo-select-btn:hover{transform:scale(1.12);background:rgba(20,14,6,.85);border-color:var(--gold)}
 .photo-card.photo-selected .photo-select-btn{background:var(--gold);border-color:#fff;color:#fff;box-shadow:0 0 0 3px var(--gold),0 4px 14px rgba(201,168,76,.6)}
 .photo-card.photo-selected{outline:3px solid var(--gold);outline-offset:-3px}
@@ -3118,7 +3122,10 @@ function renderGallery(){
     const zoomBtn='<button class="photo-zoom-btn" onclick="event.stopPropagation();openLightbox('+realIdx+')" title="Nagyítás">&#128269;</button>';
     const isFav=favorites.includes(photo.id);
     const favBtnHtml='<button class="photo-fav-btn'+(isFav?" active":"")+'" onclick="event.stopPropagation();toggleFavorite(\''+photo.id+'\')" title="Kedvenc">'+(isFav?"❤️":"🤍")+'</button>';
-    const selBtnHtml='<button class="photo-select-btn" onclick="event.stopPropagation();toggleMultiSelect(\''+photo.id+'\')" title="Kijelölés">✓</button>';
+    const isRestricted=!!photo.orderRestriction;
+    const selBtnHtml=isRestricted
+      ?'<button class="photo-select-btn photo-select-locked" onclick="event.stopPropagation()" title="Ez a kép csak egyénileg rendelhető, koppints rá a rendeléshez">🔒</button>'
+      :'<button class="photo-select-btn" onclick="event.stopPropagation();toggleMultiSelect(\''+photo.id+'\')" title="Kijelölés">✓</button>';
     div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false">'+wmHtml+selBtnHtml+zoomBtn+favBtnHtml;
     div.onclick=()=>openSheet(photo);grid.appendChild(div);
   });
@@ -3414,12 +3421,22 @@ function updateSheetNav(){
   else{if(prev)prev.style.display="flex";if(next)next.style.display="flex";if(counter)counter.style.display="block"}
 }
 
+// Egy adott képhez ténylegesen elérhető termékek — a galéria-szintű beállítást felülírja,
+// ha az admin ehhez a képhez külön korlátozást állított be (pl. "csak papírkép")
+function _effectiveProductsFor(photo){
+  if(photo&&photo.orderRestriction){
+    const r=photo.orderRestriction;
+    return {print:r==="print",digital:r==="digital",gift:r==="gift"};
+  }
+  return ENABLED_PRODUCTS;
+}
 function openSheet(photo){
   activePhoto=photo;sheetIndex=(currentGallery.photos||[]).findIndex(p=>p.id===photo.id);updateSheetNav();
-  document.getElementById("tab-print").style.display=ENABLED_PRODUCTS.print?"block":"none";
-  document.getElementById("tab-digital").style.display=ENABLED_PRODUCTS.digital?"block":"none";
-  document.getElementById("tab-gift").style.display=ENABLED_PRODUCTS.gift?"block":"none";
-  if(ENABLED_PRODUCTS.print)orderType="print";else if(ENABLED_PRODUCTS.digital)orderType="digital";else if(ENABLED_PRODUCTS.gift)orderType="gift";
+  const eff=_effectiveProductsFor(photo);
+  document.getElementById("tab-print").style.display=eff.print?"block":"none";
+  document.getElementById("tab-digital").style.display=eff.digital?"block":"none";
+  document.getElementById("tab-gift").style.display=eff.gift?"block":"none";
+  if(eff.print)orderType="print";else if(eff.digital)orderType="digital";else if(eff.gift)orderType="gift";
   selectedSize=PRINT_SIZES[0];qty=1;selectedGift=GIFT_ITEMS[0];
   document.getElementById("sheet-img").src=lowQ(photo.url);document.getElementById("sheet-name").textContent=photo.name;
   const sw=document.getElementById("sheet-watermark");
@@ -3436,8 +3453,9 @@ function setType(t){orderType=t;document.getElementById("tab-print").classList.t
 
 function updateUpsell(){
   const row=document.getElementById("upsell-row");if(!row)return;
-  // Csak akkor mutatjuk, ha NEM digital a típus, ÉS a digitális elérhető a galériában
-  if(orderType!=="digital"&&ENABLED_PRODUCTS.digital){
+  const eff=_effectiveProductsFor(activePhoto);
+  // Csak akkor mutatjuk, ha NEM digital a típus, ÉS a digitális elérhető ehhez a képhez
+  if(orderType!=="digital"&&eff.digital){
     document.getElementById("upsell-price").textContent=fmt(DIGITAL_PRICE);
     document.getElementById("upsell-checkbox").checked=false;
     row.classList.remove("hidden");
@@ -6148,11 +6166,35 @@ function renderDetailPhotos(){
     const safeName=(p.name||"").replace(/"/g,'&quot;');
     const favMark=(_clientFavIds&&_clientFavIds.indexOf(p.id)>=0)?'<div class="fav-badge" title="Az ügyfél kedvencnek jelölte">❤️</div>':'';
     const jsName=(p.name||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'");
-    return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy" style="cursor:zoom-in" onclick="openAdminImgFromGrid('+shownIdx+')">'+badge+favMark+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="event.stopPropagation();togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="event.stopPropagation();document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="event.stopPropagation();deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div></div>';
+    let restrictHtml="";
+    if(!isDownloadTab){
+      const r=p.orderRestriction||"";
+      restrictHtml='<select class="photo-restrict-select'+(r?" active":"")+'" onclick="event.stopPropagation()" onchange="event.stopPropagation();setPhotoRestriction('+i+',this.value)" title="Rendelési korlátozás ehhez a képhez">'
+        +'<option value=""'+(r===""?" selected":"")+'>Bárhogy rendelhető</option>'
+        +'<option value="print"'+(r==="print"?" selected":"")+'>🖨️ Csak papírkép</option>'
+        +'<option value="digital"'+(r==="digital"?" selected":"")+'>💾 Csak digitális</option>'
+        +'<option value="gift"'+(r==="gift"?" selected":"")+'>🎁 Csak ajándék</option>'
+        +'</select>';
+    }
+    return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy" style="cursor:zoom-in" onclick="openAdminImgFromGrid('+shownIdx+')">'+badge+favMark+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="event.stopPropagation();togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="event.stopPropagation();document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="event.stopPropagation();deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div>'+restrictHtml+'</div>';
   }).join("");
   // A jelenleg szűrve látszó képek listája a nagyító lapozásához
   _detailShownPhotos=shown.map(({p})=>({id:p.id,url:p.url,name:p.name}));
   updateBulkBar();
+}
+
+// Rendelési korlátozás beállítása egy képhez (pl. "csak papírkép rendelhető ebből")
+async function setPhotoRestriction(index,value){
+  const field=_currentPhotoField();
+  const photos=[..._currentPhotoArray()];
+  if(!photos[index])return;
+  photos[index]={...photos[index],orderRestriction:value||""};
+  try{
+    await db.collection("galleries").doc(currentDetailGallery.id).update({[field]:photos});
+    currentDetailGallery[field]=photos;
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g)g[field]=photos;
+    if(typeof showToast==="function")showToast(value?"✓ Korlátozás beállítva":"✓ Korlátozás eltávolítva");
+  }catch(e){alert("Hiba történt a mentés során: "+e.message);renderDetailPhotos()}
 }
 
 async function deletePhoto(index){
