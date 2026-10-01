@@ -1662,7 +1662,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="review-customer" class="review-section"></div>
     <div id="review-items" class="review-section"></div>
     <div id="review-totals" class="review-section"></div>
-    <label id="gdpr-consent-box" style="display:flex;align-items:flex-start;gap:9px;margin-top:16px;padding:12px;background:var(--cream);border-radius:10px;cursor:pointer;font-size:.85rem;line-height:1.5">
+    <label id="gdpr-consent-box" style="display:flex;align-items:flex-start;gap:9px;margin-top:16px;padding:12px;background:var(--cream);border-radius:10px;cursor:pointer;font-size:.85rem;line-height:1.5;border:1.5px solid var(--warm)">
       <input type="checkbox" id="gdpr-consent" style="margin-top:2px;width:18px;height:18px;accent-color:var(--gold);flex-shrink:0" onchange="document.getElementById('gdpr-consent-box').style.borderColor='transparent'">
       <span>Elolvastam és elfogadom az <button type="button" onclick="event.preventDefault();showPrivacyPolicy()" style="background:none;border:none;color:var(--gold);text-decoration:underline;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:0">adatkezelési tájékoztatót</button>, és hozzájárulok adataim kezeléséhez a rendelés teljesítése céljából.</span>
     </label>
@@ -3918,7 +3918,7 @@ function showOrderReview(){
   if(activeDiscount){const discAmount=Math.round(total*activeDiscount.percent/100);total=total-discAmount;totalHtml+='<div class="review-total-row review-discount"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span>-'+fmt(discAmount)+'</span></div>'}
   totalHtml+='<div class="review-total-row review-grand"><span>Fizetendő összesen</span><span>'+fmt(total)+'</span></div>';
   document.getElementById("review-totals").innerHTML=totalHtml;
-  const gdpr=document.getElementById("gdpr-consent");if(gdpr){gdpr.checked=false;document.getElementById("gdpr-consent-box").style.border="none"}
+  const gdpr=document.getElementById("gdpr-consent");if(gdpr){gdpr.checked=false;document.getElementById("gdpr-consent-box").style.border="1.5px solid var(--warm)"}
   document.getElementById("order-review-modal").classList.remove("hidden");
 }
 
@@ -3929,6 +3929,7 @@ async function confirmOrder(){
   if(gdpr&&!gdpr.checked){
     document.getElementById("gdpr-consent-box").style.border="1.5px solid #c0392b";
     document.getElementById("gdpr-consent-box").scrollIntoView({behavior:"smooth",block:"center"});
+    alert("Kérjük, pipáld be az adatkezelési tájékoztató elfogadását a rendelés elküldése előtt! (Lásd a jelölőnégyzetet a gomb fölött.)");
     return;
   }
   const cbtn=document.getElementById("review-confirm-btn");
