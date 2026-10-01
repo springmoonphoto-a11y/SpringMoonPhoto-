@@ -3970,13 +3970,22 @@ async function placeOrder(){
 function backToGallery(){hide("cart-success");showGallery()}
 
 async function showMyOrders(){
-  let email;
-  if(currentGallery.isGroup){email=prompt("Adja meg azt az email címet, amellyel rendelt:");if(!email)return;email=email.trim().toLowerCase();if(!email)return}
-  else{email=currentGallery.parentEmail.toLowerCase()}
+  let query;
+  if(currentGallery.isGroup){
+    let email=prompt("Adja meg azt az email címet, amellyel rendelt:");if(!email)return;email=email.trim().toLowerCase();if(!email)return;
+    query=db.collection("orders").where("parentEmail","==",email);
+  }else if(currentGallery.parentEmail){
+    query=db.collection("orders").where("parentEmail","==",currentGallery.parentEmail.toLowerCase());
+  }else{
+    // Email nélküli galéria (pl. iskolai, név+kód alapú belépés) — emailre itt NEM szabad
+    // szűrni, mert minden ilyen galéria rendelése üres emaillel mentődik, ami más családok
+    // adatait is megmutatná. Helyette a galéria saját rendeléseit kérjük le biztonságosan.
+    query=db.collection("orders").where("galleryId","==",currentGallery.id);
+  }
   const list=document.getElementById("my-orders-list");list.innerHTML='<div class="loading-inline"><span class="inline-spinner"></span>Rendelések betöltése...</div>';
   document.getElementById("my-orders-modal").classList.remove("hidden");
   try{
-    const os=await db.collection("orders").where("parentEmail","==",email).get();
+    const os=await query.get();
     const myOrders=os.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     if(myOrders.length===0){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">📦</span><div class="empty-state-title">Még nincs rendelésed</div><div class="empty-state-text">Itt fogod látni a leadott rendeléseidet, amint elkészülnek.</div></div>';return}
     list.innerHTML=myOrders.map(o=>{
