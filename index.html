@@ -4083,6 +4083,16 @@ function renderStats(){
   const customers={};orders.forEach(o=>{if(!o.parentEmail)return;const key=o.parentEmail.toLowerCase();if(!customers[key])customers[key]={name:o.parentName||o.child||o.parentEmail,email:o.parentEmail,total:0,count:0};customers[key].total+=o.total;customers[key].count++});
   const topCustomers=Object.values(customers).sort((a,b)=>b.total-a.total).slice(0,5);
   const consentYes=orders.filter(o=>o.socialConsent==="yes").length;const consentNo=orders.filter(o=>o.socialConsent==="no").length;
+  // Osztályonkénti bevétel — csak a ténylegesen kifizetett rendelésekből, a visszajuttatáshoz
+  const galleryClassMap={};galleries.forEach(g=>{if(g.bulkClass&&g.bulkClass.trim())galleryClassMap[g.id]=g.bulkClass});
+  const classRevenue={};let otherPaidRevenue=0;
+  orders.forEach(o=>{
+    if(!_orderFlags(o).paid)return;
+    const cls=galleryClassMap[o.galleryId];
+    if(cls){classRevenue[cls]=(classRevenue[cls]||0)+o.total}
+    else{otherPaidRevenue+=o.total}
+  });
+  _classRevenueData={classRevenue,otherPaidRevenue};
   let html='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px">';
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem">'+fmt(totalRevenue)+'</div><div class="stat-label">Teljes bevétel</div></div>';
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem">'+fmt(avgOrder)+'</div><div class="stat-label">Átlag rendelés</div></div>';
@@ -4092,7 +4102,36 @@ function renderStats(){
   if(months.length===0){html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>'}
   else{html+='<div style="display:flex;flex-direction:column;gap:8px">';months.forEach(k=>{const m=monthlyData[k];const pct=(m.revenue/maxMonthRev)*100;html+='<div><div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:3px"><span style="color:var(--dark);font-weight:500">'+m.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(m.revenue)+' ('+m.count+' rendelés)</span></div><div style="background:var(--warm);height:10px;border-radius:5px;overflow:hidden"><div style="background:var(--gold);height:100%;width:'+pct+'%;transition:width .3s"></div></div></div>'});html+='</div>'}
   html+='</div>';
+  html+='<div class="new-form" style="margin-top:14px"><h3>🎓 Bevétel osztályonként</h3>';
+  html+='<p style="font-size:.8rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Az osztálynak létrehozott galériák kifizetett rendeléseiből számolva. Az alábbi arány szerint mutatja, mennyit kell visszaadnod.</p>';
+  html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.88rem"><span>Visszaadandó arány:</span><input type="number" id="class-giveback-pct" value="10" min="0" max="100" step="1" style="width:64px;padding:6px 8px;border:1.5px solid var(--warm);border-radius:8px;text-align:center" oninput="renderClassRevenueTable()"><span>%</span></div>';
+  html+='<div id="class-revenue-table"></div></div>';
   div.innerHTML=html+renderStatsExtra(topProducts,topCustomers,statusCounts,consentYes,consentNo,printCount,digitalCount,giftCount,printRev,digitalRev,giftRev,orders,galleries);
+  renderClassRevenueTable();
+}
+let _classRevenueData={classRevenue:{},otherPaidRevenue:0};
+function renderClassRevenueTable(){
+  const el=document.getElementById("class-revenue-table");if(!el)return;
+  const pctInput=document.getElementById("class-giveback-pct");
+  const pct=pctInput?(parseFloat(pctInput.value)||0):10;
+  const entries=Object.entries(_classRevenueData.classRevenue).sort((a,b)=>b[1]-a[1]);
+  if(entries.length===0){el.innerHTML='<p style="color:var(--muted);font-style:italic">Még nincs kifizetett rendelés osztályos galériából.</p>';return}
+  let totalRev=0,totalGiveback=0;
+  let html='<div style="display:flex;flex-direction:column;gap:8px">';
+  entries.forEach(([cls,rev])=>{
+    const giveback=Math.round(rev*pct/100);
+    totalRev+=rev;totalGiveback+=giveback;
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--cream);border-radius:10px">'
+      +'<span style="font-weight:600;color:var(--dark)">🎓 '+cls.replace(/</g,"&lt;")+'</span>'
+      +'<span style="text-align:right;font-size:.85rem"><div style="color:var(--dark)">'+fmt(rev)+' bevétel</div><div style="color:var(--green);font-weight:600">'+fmt(giveback)+' visszaadandó</div></span>'
+      +'</div>';
+  });
+  html+='</div>';
+  html+='<div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1.5px solid var(--warm);font-weight:700"><span>Összesen</span><span>'+fmt(totalRev)+' · '+fmt(totalGiveback)+' visszaadandó</span></div>';
+  if(_classRevenueData.otherPaidRevenue>0){
+    html+='<div style="margin-top:8px;font-size:.78rem;color:var(--muted)">+ '+fmt(_classRevenueData.otherPaidRevenue)+' bevétel nem osztályos (egyéni) galériákból — erre nem vonatkozik a visszaosztás.</div>';
+  }
+  el.innerHTML=html;
 }
 
 function renderStatsExtra(topProducts,topCustomers,statusCounts,consentYes,consentNo,printCount,digitalCount,giftCount,printRev,digitalRev,giftRev,orders,galleries){
