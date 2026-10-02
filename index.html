@@ -4089,8 +4089,9 @@ function renderStats(){
   const div=document.getElementById("admin-stats");
   if(orders.length===0&&galleries.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📊</span><div class="empty-state-title">Még nincs adat</div><div class="empty-state-text">A statisztikák akkor jelennek meg, ha lesznek galériák és rendelések.</div></div>';return}
   const totalRevenue=orders.reduce((s,o)=>s+o.total,0);const totalOrders=orders.length;const avgOrder=totalOrders>0?Math.round(totalRevenue/totalOrders):0;
-  const completedRev=orders.filter(o=>["completed","paid","delivered","digital"].includes(o.status)).reduce((s,o)=>s+o.total,0);
-  const pendingRev=orders.filter(o=>["pending","printing"].includes(o.status)).reduce((s,o)=>s+o.total,0);
+  const paidRev=orders.filter(o=>_orderFlags(o).paid).reduce((s,o)=>s+o.total,0);
+  const completedRev=orders.filter(o=>o.status==="completed").reduce((s,o)=>s+o.total,0);
+  const pendingRev=orders.filter(o=>!_orderFlags(o).paid).reduce((s,o)=>s+o.total,0);
   const monthlyData={};
   orders.forEach(o=>{const d=new Date(o.createdAt||0);const key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");if(!monthlyData[key])monthlyData[key]={revenue:0,count:0,label:d.toLocaleDateString("hu-HU",{year:"numeric",month:"long"})};monthlyData[key].revenue+=o.total;monthlyData[key].count++});
   const months=Object.keys(monthlyData).sort().reverse().slice(0,12);const maxMonthRev=Math.max(...months.map(k=>monthlyData[k].revenue),1);
@@ -4116,8 +4117,9 @@ function renderStats(){
   let html='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px">';
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem">'+fmt(totalRevenue)+'</div><div class="stat-label">Teljes bevétel</div></div>';
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem">'+fmt(avgOrder)+'</div><div class="stat-label">Átlag rendelés</div></div>';
-  html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:var(--green)">'+fmt(completedRev)+'</div><div class="stat-label">Teljesített/Fizetett</div></div>';
-  html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:#856404">'+fmt(pendingRev)+'</div><div class="stat-label">Folyamatban</div></div></div>';
+  html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:var(--green)">'+fmt(paidRev)+'</div><div class="stat-label">💰 Fizetett</div></div>';
+  html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:#2a6fb0">'+fmt(completedRev)+'</div><div class="stat-label">⭐ Teljesítve</div></div>';
+  html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:#856404">'+fmt(pendingRev)+'</div><div class="stat-label">Még nincs fizetve</div></div></div>';
   html+='<div class="new-form"><h3>📈 Havi bevétel (utolsó 12 hónap)</h3>';
   if(months.length===0){html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>'}
   else{html+='<div style="display:flex;flex-direction:column;gap:8px">';months.forEach(k=>{const m=monthlyData[k];const pct=(m.revenue/maxMonthRev)*100;html+='<div><div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:3px"><span style="color:var(--dark);font-weight:500">'+m.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(m.revenue)+' ('+m.count+' rendelés)</span></div><div style="background:var(--warm);height:10px;border-radius:5px;overflow:hidden"><div style="background:var(--gold);height:100%;width:'+pct+'%;transition:width .3s"></div></div></div>'});html+='</div>'}
