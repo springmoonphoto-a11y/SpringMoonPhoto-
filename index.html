@@ -1224,7 +1224,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;font-weight:500">Fizetési adatok</div>
         <div class="payment-label">Kedvezményezett neve</div><div class="payment-value">Bukta Anita</div>
         <div class="payment-label">Bank</div><div class="payment-value">OTP Bank</div>
-        <div class="payment-label">Számlaszám</div><div class="payment-account">11773391-00491127</div>
+        <div class="payment-label">Számlaszám</div><div class="payment-account">11773391-00491127-00000000</div>
         <div class="payment-label">Megjegyzésbe írd</div><div class="payment-value" id="success-child-name"></div>
         <div class="payment-total-row">
           <span style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--dark)">Fizetendő összeg</span>
@@ -1662,9 +1662,9 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="review-customer" class="review-section"></div>
     <div id="review-items" class="review-section"></div>
     <div id="review-totals" class="review-section"></div>
-    <label id="gdpr-consent-box" style="display:flex;align-items:flex-start;gap:9px;margin-top:16px;padding:12px;background:var(--cream);border-radius:10px;cursor:pointer;font-size:.85rem;line-height:1.5;border:1.5px solid var(--warm)">
-      <input type="checkbox" id="gdpr-consent" style="margin-top:2px;width:18px;height:18px;accent-color:var(--gold);flex-shrink:0" onchange="document.getElementById('gdpr-consent-box').style.borderColor='transparent'">
-      <span>Elolvastam és elfogadom az <button type="button" onclick="event.preventDefault();showPrivacyPolicy()" style="background:none;border:none;color:var(--gold);text-decoration:underline;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:0">adatkezelési tájékoztatót</button>, és hozzájárulok adataim kezeléséhez a rendelés teljesítése céljából.</span>
+    <label id="gdpr-consent-box" style="display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding:14px;background:var(--cream);border-radius:10px;cursor:pointer;font-size:.9rem;line-height:1.5;border:2px solid var(--gold)">
+      <input type="checkbox" id="gdpr-consent" style="margin-top:1px;width:26px;height:26px;min-width:26px;accent-color:var(--gold);border:2px solid var(--brown);border-radius:5px;background:#fff;flex-shrink:0;cursor:pointer" onchange="document.getElementById('gdpr-consent-box').style.borderColor=this.checked?'var(--warm)':'var(--gold)'">
+      <span>Elolvastam és elfogadom az <button type="button" onclick="event.preventDefault();showPrivacyPolicy()" style="background:none;border:none;color:var(--gold);text-decoration:underline;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.9rem;padding:0;font-weight:600">adatkezelési tájékoztatót</button>, és hozzájárulok adataim kezeléséhez a rendelés teljesítése céljából.</span>
     </label>
     <div style="display:flex;gap:9px;margin-top:14px">
       <button class="btn btn-outline" onclick="closeOrderReview()" style="flex:1;width:auto">← Módosítok</button>
@@ -3918,7 +3918,7 @@ function showOrderReview(){
   if(activeDiscount){const discAmount=Math.round(total*activeDiscount.percent/100);total=total-discAmount;totalHtml+='<div class="review-total-row review-discount"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span>-'+fmt(discAmount)+'</span></div>'}
   totalHtml+='<div class="review-total-row review-grand"><span>Fizetendő összesen</span><span>'+fmt(total)+'</span></div>';
   document.getElementById("review-totals").innerHTML=totalHtml;
-  const gdpr=document.getElementById("gdpr-consent");if(gdpr){gdpr.checked=false;document.getElementById("gdpr-consent-box").style.border="1.5px solid var(--warm)"}
+  const gdpr=document.getElementById("gdpr-consent");if(gdpr){gdpr.checked=false;document.getElementById("gdpr-consent-box").style.border="2px solid var(--gold)"}
   document.getElementById("order-review-modal").classList.remove("hidden");
 }
 
@@ -3927,7 +3927,7 @@ function closeOrderReview(e){if(e&&e.target!==document.getElementById("order-rev
 async function confirmOrder(){
   const gdpr=document.getElementById("gdpr-consent");
   if(gdpr&&!gdpr.checked){
-    document.getElementById("gdpr-consent-box").style.border="1.5px solid #c0392b";
+    document.getElementById("gdpr-consent-box").style.border="2.5px solid #c0392b";
     document.getElementById("gdpr-consent-box").scrollIntoView({behavior:"smooth",block:"center"});
     alert("Kérjük, pipáld be az adatkezelési tájékoztató elfogadását a rendelés elküldése előtt! (Lásd a jelölőnégyzetet a gomb fölött.)");
     return;
@@ -3998,7 +3998,16 @@ async function showMyOrders(){
       const s3done=["digital","delivered","completed"].includes(st);
       const cur=s3done?-1:(s2done?2:1);
       const tl='<div class="order-timeline"><div class="tl-step done'+(cur===1?" current":"")+'"><div class="tl-dot">📥</div>Beérkezett</div><div class="tl-step'+(s2done?" done":"")+(cur===2?" current":"")+'"><div class="tl-dot">🖼️</div>Készül</div><div class="tl-step'+(s3done?" done":"")+'"><div class="tl-dot">✅</div>Elkészült</div></div>';
-      return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="font-size:.78rem;color:var(--text);margin-top:2px">&#128100; '+(o.parentName||"-")+' &#183; &#128222; '+(o.phone||"-")+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div>'+tl+'<div style="border-top:1px solid var(--warm);padding-top:8px;margin-top:10px">'+itemsHtml+'</div></div>';
+      // Ha még nem fizetett, a fizetési adatokat is megmutatjuk itt — hogy később is
+      // vissza tudja keresni, ha elsőre nem utalt azonnal
+      let paymentBox="";
+      if(!_orderFlags(o).paid){
+        paymentBox='<div style="margin-top:10px;padding:12px;background:var(--white);border:1.5px solid var(--gold);border-radius:10px">'
+          +'<div style="font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;font-weight:600">💳 Fizetési adatok (még nincs kiegyenlítve)</div>'
+          +'<div style="font-size:.84rem;line-height:1.7"><strong>Kedvezményezett:</strong> Bukta Anita<br><strong>Bank:</strong> OTP Bank<br><strong>Számlaszám:</strong> 11773391-00491127-00000000<br><strong>Közlemény:</strong> '+(o.child||"-")+'<br><strong>Összeg:</strong> '+fmt(o.total)+'</div>'
+          +'</div>';
+      }
+      return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="font-size:.78rem;color:var(--text);margin-top:2px">&#128100; '+(o.parentName||"-")+' &#183; &#128222; '+(o.phone||"-")+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div>'+tl+paymentBox+'<div style="border-top:1px solid var(--warm);padding-top:8px;margin-top:10px">'+itemsHtml+'</div></div>';
     }).join("");
   }catch(e){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">⚠️</span><div class="empty-state-title">Hiba történt</div><div class="empty-state-text">Nem sikerült betölteni a rendeléseket. Próbáld újra később.</div></div>'}
 }
