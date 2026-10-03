@@ -527,7 +527,7 @@ body.dark-mode input[type="time"]::-webkit-calendar-picker-indicator,body.dark-m
 .admin-img-overlay .aio-next{right:18px}
 .order-item-row span{flex:1}
 .item-price{color:var(--gold);font-weight:500}
-.bulk-bar{background:var(--brown);color:var(--white);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bulk-bar{background:var(--brown);color:var(--white);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:8px;z-index:60;box-shadow:var(--shadow-sm)}
 .bulk-select{padding:8px 12px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.85rem;cursor:pointer;flex:1;min-width:160px}
 .order-checkbox{width:18px;height:18px;cursor:pointer;accent-color:var(--gold);flex-shrink:0;margin-top:3px}
 .order-status-select{padding:4px 8px;border-radius:8px;border:1px solid var(--warm);font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--brown);background:var(--cream);cursor:pointer}
@@ -1337,7 +1337,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <div id="price-corr-summary"></div>
       <div id="bulk-bar" class="bulk-bar hidden">
         <span id="bulk-count" style="font-size:.88rem;flex-shrink:0">0 kijelölve</span>
-        <select id="bulk-status" class="bulk-select">
+        <select id="bulk-status" class="bulk-select" style="display:none">
           <option value="">– Státusz kiválasztása –</option>
           <option value="pending">&#9203; Függőben</option>
           <option value="digital">&#128231; Digitális elküldve</option>
@@ -1346,9 +1346,9 @@ body.dark-mode .upload-area:hover{background:#1a1408}
           <option value="paid">&#128176; Fizetve</option>
           <option value="completed">&#11088; Teljesítve</option>
         </select>
-        <span id="bulk-type-hint" style="font-size:.78rem;opacity:.7"></span>
-        <button class="btn btn-gold btn-sm" onclick="applyBulkStatus()">Alkalmaz</button>
-        <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:var(--white);border:1px solid rgba(255,255,255,.3)" onclick="clearSelection()">Törlés</button>
+        <span id="bulk-type-hint" style="display:none"></span>
+        <button class="btn btn-gold btn-sm" style="display:none" onclick="applyBulkStatus()">Alkalmaz</button>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:var(--white);border:1px solid rgba(255,255,255,.3)" onclick="clearSelection()">Kijelölés megszüntetése</button>
         <button class="btn btn-sm" style="background:#27ae60;color:#fff;border:none" onclick="openPriceCorrection()">💸 Árkorrekció</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -6126,10 +6126,10 @@ function renderAdminGalleryList(){
   }
 }
 
-function toggleSelectAll(checked){document.querySelectorAll("[data-id]").forEach(cb=>{cb.checked=checked;checked?selectedOrderIds.add(cb.dataset.id):selectedOrderIds.delete(cb.dataset.id)});updateBulkBar()}
-function toggleOrderSelect(id,checked){checked?selectedOrderIds.add(id):selectedOrderIds.delete(id);updateBulkBar()}
-function updateBulkBar(){document.getElementById("bulk-count").textContent=selectedOrderIds.size+" kijelölve";selectedOrderIds.size>0?show("bulk-bar"):hide("bulk-bar");if(selectedOrderIds.size>0)updateBulkStatusOptions()}
-function clearSelection(){selectedOrderIds.clear();document.querySelectorAll("[data-id]").forEach(cb=>cb.checked=false);const sa=document.getElementById("select-all-cb");if(sa)sa.checked=false;updateBulkBar()}
+function toggleSelectAll(checked){document.querySelectorAll("[data-id]").forEach(cb=>{cb.checked=checked;checked?selectedOrderIds.add(cb.dataset.id):selectedOrderIds.delete(cb.dataset.id)});updateOrderBulkBar()}
+function toggleOrderSelect(id,checked){checked?selectedOrderIds.add(id):selectedOrderIds.delete(id);updateOrderBulkBar()}
+function updateOrderBulkBar(){document.getElementById("bulk-count").textContent=selectedOrderIds.size+" kijelölve";selectedOrderIds.size>0?show("bulk-bar"):hide("bulk-bar");if(selectedOrderIds.size>0)updateBulkStatusOptions()}
+function clearSelection(){selectedOrderIds.clear();document.querySelectorAll("[data-id]").forEach(cb=>cb.checked=false);const sa=document.getElementById("select-all-cb");if(sa)sa.checked=false;updateOrderBulkBar()}
 
 async function applyBulkStatus(){
   const status=document.getElementById("bulk-status").value;
