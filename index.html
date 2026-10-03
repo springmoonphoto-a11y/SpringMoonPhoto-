@@ -1333,6 +1333,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <button id="atab-messages" class="admin-tab" onclick="setAdminTab('messages')">💬 Üzenetek <span id="atab-messages-badge"></span></button>
     </div>
     <div id="admin-orders-wrap">
+      <input type="text" id="admin-order-search" class="admin-search" placeholder="🔍 Keresés név, telefon, email, kép vagy osztály alapján..." oninput="onOrderSearchInput()">
       <div id="bulk-bar" class="bulk-bar hidden">
         <span id="bulk-count" style="font-size:.88rem;flex-shrink:0">0 kijelölve</span>
         <select id="bulk-status" class="bulk-select">
@@ -2739,6 +2740,7 @@ async function loadPhotographerData(){
 
 async function logout(){
   cart=[];currentGallery=null;
+  const _os=document.getElementById("admin-order-search");if(_os)_os.value="";
   try{
     sessionStorage.removeItem("adminLastTab");sessionStorage.removeItem("adminLastGalleryId");
     // A mentett belépési adatokat is töröljük, hogy kilépés után valóban a bejelentkező
@@ -5803,11 +5805,34 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="ArrowRight")navAdminImg(1);
 });
 
+// Keresés-segéd: kisbetű + ékezetek nélkül, hogy "jacso" is megtalálja "Jacsó"-t
+function _normSearch(s){return (s==null?"":String(s)).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+function onOrderSearchInput(){
+  // Keresés közben a kijelölést töröljük, hogy rejtett rendelésekre ne hasson tömeges művelet
+  clearSelection();
+  renderAdminOrders();
+}
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
-  const activeOrders=orders.filter(o=>o.status!=="completed");
-  if(activeOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📭</span><div class="empty-state-title">Nincs aktív rendelés</div><div class="empty-state-text">Az új rendelések itt fognak megjelenni, amint a szülők leadják.</div></div>';return}
-  div.innerHTML=activeOrders.map(o=>{
+  const inp=document.getElementById("admin-order-search");
+  const rawQ=(inp?inp.value:"").trim();
+  const q=_normSearch(rawQ);
+  const qDigits=rawQ.replace(/\D/g,"");
+  let activeOrders=orders.filter(o=>o.status!=="completed");
+  const totalActive=activeOrders.length;
+  if(totalActive===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📭</span><div class="empty-state-title">Nincs aktív rendelés</div><div class="empty-state-text">Az új rendelések itt fognak megjelenni, amint a szülők leadják.</div></div>';return}
+  if(q){
+    activeOrders=activeOrders.filter(o=>{
+      const g=galleries.find(x=>x.id===o.galleryId);
+      const hay=_normSearch([o.child,o.parentName,o.parentEmail,o.phone,o.date,g&&g.bulkClass,g&&g.code,g&&g.name].concat((o.items||[]).map(i=>i.photoName)).join(" "));
+      if(hay.includes(q))return true;
+      // Telefonszám: számjegyek alapján is (pl. "30 338 8475" ↔ "+36303388475")
+      return qDigits.length>=3&&(o.phone||"").replace(/\D/g,"").includes(qDigits);
+    });
+    if(activeOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs találat</div><div class="empty-state-text">Nincs a keresésnek megfelelő aktív rendelés: „'+rawQ.replace(/</g,"&lt;")+'"</div></div>';return}
+  }
+  const countLine=q?'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">'+activeOrders.length+' találat ('+totalActive+' aktív rendelésből)</div>':"";
+  div.innerHTML=countLine+activeOrders.map(o=>{
     const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div></div><div class="order-card-total">'+fmt(o.total)+(o.discount?' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>':'')+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
   }).join("");
