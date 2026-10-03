@@ -1334,6 +1334,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     </div>
     <div id="admin-orders-wrap">
       <input type="text" id="admin-order-search" class="admin-search" placeholder="🔍 Keresés név, telefon, email, kép vagy osztály alapján..." oninput="onOrderSearchInput()">
+      <div id="price-corr-summary"></div>
       <div id="bulk-bar" class="bulk-bar hidden">
         <span id="bulk-count" style="font-size:.88rem;flex-shrink:0">0 kijelölve</span>
         <select id="bulk-status" class="bulk-select">
@@ -1348,6 +1349,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <span id="bulk-type-hint" style="font-size:.78rem;opacity:.7"></span>
         <button class="btn btn-gold btn-sm" onclick="applyBulkStatus()">Alkalmaz</button>
         <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:var(--white);border:1px solid rgba(255,255,255,.3)" onclick="clearSelection()">Törlés</button>
+        <button class="btn btn-sm" style="background:#27ae60;color:#fff;border:none" onclick="openPriceCorrection()">💸 Árkorrekció</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
         <input type="checkbox" id="select-all-cb" class="order-checkbox" onchange="toggleSelectAll(this.checked)">
@@ -1617,6 +1619,12 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <button class="btn btn-outline" style="margin-top:10px" onclick="document.getElementById('my-orders-modal').classList.add('hidden')">Bezárás</button>
   </div>
 </div>
+<div id="price-corr-modal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="modal-sheet" style="max-width:560px">
+    <div class="sheet-handle"></div>
+    <div id="price-corr-content"></div>
+  </div>
+</div>
 <div id="print-summary-modal" class="modal-overlay hidden" onclick="closePrintSummary(event)">
   <div class="modal-sheet" id="print-summary-sheet">
     <div class="sheet-handle no-print"></div>
@@ -1762,6 +1770,7 @@ async function loadMyPrices(){
       PRINT_SIZES=data.printSizes||JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES));
       DIGITAL_PRICE=typeof data.digitalPrice==="number"?data.digitalPrice:DEFAULT_DIGITAL_PRICE;
       COMBO_DISCOUNT=typeof data.comboDiscount==="number"?data.comboDiscount:0;
+      GIFT_ITEMS=data.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
       CLASS_GIVEBACK_PERCENTS=data.classGivebackPercents||{};
       ENABLED_PRODUCTS=data.enabledProducts||{print:true,digital:true,gift:true};
       WATERMARK_CONFIG=data.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"};
@@ -3992,7 +4001,7 @@ async function showMyOrders(){
     const myOrders=os.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     if(myOrders.length===0){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">📦</span><div class="empty-state-title">Még nincs rendelésed</div><div class="empty-state-text">Itt fogod látni a leadott rendeléseidet, amint elkészülnek.</div></div>';return}
     list.innerHTML=myOrders.map(o=>{
-      const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div style="font-size:.82rem;color:var(--text);padding:3px 0">'+i.photoName+' – '+typeLabel+' × '+i.qty+' = '+fmt(i.totalPrice)+'</div>'}).join("");
+      const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div style="font-size:.82rem;color:var(--text);padding:3px 0">'+i.photoName+' – '+typeLabel+' × '+i.qty+' = '+_pcItemPrice(i)+'</div>'}).join("");
       // Idővonal
       const st=o.status||"pending";
       const s1done=true;
@@ -4009,7 +4018,7 @@ async function showMyOrders(){
           +'<div style="font-size:.84rem;line-height:1.7"><strong>Kedvezményezett:</strong> Bukta Anita<br><strong>Bank:</strong> OTP Bank<br><strong>Számlaszám:</strong> 11773391-00491127-00000000<br><strong>Közlemény:</strong> '+(o.child||"-")+'<br><strong>Összeg:</strong> '+fmt(o.total)+'</div>'
           +'</div>';
       }
-      return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="font-size:.78rem;color:var(--text);margin-top:2px">&#128100; '+(o.parentName||"-")+' &#183; &#128222; '+(o.phone||"-")+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem">'+fmt(o.total)+'</div></div>'+tl+paymentBox+'<div style="border-top:1px solid var(--warm);padding-top:8px;margin-top:10px">'+itemsHtml+'</div></div>';
+      return '<div style="background:var(--cream);border-radius:13px;padding:14px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-size:.82rem;color:var(--muted)">'+o.date+'</div><div style="font-size:.78rem;color:var(--text);margin-top:2px">&#128100; '+(o.parentName||"-")+' &#183; &#128222; '+(o.phone||"-")+'</div></div><div style="font-weight:700;color:var(--gold);font-size:1rem;text-align:right">'+_pcTotalHtml(o)+'</div></div>'+tl+paymentBox+'<div style="border-top:1px solid var(--warm);padding-top:8px;margin-top:10px">'+itemsHtml+'</div></div>';
     }).join("");
   }catch(e){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">⚠️</span><div class="empty-state-title">Hiba történt</div><div class="empty-state-text">Nem sikerült betölteni a rendeléseket. Próbáld újra később.</div></div>'}
 }
@@ -5812,8 +5821,147 @@ function onOrderSearchInput(){
   clearSelection();
   renderAdminOrders();
 }
+// === ÁRKORREKCIÓ: meglévő rendelések újraszámolása a most beállított árakkal ===
+// Az eredeti ár megmarad (áthúzva), a különbözet engedményként látszik, és követhető, kinek jár vissza pénz.
+let _pcPreview=[],_pcPrices=null;
+function _pcEsc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function _pcNum(v){return typeof v==="number"&&!isNaN(v)}
+function _pcHas(o){return !!(o&&o.priceCorrection&&_pcNum(o.priceCorrection.amount)&&o.priceCorrection.amount>0)}
+function _pcUnitPrice(i,P){
+  if(i.type==="digital")return _pcNum(P.digitalPrice)?P.digitalPrice:null;
+  if(i.type==="gift"){const gi=P.giftItems||[];const g=gi.find(x=>x.id===i.giftId)||gi.find(x=>x.label===i.giftLabel);return g&&_pcNum(g.price)?g.price:null}
+  const s=(P.printSizes||[]).find(x=>x.label===i.sizeLabel);return s&&_pcNum(s.price)?s.price:null;
+}
+function _pcRecalc(o,P){
+  let unknown=0;
+  const items=(o.items||[]).map(i=>{
+    const n=Object.assign({},i);
+    const cur=_pcUnitPrice(i,P);
+    if(cur===null||!_pcNum(i.qty)||!_pcNum(i.totalPrice)){unknown++;return n}
+    if(!_pcNum(n.origTotalPrice)){n.origTotalPrice=i.totalPrice;if(_pcNum(i.unitPrice))n.origUnitPrice=i.unitPrice}
+    n.unitPrice=cur;n.totalPrice=cur*i.qty;
+    return n;
+  });
+  const subtotal=items.reduce((s,i)=>s+(_pcNum(i.totalPrice)?i.totalPrice:0),0);
+  const byPhoto={};
+  items.forEach(i=>{const k=i.photoId||i.photoName||"";if(!k)return;if(!byPhoto[k])byPhoto[k]={print:0,digital:0};if(i.type==="digital")byPhoto[k].digital+=i.qty;else if(i.type==="print")byPhoto[k].print+=i.qty});
+  let pairs=0;Object.keys(byPhoto).forEach(k=>{pairs+=Math.min(byPhoto[k].print,byPhoto[k].digital)});
+  const comboAmount=_pcNum(P.comboDiscount)&&P.comboDiscount>0?pairs*P.comboDiscount:0;
+  let total=subtotal-comboAmount;
+  let discount=null;
+  if(o.discount&&_pcNum(o.discount.percent)){const a=Math.round(total*o.discount.percent/100);total-=a;discount=Object.assign({},o.discount,{amount:a})}
+  const prev=o.priceCorrection||null;
+  const originalTotal=prev&&_pcNum(prev.originalTotal)?prev.originalTotal:o.total;
+  return {items,subtotal,combo:comboAmount>0?{count:pairs,amount:comboAmount}:null,discount,total,originalTotal,amount:originalTotal-total,unknown};
+}
+async function openPriceCorrection(){
+  if(!selectedOrderIds.size){alert("Előbb jelöld ki a rendeléseket!");return}
+  const box=document.getElementById("price-corr-content");
+  box.innerHTML='<p style="color:var(--muted)">Számolás...</p>';show("price-corr-modal");
+  let P={printSizes:PRINT_SIZES,digitalPrice:DIGITAL_PRICE,giftItems:GIFT_ITEMS,comboDiscount:COMBO_DISCOUNT};
+  try{
+    const doc=await db.collection("photographers").doc(currentUser.uid).get();
+    if(doc.exists){const d=doc.data();P={printSizes:d.printSizes||JSON.parse(JSON.stringify(DEFAULT_PRINT_SIZES)),digitalPrice:_pcNum(d.digitalPrice)?d.digitalPrice:DEFAULT_DIGITAL_PRICE,giftItems:d.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS)),comboDiscount:_pcNum(d.comboDiscount)?d.comboDiscount:0}}
+  }catch(e){}
+  _pcPrices=P;
+  _pcPreview=orders.filter(o=>selectedOrderIds.has(o.id)).map(o=>({o,r:_pcRecalc(o,P)}));
+  const todo=_pcPreview.filter(p=>p.r.total<p.o.total);
+  const undoable=_pcPreview.filter(p=>p.o.priceCorrection);
+  const sumAll=todo.reduce((s,p)=>s+(p.o.total-p.r.total),0);
+  const sumPaid=todo.filter(p=>_orderFlags(p.o).paid).reduce((s,p)=>s+(p.o.total-p.r.total),0);
+  let h='<h2 style="font-size:1.3rem;margin-bottom:8px">💸 Árkorrekció</h2>';
+  h+='<p style="font-size:.84rem;color:var(--muted);line-height:1.5;margin-bottom:10px">A kijelölt rendeléseket újraszámolom az <strong>Árak fülön most elmentett</strong> árakkal. Az eredeti ár áthúzva megmarad, a különbözet engedményként látszik a rendelésen (a szülőnél is).</p>';
+  h+='<div style="background:var(--cream);border-radius:10px;padding:10px 12px;font-size:.78rem;line-height:1.6;margin-bottom:12px"><strong>Jelenlegi árak:</strong> Digitális '+fmt(P.digitalPrice)+(P.printSizes||[]).map(s=>' · '+_pcEsc(s.label)+' '+fmt(s.price)).join("")+(P.comboDiscount>0?' · Kombó -'+fmt(P.comboDiscount):'')+'</div>';
+  h+=_pcPreview.map(p=>{
+    const o=p.o,r=p.r,diff=o.total-r.total;let right,note="";
+    if(diff>0){right='<div style="text-align:right;white-space:nowrap"><s style="color:var(--muted);font-size:.8rem">'+fmt(o.total)+'</s> <strong>'+fmt(r.total)+'</strong><div style="color:#27ae60;font-weight:600;font-size:.82rem">-'+fmt(diff)+'</div></div>';note=_orderFlags(o).paid?'<span style="color:#b9770e">már fizetett → visszajár</span>':'<span style="color:var(--muted)">még nem fizetett</span>'}
+    else if(diff===0){right='<div style="text-align:right;white-space:nowrap">'+fmt(o.total)+'</div>';note='<span style="color:var(--muted)">nem változik</span>'}
+    else{right='<div style="text-align:right;white-space:nowrap">'+fmt(o.total)+'</div>';note='<span style="color:#c0392b">drágább lenne ('+fmt(r.total)+') – kihagyom</span>'}
+    if(r.unknown>0)note+='<br><span style="color:#c0392b">⚠ '+r.unknown+' tételnél nincs ilyen nevű termék az árlistán – az változatlan marad</span>';
+    return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--warm)"><div style="font-size:.86rem"><strong>'+_pcEsc(o.child||"-")+'</strong><div style="font-size:.74rem;line-height:1.4">'+note+'</div></div>'+right+'</div>';
+  }).join("");
+  h+='<div style="margin-top:12px;padding:12px;background:var(--brown);color:#fff;border-radius:10px;font-size:.9rem;line-height:1.7"><div style="display:flex;justify-content:space-between"><span>Összes engedmény ('+todo.length+' rendelés)</span><strong>'+fmt(sumAll)+'</strong></div><div style="display:flex;justify-content:space-between"><span>Ebből visszaadandó (már fizetett)</span><strong>'+fmt(sumPaid)+'</strong></div></div>';
+  h+='<p style="font-size:.74rem;color:var(--muted);margin-top:8px;line-height:1.5">💡 Aki már utalt, annál előbb pipáld be a „Fizetve" jelölést – így pontos lesz a visszaadandó összeg.</p>';
+  h+='<div id="price-corr-msg"></div><div style="display:flex;gap:9px;margin-top:14px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" onclick="hide(\'price-corr-modal\')">Mégse</button>';
+  if(todo.length>0)h+='<button id="price-corr-apply" class="btn btn-green" style="flex:1;min-width:150px" onclick="applyPriceCorrection()">✓ Alkalmazás ('+todo.length+' rendelés)</button>';
+  h+='</div>';
+  if(undoable.length>0)h+='<button class="btn btn-outline btn-sm" style="margin-top:10px;width:100%" onclick="undoPriceCorrection()">↩ Korábbi korrekció visszavonása ('+undoable.length+' rendelés)</button>';
+  box.innerHTML=h;
+}
+async function applyPriceCorrection(){
+  const todo=_pcPreview.filter(p=>p.r.total<p.o.total);if(!todo.length)return;
+  const btn=document.getElementById("price-corr-apply");if(btn){btn.disabled=true;btn.textContent="Mentés..."}
+  const nz=v=>v===undefined?null:v;
+  try{
+    const batch=db.batch();const ups=[];
+    todo.forEach(p=>{
+      const o=p.o,r=p.r,prev=o.priceCorrection||null;
+      const pc=prev?Object.assign({},prev,{amount:r.originalTotal-r.total,at:Date.now()}):{originalTotal:o.total,originalSubtotal:nz(o.subtotal),originalComboDiscount:nz(o.comboDiscount),originalDiscount:nz(o.discount),amount:o.total-r.total,at:Date.now(),paidBefore:!!_orderFlags(o).paid,refunded:false};
+      const up={items:r.items,subtotal:r.subtotal,comboDiscount:r.combo,discount:r.discount,total:r.total,priceCorrection:pc};
+      batch.update(db.collection("orders").doc(o.id),up);ups.push({o,up});
+    });
+    await batch.commit();
+    ups.forEach(x=>Object.assign(x.o,x.up));
+    hide("price-corr-modal");clearSelection();renderAdminOrders();renderCompletedOrders();renderAdmin();
+    showToast("✓ Árkorrekció kész: "+ups.length+" rendelés");
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent="✓ Alkalmazás ("+todo.length+" rendelés)"}
+    document.getElementById("price-corr-msg").innerHTML='<div class="error-msg">Nem sikerült menteni – semmi nem változott. Próbáld újra.</div>';
+  }
+}
+async function undoPriceCorrection(){
+  const list=_pcPreview.filter(p=>p.o.priceCorrection).map(p=>p.o);if(!list.length)return;
+  if(!confirm("Visszaállítom az eredeti árakat "+list.length+" rendelésnél. Biztos?"))return;
+  try{
+    const batch=db.batch();const ups=[];
+    list.forEach(o=>{
+      const pc=o.priceCorrection;
+      const items=(o.items||[]).map(i=>{const n=Object.assign({},i);if(_pcNum(n.origTotalPrice)){n.totalPrice=n.origTotalPrice;if(_pcNum(n.origUnitPrice))n.unitPrice=n.origUnitPrice}delete n.origTotalPrice;delete n.origUnitPrice;return n});
+      const up={items,total:pc.originalTotal,comboDiscount:pc.originalComboDiscount===undefined?null:pc.originalComboDiscount,discount:pc.originalDiscount===undefined?null:pc.originalDiscount};
+      if(_pcNum(pc.originalSubtotal))up.subtotal=pc.originalSubtotal;
+      batch.update(db.collection("orders").doc(o.id),Object.assign({},up,{priceCorrection:firebase.firestore.FieldValue.delete()}));ups.push({o,up});
+    });
+    await batch.commit();
+    ups.forEach(x=>{Object.assign(x.o,x.up);delete x.o.priceCorrection});
+    hide("price-corr-modal");clearSelection();renderAdminOrders();renderCompletedOrders();renderAdmin();
+    showToast("↩ Eredeti árak visszaállítva");
+  }catch(e){alert("Nem sikerült visszaállítani – semmi nem változott.")}
+}
+async function setPcField(orderId,field,val){
+  const o=orders.find(x=>x.id===orderId);if(!o||!o.priceCorrection)return;
+  try{const up={};up["priceCorrection."+field]=val;await db.collection("orders").doc(orderId).update(up);o.priceCorrection[field]=val}
+  catch(e){alert("Hiba történt a mentésnél!")}
+  renderAdminOrders();renderCompletedOrders();
+}
+function _pcTotalHtml(o){
+  let h="";
+  if(_pcHas(o))h+='<span style="font-size:.74rem;color:var(--muted);text-decoration:line-through;display:block;font-weight:400">'+fmt(o.priceCorrection.originalTotal)+'</span>';
+  h+=fmt(o.total);
+  if(o.discount)h+=' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>';
+  if(_pcHas(o))h+='<span style="font-size:.7rem;color:#27ae60;display:block;font-weight:600">💸 Engedmény: -'+fmt(o.priceCorrection.amount)+'</span>';
+  return h;
+}
+function _pcItemPrice(i){return (_pcNum(i.origTotalPrice)&&i.origTotalPrice!==i.totalPrice?'<s style="color:var(--muted);font-weight:400;font-size:.85em;margin-right:5px">'+fmt(i.origTotalPrice)+'</s>':'')+fmt(i.totalPrice)}
+function _pcRefundHtml(o){
+  if(!_pcHas(o))return "";
+  const pc=o.priceCorrection;const base='margin-top:8px;padding:8px 10px;border-radius:9px;font-size:.8rem;line-height:1.5;';
+  if(!pc.paidBefore)return '<div style="'+base+'background:#f0f0f0;color:#555">💸 Engedmény: '+fmt(pc.amount)+' – a korrekció előtt még nem fizetett, az új összeget fizeti. <a href="#" style="color:var(--brown);font-weight:600" onclick="setPcField(\''+o.id+'\',\'paidBefore\',true);return false">Mégis a régi összeget utalta</a></div>';
+  if(pc.refunded)return '<label style="'+base+'background:#d4f0c0;color:#2a5a2a;display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" checked onchange="setPcField(\''+o.id+'\',\'refunded\',this.checked)"> ✓ Visszaadva: '+fmt(pc.amount)+'</label>';
+  return '<label style="'+base+'background:#fdebd0;color:#7a4a00;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600"><input type="checkbox" onchange="setPcField(\''+o.id+'\',\'refunded\',this.checked)"> 💸 Visszajár: '+fmt(pc.amount)+' <span style="font-weight:400">(pipáld, ha visszaadtad)</span></label>';
+}
+function renderPriceCorrSummary(){
+  const el=document.getElementById("price-corr-summary");if(!el)return;
+  const list=orders.filter(_pcHas);
+  if(!list.length){el.innerHTML="";return}
+  const all=list.reduce((s,o)=>s+o.priceCorrection.amount,0);
+  const due=list.filter(o=>o.priceCorrection.paidBefore&&!o.priceCorrection.refunded);
+  const done=list.filter(o=>o.priceCorrection.paidBefore&&o.priceCorrection.refunded);
+  el.innerHTML='<div style="background:var(--white);border:1.5px solid #27ae60;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:.84rem;line-height:1.7"><strong>💸 Árkorrekció – '+list.length+' rendelés</strong><div style="display:flex;justify-content:space-between"><span>Összes engedmény</span><strong>'+fmt(all)+'</strong></div><div style="display:flex;justify-content:space-between;color:#b9770e"><span>Még visszaadandó ('+due.length+' fő)</span><strong>'+fmt(due.reduce((s,o)=>s+o.priceCorrection.amount,0))+'</strong></div><div style="display:flex;justify-content:space-between;color:#2a5a2a"><span>Már visszaadva ('+done.length+' fő)</span><strong>'+fmt(done.reduce((s,o)=>s+o.priceCorrection.amount,0))+'</strong></div></div>';
+}
+
 function renderAdminOrders(){
   const div=document.getElementById("admin-orders");
+  renderPriceCorrSummary();
   const inp=document.getElementById("admin-order-search");
   const rawQ=(inp?inp.value:"").trim();
   const q=_normSearch(rawQ);
@@ -5833,8 +5981,8 @@ function renderAdminOrders(){
   }
   const countLine=q?'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">'+activeOrders.length+' találat ('+totalActive+' aktív rendelésből)</div>':"";
   div.innerHTML=countLine+activeOrders.map(o=>{
-    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div></div><div class="order-card-total">'+fmt(o.total)+(o.discount?' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>':'')+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
+    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
   }).join("");
 }
 
@@ -5843,8 +5991,8 @@ function renderCompletedOrders(){
   const completedOrders=orders.filter(o=>o.status==="completed");
   if(completedOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">✅</span><div class="empty-state-title">Még nincs teljesített rendelés</div><div class="empty-state-text">Az "Aktív" fülön lévő rendeléseket "Teljesítve" státuszra állítva itt jelennek majd meg.</div></div>';return}
   div.innerHTML=completedOrders.map(o=>{
-    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+fmt(i.totalPrice)+'</span></div>'}).join("");
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div></div><div class="order-card-total">'+fmt(o.total)+(o.discount?' <span style="font-size:.7rem;color:#27ae60;display:block">🎁 -'+o.discount.percent+'%</span>':'')+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Törlés</button></div></div></div></div>';
+    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'" onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Törlés</button></div></div></div></div>';
   }).join("");
 }
 
