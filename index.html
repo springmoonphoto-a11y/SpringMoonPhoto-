@@ -725,7 +725,7 @@ body.dark-mode .tl-dot{background:#1a130a;border-color:#2a1e0a}
 .chat-panel-head .cph-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted)}
 .chat-messages{max-height:340px;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .chat-empty{text-align:center;color:var(--muted);font-size:.86rem;padding:24px 10px}
-.chat-msg{max-width:78%;padding:9px 13px;border-radius:14px;font-size:.9rem;line-height:1.4;word-break:break-word}
+.chat-msg{max-width:78%;padding:9px 13px;border-radius:14px;font-size:.9rem;line-height:1.4;word-break:break-word;white-space:pre-wrap}
 .chat-msg.from-parent{align-self:flex-end;background:var(--brown);color:#fff;border-bottom-right-radius:4px}
 .chat-msg.from-photographer{align-self:flex-start;background:var(--cream);color:var(--text);border-bottom-left-radius:4px;border:1px solid var(--warm)}
 .chat-msg .cm-time{font-size:.66rem;opacity:.7;margin-top:3px;display:block}
@@ -1351,6 +1351,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <button class="btn btn-gold btn-sm" style="display:none" onclick="applyBulkStatus()">Alkalmaz</button>
         <button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:var(--white);border:1px solid rgba(255,255,255,.3)" onclick="clearSelection()">Kijelölés megszüntetése</button>
         <button class="btn btn-sm" style="background:#27ae60;color:#fff;border:none" onclick="openPriceCorrection()">💸 Árkorrekció</button>
+        <button class="btn btn-sm" style="background:#2e86c1;color:#fff;border:none" onclick="openBulkMessage()">💬 Üzenet a kijelölteknek</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
         <input type="checkbox" id="select-all-cb" class="order-checkbox" onchange="toggleSelectAll(this.checked)">
@@ -1618,6 +1619,12 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <p style="font-size:.85rem;color:var(--muted);margin-bottom:20px">Az email címedhez tartozó összes rendelés és azok aktuális státusza</p>
     <div id="my-orders-list"></div>
     <button class="btn btn-outline" style="margin-top:10px" onclick="document.getElementById('my-orders-modal').classList.add('hidden')">Bezárás</button>
+  </div>
+</div>
+<div id="order-chat-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeOrderChat()">
+  <div class="modal-sheet" style="max-width:560px">
+    <div class="sheet-handle"></div>
+    <div id="order-chat-content"></div>
   </div>
 </div>
 <div id="price-corr-modal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
@@ -2957,16 +2964,26 @@ function renderMessagesList(){
   }).join("");
 }
 
-function openAdminConvo(galleryId){
+function openAdminConvo(galleryId,targetId,order){
   _adminChatGalleryId=galleryId;
   _setAdminChatLastSeen(galleryId);
-  const wrap=document.getElementById("admin-messages");
+  const wrap=document.getElementById(targetId||"admin-messages");
   const msgs=_allMessages.filter(m=>m.galleryId===galleryId).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
-  const name=(msgs[0]&&msgs[0].galleryName)||"Beszélgetés";
-  let html='<button class="btn btn-outline btn-sm" style="margin-bottom:12px;width:auto" onclick="backToMessagesList()">← Vissza a beszélgetésekhez</button>';
-  html+='<div class="chat-panel"><div class="chat-panel-head"><span class="cph-title">🧒 '+name+'</span></div>';
+  const meta=_chatMetaForGallery(galleryId);
+  const name=(msgs[0]&&msgs[0].galleryName)||meta.galleryName||(order&&order.child)||"Beszélgetés";
+  let html="";
+  if(targetId){
+    // Rendeléskártyáról nyitott beszélgetés (felugró ablak)
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px"><h2 style="font-size:1.2rem;margin:0">💬 Üzenet a szülőnek</h2><button class="btn btn-outline btn-sm" onclick="closeOrderChat()">✕ Bezárás</button></div>';
+    if(order&&order.parentName)html+='<div style="font-size:.84rem;color:var(--muted);margin-bottom:8px">👤 '+_pcEsc(order.parentName)+'</div>';
+    if(meta.isGroup)html+='<div style="background:#fdebd0;color:#7a4a00;border-radius:9px;padding:8px 10px;font-size:.8rem;line-height:1.5;margin-bottom:8px">⚠️ Ez csoportos galéria: amit ide írsz, azt mindenki látja, aki ezzel a kóddal belép.</div>';
+    html+='<div style="font-size:.76rem;color:var(--muted);line-height:1.5;margin-bottom:10px">A szülő akkor látja az üzenetet, amikor belép a galériába (a „💬 Írj a fotósnak" gombon jelzés várja). Emailt erről nem kap.</div>';
+  }else{
+    html+='<button class="btn btn-outline btn-sm" style="margin-bottom:12px;width:auto" onclick="backToMessagesList()">← Vissza a beszélgetésekhez</button>';
+  }
+  html+='<div class="chat-panel"><div class="chat-panel-head"><span class="cph-title">🧒 '+_pcEsc(name)+'</span></div>';
   html+='<div class="chat-messages" id="admin-chat-messages"></div>';
-  html+='<div class="chat-input-row"><input id="admin-chat-input" type="text" placeholder="Válasz írása…" onkeydown="if(event.key===\'Enter\')sendAdminMessage()"><button onclick="sendAdminMessage()">Küldés</button></div></div>';
+  html+='<div class="chat-input-row"><input id="admin-chat-input" type="text" placeholder="'+(targetId?"Üzenet írása…":"Válasz írása…")+'" onkeydown="if(event.key===\'Enter\')sendAdminMessage()"><button onclick="sendAdminMessage()">Küldés</button></div></div>';
   wrap.innerHTML=html;
   renderAdminConvoMessages();
   // Valós idejű figyelés erre a beszélgetésre
@@ -2980,7 +2997,7 @@ function openAdminConvo(galleryId){
 function renderAdminConvoMessages(){
   const box=document.getElementById("admin-chat-messages");if(!box)return;
   const msgs=_allMessages.filter(m=>m.galleryId===_adminChatGalleryId).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
-  if(msgs.length===0){box.innerHTML='<div class="chat-empty">Nincs üzenet.</div>';return}
+  if(msgs.length===0){box.innerHTML='<div class="chat-empty">Még nincs üzenet – írd meg az elsőt.</div>';return}
   box.innerHTML=msgs.map(m=>{
     // Admin nézetben: a fotós üzenete jobbra, a szülőé balra
     const cls=m.sender==="photographer"?"from-parent":"from-photographer";
@@ -3022,22 +3039,110 @@ async function sendAdminMessage(){
   const inp=document.getElementById("admin-chat-input");if(!inp)return;
   const text=inp.value.trim();if(!text||!_adminChatGalleryId)return;
   inp.value="";inp.disabled=true;
-  const gMsg=_allMessages.find(m=>m.galleryId===_adminChatGalleryId);
   try{
-    await db.collection("messages").add({
-      galleryId:_adminChatGalleryId,
-      galleryName:gMsg?gMsg.galleryName:"",
-      photographerId:currentUser.uid,
-      senderKey:gMsg?gMsg.senderKey:"",
-      parentEmail:gMsg?gMsg.parentEmail:"",
-      sender:"photographer",
-      text,
-      createdAt:Date.now()
-    });
+    await db.collection("messages").add(_adminMsgPayload(_adminChatGalleryId,text));
   }catch(e){alert("Küldési hiba: "+e.message)}
   inp.disabled=false;inp.focus();
 }
 
+// === ÜZENET KEZDEMÉNYEZÉSE A RENDELÉSKÁRTYÁRÓL (Aktív fül) ===
+// Ugyanaz a galériánkénti beszélgetés, mint az Üzenetek fülön – csak itt a fotós is elkezdheti.
+function _chatMetaForGallery(gid){
+  const g=(typeof galleries!=="undefined"&&galleries||[]).find(x=>x.id===gid);
+  if(!g)return {galleryName:"",senderKey:"",parentEmail:"",isGroup:false};
+  return g.isGroup?{galleryName:g.name||"",senderKey:"group:"+g.id,parentEmail:"(csoportos)",isGroup:true}
+                  :{galleryName:g.child||g.name||"",senderKey:g.parentEmail||"szülő",parentEmail:g.parentEmail||"",isGroup:false};
+}
+function _orderChatBtn(o){
+  if(!o.galleryId)return "";
+  const msgs=_allMessages.filter(m=>m.galleryId===o.galleryId);
+  const seen=_adminChatLastSeen(o.galleryId);
+  const unread=msgs.some(m=>m.sender==="parent"&&(m.createdAt||0)>seen);
+  return '<div style="margin-top:8px"><button class="btn btn-outline btn-sm" onclick="openOrderChat(\''+o.id+'\')">💬 Üzenet a szülőnek'+(msgs.length?' ('+msgs.length+')':'')+(unread?' <span class="chat-convo-unread-dot">új</span>':'')+'</button></div>';
+}
+function _stopAdminChatWatch(){if(_adminChatUnsub){try{_adminChatUnsub()}catch(e){}_adminChatUnsub=null}}
+function openOrderChat(orderId){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  if(!o.galleryId){alert("Ehhez a rendeléshez nem tartozik galéria, ezért itt nem tudsz üzenetet írni.");return}
+  // Ha az Üzenetek fülön nyitva maradt egy beszélgetés, azt listára állítjuk vissza (ugyanazokat a mezőket használja)
+  _stopAdminChatWatch();
+  renderMessagesList();
+  show("order-chat-modal");
+  openAdminConvo(o.galleryId,"order-chat-content",o);
+  const inp=document.getElementById("admin-chat-input");if(inp)inp.focus();
+}
+function closeOrderChat(){
+  _stopAdminChatWatch();
+  _adminChatGalleryId=null;
+  const c=document.getElementById("order-chat-content");if(c)c.innerHTML="";
+  hide("order-chat-modal");
+  updateMessagesBadge();renderAdminOrders();renderCompletedOrders();
+}
+function _adminMsgPayload(gid,text){
+  const gMsg=_allMessages.find(m=>m.galleryId===gid);
+  const gMeta=_chatMetaForGallery(gid);
+  return {galleryId:gid,galleryName:gMsg?(gMsg.galleryName||""):gMeta.galleryName,photographerId:currentUser.uid,senderKey:gMsg?(gMsg.senderKey||""):gMeta.senderKey,parentEmail:gMsg?(gMsg.parentEmail||""):gMeta.parentEmail,sender:"photographer",text,createdAt:Date.now()};
+}
+// === KÖRÜZENET: ugyanaz az üzenet több kijelölt rendelés szülőjének ===
+// Galériánként egy üzenet megy (ha egy szülőnek több rendelése van kijelölve, akkor is csak egyet kap).
+let _bulkMsgTargets=[];
+function _bulkMsgCollect(){
+  const seen={};const targets=[];let noGallery=0;
+  orders.filter(o=>selectedOrderIds.has(o.id)).forEach(o=>{
+    if(!o.galleryId){noGallery++;return}
+    if(seen[o.galleryId])return;seen[o.galleryId]=true;
+    const meta=_chatMetaForGallery(o.galleryId);
+    targets.push({galleryId:o.galleryId,label:meta.isGroup?(meta.galleryName||o.child||"Csoportos galéria"):(o.child||meta.galleryName||"-"),isGroup:meta.isGroup});
+  });
+  return {targets,noGallery};
+}
+function openBulkMessage(){
+  if(!selectedOrderIds.size){alert("Előbb jelöld ki a rendeléseket!");return}
+  const {targets,noGallery}=_bulkMsgCollect();
+  if(!targets.length){alert("A kijelölt rendelésekhez nem tartozik galéria, ezért itt nem tudsz nekik üzenetet írni.");return}
+  _stopAdminChatWatch();_adminChatGalleryId=null;renderMessagesList();
+  _bulkMsgTargets=targets;
+  const groups=targets.filter(t=>t.isGroup).length;
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px"><h2 style="font-size:1.2rem;margin:0">💬 Üzenet a kijelölteknek</h2><button class="btn btn-outline btn-sm" onclick="closeOrderChat()">✕ Bezárás</button></div>';
+  h+='<div style="font-size:.86rem;margin-bottom:6px"><strong>'+targets.length+' címzett</strong> – mindenki külön, a saját galériájában kapja meg:</div>';
+  h+='<div style="background:var(--cream);border-radius:10px;padding:9px 12px;font-size:.8rem;line-height:1.6;max-height:110px;overflow-y:auto;margin-bottom:8px">'+targets.map(t=>(t.isGroup?"👥 ":"")+_pcEsc(t.label)).join(" · ")+'</div>';
+  if(groups>0)h+='<div style="background:#fdebd0;color:#7a4a00;border-radius:9px;padding:8px 10px;font-size:.8rem;line-height:1.5;margin-bottom:8px">⚠️ '+groups+' csoportos galéria (👥) is van köztük: ott az üzenetet mindenki látja, aki azzal a kóddal belép.</div>';
+  if(noGallery>0)h+='<div style="font-size:.78rem;color:#c0392b;margin-bottom:8px">'+noGallery+' kijelölt rendeléshez nem tartozik galéria – ők nem kapják meg.</div>';
+  h+='<textarea id="bulk-msg-text" rows="6" placeholder="Írd ide az üzenetet…" oninput="_bulkMsgUpdateBtn()" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid var(--warm);border-radius:10px;font-family:\'DM Sans\',sans-serif;font-size:.92rem;line-height:1.5;resize:vertical;min-height:120px;background:var(--cream);color:var(--dark);margin-bottom:8px"></textarea>';
+  h+='<div style="font-size:.76rem;color:var(--muted);line-height:1.5;margin-bottom:10px">A szülők akkor látják, amikor belépnek a galériába (a „💬 Írj a fotósnak" gombon jelzés várja őket). Emailt erről nem kapnak. A válaszok az Üzenetek fülre érkeznek, szülőnként külön.</div>';
+  h+='<div id="bulk-msg-err"></div><button id="bulk-msg-send" class="btn btn-green" style="width:100%" disabled onclick="sendBulkMessage()">Küldés '+targets.length+' címzettnek</button>';
+  document.getElementById("order-chat-content").innerHTML=h;
+  show("order-chat-modal");
+  const ta=document.getElementById("bulk-msg-text");if(ta)ta.focus();
+}
+function _bulkMsgUpdateBtn(){
+  const ta=document.getElementById("bulk-msg-text"),btn=document.getElementById("bulk-msg-send");
+  if(ta&&btn)btn.disabled=!ta.value.trim();
+}
+async function sendBulkMessage(){
+  const ta=document.getElementById("bulk-msg-text"),btn=document.getElementById("bulk-msg-send");
+  if(!ta||!btn)return;
+  const text=ta.value.trim();if(!text||!_bulkMsgTargets.length)return;
+  const targets=_bulkMsgTargets.slice();
+  btn.disabled=true;btn.textContent="Küldés...";ta.disabled=true;
+  try{
+    // Egy kötegben megy: vagy mindenki megkapja, vagy senki (nincs félig elküldött körüzenet)
+    const batch=db.batch();const added=[];
+    targets.forEach(t=>{
+      const ref=db.collection("messages").doc();
+      const payload=_adminMsgPayload(t.galleryId,text);
+      batch.set(ref,payload);added.push(Object.assign({id:ref.id},payload));
+    });
+    await batch.commit();
+    _allMessages=_allMessages.concat(added);
+    _bulkMsgTargets=[];
+    clearSelection();closeOrderChat();
+    showToast("✓ Üzenet elküldve "+targets.length+" címzettnek");
+  }catch(e){
+    btn.disabled=false;btn.textContent="Küldés "+targets.length+" címzettnek";ta.disabled=false;
+    document.getElementById("bulk-msg-err").innerHTML='<div class="error-msg">Nem sikerült elküldeni – senki nem kapta meg. Próbáld újra.</div>';
+  }
+}
 function backToMessagesList(){
   if(_adminChatUnsub){try{_adminChatUnsub()}catch(e){}_adminChatUnsub=null}
   _adminChatGalleryId=null;
@@ -4217,7 +4322,7 @@ function renderAdmin(){
   document.getElementById("stat-revenue").textContent=fmt(orders.reduce((s,o)=>s+o.total,0));
   renderAdminOrders();renderAdminGalleries();
   // Olvasatlan üzenetek jelzése a fülön
-  loadAllMessages().then(()=>updateMessagesBadge());
+  loadAllMessages().then(()=>{updateMessagesBadge();renderAdminOrders();renderCompletedOrders()});
   // Ügyfelek + foglalások betöltése, automatikus szinkron, emlékeztetők
   loadClients().then(async()=>{
     await loadBookings();
@@ -6036,7 +6141,7 @@ function renderAdminOrders(){
   const countLine=(q||filterOn)?'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">'+activeOrders.length+' találat ('+totalBase+' '+(showCompleted?"teljesített":"aktív")+' rendelésből) · összesen <strong>'+fmt(activeOrders.reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0))+'</strong></div>':"";
   div.innerHTML=countLine+activeOrders.map(o=>{
     const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div></div></div></div>';
   }).join("");
   _syncOrderSelection();
 }
@@ -6047,7 +6152,7 @@ function renderCompletedOrders(){
   if(completedOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">✅</span><div class="empty-state-title">Még nincs teljesített rendelés</div><div class="empty-state-text">Az "Aktív" fülön lévő rendeléseket "Teljesítve" státuszra állítva itt jelennek majd meg.</div></div>';return}
   div.innerHTML=completedOrders.map(o=>{
     const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Törlés</button></div></div></div></div>';
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+o.child+'</div><div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Törlés</button></div></div></div></div>';
   }).join("");
 }
 
