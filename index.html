@@ -4949,6 +4949,13 @@ function getAvailability(){return(window.MY_PROFILE&&window.MY_PROFILE.availabil
 
 function dateToISO(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 
+function _hmToMin(v){if(typeof v!=="string"||!/^\d{1,2}:\d{2}$/.test(v))return null;const p=v.split(":").map(Number);return p[0]*60+p[1]}
+// A nap szünete percekben ({start,end}), vagy null ha nincs / hibás
+function _dayBreak(day){
+  if(!day)return null;
+  const a=_hmToMin(day.breakStart),b=_hmToMin(day.breakEnd);
+  return a!==null&&b!==null&&b>a?{start:a,end:b}:null;
+}
 function getSlotsForDate(dateISO,availability){
   const day=(availability||getAvailability())[dateISO];
   if(!day||!day.enabled||!day.start||!day.end||!day.duration)return[];
@@ -4956,9 +4963,14 @@ function getSlotsForDate(dateISO,availability){
   const [sH,sM]=day.start.split(":").map(Number);
   const [eH,eM]=day.end.split(":").map(Number);
   const startM=sH*60+sM,endM=eH*60+eM,dur=Number(day.duration)||30;
-  for(let t=startM;t+dur<=endM;t+=dur){
+  // Szünet (pl. ebédidő): ebben a sávban nincs foglalható időpont
+  const br=_dayBreak(day);
+  let t=startM,guard=0;
+  while(t+dur<=endM&&guard++<2000){
+    if(br&&t<br.end&&t+dur>br.start){t=br.end;continue}
     const h=Math.floor(t/60),m=t%60;
     slots.push(String(h).padStart(2,"0")+":"+String(m).padStart(2,"0"));
+    t+=dur;
   }
   return slots;
 }
@@ -5232,6 +5244,10 @@ function renderAdminDayDetail(){
   html+='<div class="avail-row" style="margin-top:10px"><div><label style="font-size:.74rem;color:var(--muted)">Kezdés</label><input id="bk-start" type="time" value="'+(dayConf.start||"09:00")+'"></div>';
   html+='<div><label style="font-size:.74rem;color:var(--muted)">Befejezés</label><input id="bk-end" type="time" value="'+(dayConf.end||"17:00")+'"></div></div>';
   html+='<div class="avail-row" style="margin-top:8px;grid-template-columns:1fr"><div><label style="font-size:.74rem;color:var(--muted)">Időpont hossza (perc)</label><select id="bk-duration"><option value="10">10 perc</option><option value="15">15 perc</option><option value="20">20 perc</option><option value="30">30 perc</option><option value="45">45 perc</option><option value="60">60 perc</option><option value="90">90 perc</option><option value="120">120 perc</option></select></div></div>';
+  // Szünet (nem foglalható sáv)
+  html+='<div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">☕ Szünet kezdete</label><input id="bk-break-start" type="time" value="'+(dayConf.breakStart||"")+'"></div>';
+  html+='<div><label style="font-size:.74rem;color:var(--muted)">Szünet vége</label><input id="bk-break-end" type="time" value="'+(dayConf.breakEnd||"")+'"></div></div>';
+  html+='<div style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.5">Nem kötelező. A szünet alatt nem lehet időpontot foglalni (pl. ebédidő 12:00–12:30). <a href="#" onclick="event.preventDefault();document.getElementById(\'bk-break-start\').value=\'\';document.getElementById(\'bk-break-end\').value=\'\'" style="color:var(--gold)">Szünet törlése</a></div>';
   // Borítókép szekció
   html+='<div class="day-cover-section"><label style="font-size:.74rem;color:var(--muted);display:block;margin-bottom:6px">📷 Borítókép (opcionális — a szülői oldalon jelenik meg)</label>';
   html+='<div class="day-cover-area'+(dayConf.coverImage?' has-image':'')+'" id="day-cover-area">';
@@ -5252,7 +5268,7 @@ function renderAdminDayDetail(){
   const dayBookings=getBookingsForDate(_selectedBookingDate,false);
   if(slots.length>0){
     const bookedTimes=new Set(dayBookings.filter(b=>b.status!=="cancelled").map(b=>b.time));
-    html+='<div style="margin-top:14px"><div style="font-weight:500;color:var(--brown);margin-bottom:6px">Időpontok:</div><div class="slot-grid">';
+    html+='<div style="margin-top:14px"><div style="font-weight:500;color:var(--brown);margin-bottom:6px">Időpontok:'+(_dayBreak(dayConf)?' <span style="font-weight:400;font-size:.8rem;color:var(--muted)">(☕ szünet: '+dayConf.breakStart+'–'+dayConf.breakEnd+')</span>':'')+'</div><div class="slot-grid">';
     slots.forEach(s=>{
       const taken=bookedTimes.has(s);
       html+='<div class="slot-btn '+(taken?"booked":"")+'">'+s+(taken?" 🔒":"")+'</div>';
@@ -5411,7 +5427,17 @@ async function saveDayAvailability(){
   const coverImage=coverUrlEl?coverUrlEl.value:(existing.coverImage||"");
   const description=descEl?descEl.value:(existing.description||"");
   if(!start||!end){alert("⚠️ Kezdés és Befejezés idő kötelező");return}
-  const dayData={...existing,enabled,start,end,duration,coverImage,description};
+  // Szünet: mindkét mező kell, és a vége legyen később, mint a kezdete
+  const bsEl=document.getElementById("bk-break-start"),beEl=document.getElementById("bk-break-end");
+  let breakStart=bsEl?bsEl.value:(existing.breakStart||""),breakEnd=beEl?beEl.value:(existing.breakEnd||"");
+  if((breakStart&&!breakEnd)||(!breakStart&&breakEnd)){alert("⚠️ A szünethez add meg a kezdetét ÉS a végét is (vagy hagyd mindkettőt üresen).");return}
+  if(breakStart&&breakEnd&&_hmToMin(breakEnd)<=_hmToMin(breakStart)){alert("⚠️ A szünet vége legyen később, mint a kezdete.");return}
+  if(breakStart&&breakEnd){
+    const bS=_hmToMin(breakStart),bE=_hmToMin(breakEnd);
+    const hit=bookings.filter(b=>b.date===_selectedBookingDate&&b.status!=="cancelled"&&_hmToMin(b.time)!==null&&_hmToMin(b.time)<bE&&_hmToMin(b.time)+duration>bS);
+    if(hit.length&&!confirm("A szünet idejére már van "+hit.length+" foglalás ("+hit.map(b=>b.time).sort().join(", ")+"). Ezek megmaradnak, csak új foglalás nem jöhet erre az időre. Mented így?"))return;
+  }
+  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd};
   avail[_selectedBookingDate]=dayData;
   
   let galleryStatus="";
