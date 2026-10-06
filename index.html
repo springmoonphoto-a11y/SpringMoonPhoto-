@@ -170,6 +170,7 @@ body.dark-mode .multiday-toggle.on{background:#f8e880;color:#3a2a08}
 .status-check.on.delivered{background:#e0d4f5;border-color:#9575cd;color:#4a2d7a}
 .status-check.on.completed{background:#fde8b0;border-color:#e0a020;color:#7a5500}
 .status-check.on.edited{background:#cdeee9;border-color:#3aa99a;color:#14564d}
+.status-check.on.gift{background:#fbd9e6;border-color:#d4628f;color:#7a1f45}
 .status-check input{display:none}
 .status-check .sc-box{width:15px;height:15px;border:1.5px solid currentColor;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;line-height:1}
 .status-check.on .sc-box{background:currentColor}
@@ -180,6 +181,7 @@ body.dark-mode .status-check.on.digital{background:rgba(90,155,212,.25);color:#9
 body.dark-mode .status-check.on.delivered{background:rgba(149,117,205,.25);color:#c0a0f0}
 body.dark-mode .status-check.on.completed{background:rgba(224,160,32,.25);color:#f0c860}
 body.dark-mode .status-check.on.edited{background:rgba(58,169,154,.25);color:#8fe0d3;border-color:#3aa99a}
+body.dark-mode .status-check.on.gift{background:rgba(212,98,143,.25);color:#f3a9c6;border-color:#d4628f}
 .detail-photo-tabs .dpt-btn{padding:10px 18px;border:none;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.92rem;color:var(--muted);font-weight:500;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s}
 .detail-photo-tabs .dpt-btn:hover{color:var(--brown)}
 .detail-photo-tabs .dpt-btn.active{color:var(--brown);border-bottom-color:var(--gold);font-weight:600}
@@ -4402,8 +4404,12 @@ function renderStatusChecks(order){
   let html='<div class="status-checks">';
   html+='<label class="status-check edited'+(f.edited?" on":"")+'" title="Saját jelölés – a szülő nem látja"><span class="sc-box"></span>✏️ Szerkesztve<input type="checkbox" '+(f.edited?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'edited\',this.checked)"></label>';
   html+='<label class="status-check paid'+(f.paid?" on":"")+'"><span class="sc-box"></span>💰 Fizetve<input type="checkbox" '+(f.paid?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'paid\',this.checked)"></label>';
-  if(type==="digital"||type==="mixed")html+='<label class="status-check digital'+(f.digital?" on":"")+'"><span class="sc-box"></span>📧 Elküldve<input type="checkbox" '+(f.digital?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'digital\',this.checked)"></label>';
-  if(type==="print"||type==="mixed")html+='<label class="status-check delivered'+(f.delivered?" on":"")+'"><span class="sc-box"></span>🖨️ Átadva<input type="checkbox" '+(f.delivered?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'delivered\',this.checked)"></label>';
+  // Terméktípusonként külön pipa, hogy látszódjon, ha pl. a digitális már elment, de az ajándék még hátravan
+  const tc=_orderTypeCounts(order);
+  const noneTyped=!tc.print&&!tc.digital&&!tc.gift;// nagyon régi rendelés, tételtípus nélkül
+  if(tc.digital>0||(noneTyped&&(type==="digital"||type==="mixed")))html+='<label class="status-check digital'+(f.digital?" on":"")+'"><span class="sc-box"></span>📧 Elküldve<input type="checkbox" '+(f.digital?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'digital\',this.checked)"></label>';
+  if(tc.print>0||(noneTyped&&(type==="print"||type==="mixed")))html+='<label class="status-check delivered'+(f.delivered?" on":"")+'"><span class="sc-box"></span>🖨️ '+(tc.gift>0?"Papírkép átadva":"Átadva")+'<input type="checkbox" '+(f.delivered?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'delivered\',this.checked)"></label>';
+  if(tc.gift>0){const gd=_giftDone(order);html+='<label class="status-check gift'+(gd?" on":"")+'"><span class="sc-box"></span>🎁 Ajándék átadva<input type="checkbox" '+(gd?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'gift\',this.checked)"></label>'}
   html+='<label class="status-check completed'+(isCompleted?" on":"")+'"><span class="sc-box"></span>⭐ Teljesítve (lezárás)<input type="checkbox" '+(isCompleted?"checked":"")+' onchange="toggleCompleted(\''+order.id+'\',this.checked)"></label>';
   html+='</div>';
   return html;
@@ -4431,6 +4437,10 @@ async function toggleStatusFlag(orderId,flag,checked){
 
 async function toggleCompleted(orderId,checked){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
+  if(checked){
+    const pend=_orderPending(o);
+    if(pend.length&&!confirm("Ennél a rendelésnél még hátravan: "+pend.map(x=>x.label).join(", ")+".\n\nBiztosan lezárod (Teljesítve)?")){renderAdminOrders();renderCompletedOrders();return}
+  }
   try{
     const newStatus=checked?"completed":"pending";
     await db.collection("orders").doc(orderId).update({status:newStatus});
@@ -6360,13 +6370,41 @@ function renderPriceCorrSummary(){
 
 // === RENDELÉS-SZŰRŐK az Aktív fülön (Fizetve / Átadva / Teljesítve) ===
 // A fizetés és az átadás szűrő kombinálható (pl. Fizetve + Nincs átadva = kinek kell még odaadni a képet).
-let _orderFilter={paid:null,delivered:null,edited:null,completed:false,types:{print:false,digital:false,gift:false},multi:false};
-function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi}
+let _orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false};
+function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.pending!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi}
 // Milyen terméktípusok vannak egy rendelésben (darabszámmal)
 function _orderTypeCounts(o){
   const c={print:0,digital:0,gift:0};
   (o.items||[]).forEach(i=>{if(c[i.type]!==undefined)c[i.type]+=Number(i.qty)||1});
   return c;
+}
+// Az ajándéktárgy át van-e adva. Régi rendelésnél (ahol még nem volt külön ajándék-pipa) az "Átadva" számít, ha nincs benne papírkép.
+function _giftDone(o){
+  const f=_orderFlags(o);
+  if(typeof f.gift==="boolean")return f.gift;
+  return _orderTypeCounts(o).print===0&&!!f.delivered;
+}
+// Mi van még hátra a rendelésből (amit még nem küldtél el / nem adtál át)
+function _orderPending(o){
+  const c=_orderTypeCounts(o),f=_orderFlags(o),out=[];
+  if(c.digital>0&&!f.digital)out.push({key:"digital",label:"💾 digitális (elküldés)"});
+  if(c.print>0&&!f.delivered)out.push({key:"print",label:"🖼️ papírkép (átadás)"});
+  if(c.gift>0&&!_giftDone(o))out.push({key:"gift",label:"🎁 ajándéktárgy (átadás)"});
+  return out;
+}
+// Kézbe adandó tételek (papírkép, ajándék): van-e ilyen, és mind át van-e adva
+function _orderPhysical(o){
+  const c=_orderTypeCounts(o),f=_orderFlags(o);
+  const has=c.print>0||c.gift>0;
+  if(!c.print&&!c.digital&&!c.gift){const t=getOrderType(o);return {has:t!=="digital",done:!!f.delivered}}
+  return {has,done:has&&(c.print===0||!!f.delivered)&&(c.gift===0||_giftDone(o))};
+}
+function _orderPendingBadge(o){
+  if(o.status==="completed")return "";
+  const c=_orderTypeCounts(o);if(!c.print&&!c.digital&&!c.gift)return "";
+  const pend=_orderPending(o);
+  if(!pend.length)return '<div class="order-card-meta" style="font-weight:600;color:#2e8b57">✅ Minden kiadva</div>';
+  return '<div class="order-card-meta" style="font-weight:700;color:#d9822b">⏳ Még hátravan: '+pend.map(x=>x.label).join(", ")+'</div>';
 }
 function _orderTypeKinds(o){const c=_orderTypeCounts(o);return (c.print>0?1:0)+(c.digital>0?1:0)+(c.gift>0?1:0)}
 // A kártyán: mi van a rendelésben (pl. 🖼️ 7 papírkép · 💾 5 digitális · 🎁 2 ajándék)
@@ -6391,14 +6429,16 @@ function _orderPassesFilter(o){
     if(ft.gift&&!c.gift)return false;
     if(_orderFilter.multi&&_orderTypeKinds(o)<2)return false;
   }
+  if(_orderFilter.pending!==null&&(_orderPending(o).length>0)!==_orderFilter.pending)return false;
   if(_orderFilter.delivered!==null){
-    if(getOrderType(o)==="digital")return false;// csak digitális rendelésnél nincs mit átadni
-    if(!!f.delivered!==_orderFilter.delivered)return false;
+    const ph=_orderPhysical(o);
+    if(!ph.has)return false;// csak digitális rendelésnél nincs mit átadni
+    if(ph.done!==_orderFilter.delivered)return false;
   }
   return true;
 }
 function setOrderFilter(key,val){
-  if(key==="all")_orderFilter={paid:null,delivered:null,edited:null,completed:false,types:{print:false,digital:false,gift:false},multi:false};
+  if(key==="all")_orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false};
   else if(key==="completed")_orderFilter.completed=!_orderFilter.completed;
   else if(key==="type"){if(_orderFilter.types[val]!==undefined)_orderFilter.types[val]=!_orderFilter.types[val]}
   else if(key==="multi")_orderFilter.multi=!_orderFilter.multi;
@@ -6410,7 +6450,7 @@ function renderOrderFilterBar(sActive,sCompleted){
   if(!orders.length){el.innerHTML="";return}
   const base=_orderFilter.completed?sCompleted:sActive;
   const cnt=fn=>base.filter(fn).length;
-  const hand=o=>getOrderType(o)!=="digital";
+  const hand=o=>_orderPhysical(o).has;
   const chip=(label,n,on,click)=>'<button class="pf-btn'+(on?" active":"")+'" onclick="'+click+'">'+label+' ('+n+')</button>';
   let h='<div class="photo-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
   h+=chip("Mind",sActive.length,!_orderFilterActive(),"setOrderFilter(\'all\')");
@@ -6418,8 +6458,10 @@ function renderOrderFilterBar(sActive,sCompleted){
   h+=chip("🕓 Nincs szerkesztve",cnt(o=>!_orderFlags(o).edited),_orderFilter.edited===false,"setOrderFilter(\'edited\',false)");
   h+=chip("💰 Fizetve",cnt(o=>!!_orderFlags(o).paid),_orderFilter.paid===true,"setOrderFilter(\'paid\',true)");
   h+=chip("⏳ Nincs fizetve",cnt(o=>!_orderFlags(o).paid),_orderFilter.paid===false,"setOrderFilter(\'paid\',false)");
-  h+=chip("🖨️ Átadva",cnt(o=>hand(o)&&!!_orderFlags(o).delivered),_orderFilter.delivered===true,"setOrderFilter(\'delivered\',true)");
-  h+=chip("📦 Nincs átadva",cnt(o=>hand(o)&&!_orderFlags(o).delivered),_orderFilter.delivered===false,"setOrderFilter(\'delivered\',false)");
+  h+=chip("🖨️ Átadva",cnt(o=>hand(o)&&_orderPhysical(o).done),_orderFilter.delivered===true,"setOrderFilter(\'delivered\',true)");
+  h+=chip("📦 Nincs átadva",cnt(o=>hand(o)&&!_orderPhysical(o).done),_orderFilter.delivered===false,"setOrderFilter(\'delivered\',false)");
+  h+=chip("⏳ Van még hátra",cnt(o=>_orderPending(o).length>0),_orderFilter.pending===true,"setOrderFilter(\'pending\',true)");
+  h+=chip("✅ Minden kiadva",cnt(o=>_orderPending(o).length===0),_orderFilter.pending===false,"setOrderFilter(\'pending\',false)");
   h+=chip("⭐ Teljesítve",sCompleted.length,_orderFilter.completed,"setOrderFilter(\'completed\')");
   h+='</div>';
   // Termék szerinti szűrők (több is bejelölhető, és a fenti szűrőkkel kombinálható)
@@ -6496,7 +6538,7 @@ function renderAdminOrders(){
   const countLine=(q||filterOn)?'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">'+activeOrders.length+' találat ('+totalBase+' '+(showCompleted?"teljesített":"aktív")+' rendelésből) · összesen <strong>'+fmt(activeOrders.reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0))+'</strong></div>':"";
   div.innerHTML=countLine+activeOrders.map(o=>{
     const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderClassBadge(o)+_orderTypeBadges(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
   }).join("");
   _syncOrderSelection();
 }
@@ -6507,7 +6549,7 @@ function renderCompletedOrders(){
   if(completedOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">✅</span><div class="empty-state-title">Még nincs teljesített rendelés</div><div class="empty-state-text">Az "Aktív" fülön lévő rendeléseket "Teljesítve" státuszra állítva itt jelennek majd meg.</div></div>';return}
   div.innerHTML=completedOrders.map(o=>{
     const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderClassBadge(o)+_orderTypeBadges(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
   }).join("");
 }
 
