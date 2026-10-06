@@ -4408,8 +4408,8 @@ function renderStatusChecks(order){
   const tc=_orderTypeCounts(order);
   const noneTyped=!tc.print&&!tc.digital&&!tc.gift;// nagyon régi rendelés, tételtípus nélkül
   if(tc.digital>0||(noneTyped&&(type==="digital"||type==="mixed")))html+='<label class="status-check digital'+(f.digital?" on":"")+'"><span class="sc-box"></span>📧 Elküldve<input type="checkbox" '+(f.digital?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'digital\',this.checked)"></label>';
-  if(tc.print>0||(noneTyped&&(type==="print"||type==="mixed")))html+='<label class="status-check delivered'+(f.delivered?" on":"")+'"><span class="sc-box"></span>🖨️ '+(tc.gift>0?"Papírkép átadva":"Átadva")+'<input type="checkbox" '+(f.delivered?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'delivered\',this.checked)"></label>';
-  if(tc.gift>0){const gd=_giftDone(order);html+='<label class="status-check gift'+(gd?" on":"")+'"><span class="sc-box"></span>🎁 Ajándék átadva<input type="checkbox" '+(gd?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'gift\',this.checked)"></label>'}
+  if(tc.print>0||(noneTyped&&(type==="print"||type==="mixed")))html+='<label class="status-check delivered'+(f.delivered?" on":"")+'"><span class="sc-box"></span>🖨️ Papírkép megrendelve<input type="checkbox" '+(f.delivered?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'delivered\',this.checked)"></label>';
+  if(tc.gift>0){const gd=_giftDone(order);html+='<label class="status-check gift'+(gd?" on":"")+'"><span class="sc-box"></span>🎁 Ajándék megrendelve<input type="checkbox" '+(gd?"checked":"")+' onchange="toggleStatusFlag(\''+order.id+'\',\'gift\',this.checked)"></label>'}
   html+='<label class="status-check completed'+(isCompleted?" on":"")+'"><span class="sc-box"></span>⭐ Teljesítve (lezárás)<input type="checkbox" '+(isCompleted?"checked":"")+' onchange="toggleCompleted(\''+order.id+'\',this.checked)"></label>';
   html+='</div>';
   return html;
@@ -4426,9 +4426,10 @@ async function toggleStatusFlag(orderId,flag,checked){
   try{
     await db.collection("orders").doc(orderId).update(up);
     o.statusFlags=flags;
-    // Email értesítő, ha most pipáltad be a digitális elküldést vagy az átadást
+    // Email értesítő, ha most pipáltad be a digitális elküldést vagy a papírkép megrendelését
+    // (a papírkép-pipa megrendelést jelent, ezért "Nyomtatás alatt" megy ki, nem "Papírkép átadva")
     if(checked&&(flag==="digital"||flag==="delivered")){
-      const emailStatus=flag==="digital"?"digital":"delivered";
+      const emailStatus=flag==="digital"?"digital":"printing";
       sendStatusChangeEmail(o,emailStatus).catch(e=>{});
     }
     renderAdminOrders();
@@ -4439,7 +4440,7 @@ async function toggleCompleted(orderId,checked){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
   if(checked){
     const pend=_orderPending(o);
-    if(pend.length&&!confirm("Ennél a rendelésnél még hátravan: "+pend.map(x=>x.label).join(", ")+".\n\nBiztosan lezárod (Teljesítve)?")){renderAdminOrders();renderCompletedOrders();return}
+    if(pend.length&&!confirm("Ennél a rendelésnél még nincs minden elintézve: "+pend.map(x=>x.label).join(", ")+".\n\nBiztosan lezárod (Teljesítve)?")){renderAdminOrders();renderCompletedOrders();return}
   }
   try{
     const newStatus=checked?"completed":"pending";
@@ -6378,21 +6379,21 @@ function _orderTypeCounts(o){
   (o.items||[]).forEach(i=>{if(c[i.type]!==undefined)c[i.type]+=Number(i.qty)||1});
   return c;
 }
-// Az ajándéktárgy át van-e adva. Régi rendelésnél (ahol még nem volt külön ajándék-pipa) az "Átadva" számít, ha nincs benne papírkép.
+// Az ajándéktárgy meg van-e rendelve. Régi rendelésnél (ahol még nem volt külön ajándék-pipa) a papírkép-pipa számít, ha nincs benne papírkép.
 function _giftDone(o){
   const f=_orderFlags(o);
   if(typeof f.gift==="boolean")return f.gift;
   return _orderTypeCounts(o).print===0&&!!f.delivered;
 }
-// Mi van még hátra a rendelésből (amit még nem küldtél el / nem adtál át)
+// Mi van még hátra a rendelésből (amit még nem küldtél el / nem rendeltél meg). Az átadást a "Teljesítve" jelzi.
 function _orderPending(o){
   const c=_orderTypeCounts(o),f=_orderFlags(o),out=[];
   if(c.digital>0&&!f.digital)out.push({key:"digital",label:"💾 digitális (elküldés)"});
-  if(c.print>0&&!f.delivered)out.push({key:"print",label:"🖼️ papírkép (átadás)"});
-  if(c.gift>0&&!_giftDone(o))out.push({key:"gift",label:"🎁 ajándéktárgy (átadás)"});
+  if(c.print>0&&!f.delivered)out.push({key:"print",label:"🖼️ papírkép (megrendelés)"});
+  if(c.gift>0&&!_giftDone(o))out.push({key:"gift",label:"🎁 ajándéktárgy (megrendelés)"});
   return out;
 }
-// Kézbe adandó tételek (papírkép, ajándék): van-e ilyen, és mind át van-e adva
+// Megrendelendő tételek (papírkép, ajándék): van-e ilyen, és mind meg van-e rendelve
 function _orderPhysical(o){
   const c=_orderTypeCounts(o),f=_orderFlags(o);
   const has=c.print>0||c.gift>0;
@@ -6403,7 +6404,7 @@ function _orderPendingBadge(o){
   if(o.status==="completed")return "";
   const c=_orderTypeCounts(o);if(!c.print&&!c.digital&&!c.gift)return "";
   const pend=_orderPending(o);
-  if(!pend.length)return '<div class="order-card-meta" style="font-weight:600;color:#2e8b57">✅ Minden kiadva</div>';
+  if(!pend.length)return '<div class="order-card-meta" style="font-weight:600;color:#2e8b57">✅ Minden elintézve</div>';
   return '<div class="order-card-meta" style="font-weight:700;color:#d9822b">⏳ Még hátravan: '+pend.map(x=>x.label).join(", ")+'</div>';
 }
 function _orderTypeKinds(o){const c=_orderTypeCounts(o);return (c.print>0?1:0)+(c.digital>0?1:0)+(c.gift>0?1:0)}
@@ -6458,10 +6459,10 @@ function renderOrderFilterBar(sActive,sCompleted){
   h+=chip("🕓 Nincs szerkesztve",cnt(o=>!_orderFlags(o).edited),_orderFilter.edited===false,"setOrderFilter(\'edited\',false)");
   h+=chip("💰 Fizetve",cnt(o=>!!_orderFlags(o).paid),_orderFilter.paid===true,"setOrderFilter(\'paid\',true)");
   h+=chip("⏳ Nincs fizetve",cnt(o=>!_orderFlags(o).paid),_orderFilter.paid===false,"setOrderFilter(\'paid\',false)");
-  h+=chip("🖨️ Átadva",cnt(o=>hand(o)&&_orderPhysical(o).done),_orderFilter.delivered===true,"setOrderFilter(\'delivered\',true)");
-  h+=chip("📦 Nincs átadva",cnt(o=>hand(o)&&!_orderPhysical(o).done),_orderFilter.delivered===false,"setOrderFilter(\'delivered\',false)");
+  h+=chip("🛒 Megrendelve",cnt(o=>hand(o)&&_orderPhysical(o).done),_orderFilter.delivered===true,"setOrderFilter(\'delivered\',true)");
+  h+=chip("📦 Nincs megrendelve",cnt(o=>hand(o)&&!_orderPhysical(o).done),_orderFilter.delivered===false,"setOrderFilter(\'delivered\',false)");
   h+=chip("⏳ Van még hátra",cnt(o=>_orderPending(o).length>0),_orderFilter.pending===true,"setOrderFilter(\'pending\',true)");
-  h+=chip("✅ Minden kiadva",cnt(o=>_orderPending(o).length===0),_orderFilter.pending===false,"setOrderFilter(\'pending\',false)");
+  h+=chip("✅ Minden elintézve",cnt(o=>_orderPending(o).length===0),_orderFilter.pending===false,"setOrderFilter(\'pending\',false)");
   h+=chip("⭐ Teljesítve",sCompleted.length,_orderFilter.completed,"setOrderFilter(\'completed\')");
   h+='</div>';
   // Termék szerinti szűrők (több is bejelölhető, és a fenti szűrőkkel kombinálható)
