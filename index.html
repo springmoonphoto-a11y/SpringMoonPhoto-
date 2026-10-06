@@ -1293,18 +1293,18 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       </div>
       <div id="discount-msg" style="margin-top:8px"></div>
     </div>
-    <div id="social-consent-box" class="hidden" style="background:var(--white);border:2px solid var(--gold);border-radius:14px;padding:18px;margin-top:18px;box-shadow:var(--shadow-sm)">
+    <div id="publish-choice-box" class="hidden" style="background:var(--white);border:2px solid var(--gold);border-radius:14px;padding:18px;margin-top:18px;box-shadow:var(--shadow-sm)">
       <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">📸 Hozzájárulás a képek közzétételéhez</h3>
       <p style="font-size:.88rem;color:var(--text);line-height:1.5;margin-bottom:14px">Hozzájárul ahhoz, hogy a fotók megjelenjenek a <strong>SpringMoonPhoto – Bukta Anita</strong> közösségi média felületein?</p>
       <div style="display:flex;gap:10px;margin-bottom:8px">
-        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);font-size:.95rem;font-weight:500" id="consent-yes-label">
-          <input type="radio" name="social-consent" value="yes" onchange="updateConsent('yes')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px"><span>✅ Igen, hozzájárulok</span>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);font-size:.95rem;font-weight:500" id="publish-yes-label">
+          <input type="radio" name="publish-choice" value="yes" onchange="updateConsent('yes')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px"><span>✅ Igen, hozzájárulok</span>
         </label>
-        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);font-size:.95rem;font-weight:500" id="consent-no-label">
-          <input type="radio" name="social-consent" value="no" onchange="updateConsent('no')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px"><span>❌ Nem járulok hozzá</span>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:12px;border:2px solid var(--warm);border-radius:10px;cursor:pointer;background:var(--cream);font-size:.95rem;font-weight:500" id="publish-no-label">
+          <input type="radio" name="publish-choice" value="no" onchange="updateConsent('no')" style="cursor:pointer;accent-color:var(--gold);width:18px;height:18px"><span>❌ Nem járulok hozzá</span>
         </label>
       </div>
-      <p id="consent-warning" style="font-size:.78rem;color:#c0392b;margin-top:8px;font-style:italic">A rendelés leadásához kérjük válaszoljon a fenti kérdésre.</p>
+      <p id="publish-warning" style="font-size:.78rem;color:#c0392b;margin-top:8px;font-style:italic">A rendelés leadásához kérjük válaszoljon a fenti kérdésre.</p>
     </div>
     <button id="order-btn" class="btn btn-gold hidden" style="margin-top:14px" onclick="sendOrder()">Rendelés leadása →</button>
     <button id="back-btn" class="btn btn-outline hidden" style="margin-top:9px" onclick="showGallery()">← Még válogatnék</button>
@@ -1691,8 +1691,8 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="review-customer" class="review-section"></div>
     <div id="review-items" class="review-section"></div>
     <div id="review-totals" class="review-section"></div>
-    <label id="gdpr-consent-box" style="display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding:14px;background:var(--cream);border-radius:10px;cursor:pointer;font-size:.9rem;line-height:1.5;border:2px solid var(--gold)">
-      <input type="checkbox" id="gdpr-consent" style="margin-top:1px;width:26px;height:26px;min-width:26px;accent-color:var(--gold);border:2px solid var(--brown);border-radius:5px;background:#fff;flex-shrink:0;cursor:pointer" onchange="document.getElementById('gdpr-consent-box').style.borderColor=this.checked?'var(--warm)':'var(--gold)'">
+    <label id="order-accept-box" style="display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding:14px;background:var(--cream);border-radius:10px;cursor:pointer;font-size:.9rem;line-height:1.5;border:2px solid var(--gold)">
+      <input type="checkbox" id="order-accept-check" style="margin-top:1px;width:26px;height:26px;min-width:26px;accent-color:var(--gold);border:2px solid var(--brown);border-radius:5px;background:#fff;flex-shrink:0;cursor:pointer" onchange="document.getElementById('order-accept-box').style.borderColor=this.checked?'var(--warm)':'var(--gold)'">
       <span>Elolvastam és elfogadom az <button type="button" onclick="event.preventDefault();showPrivacyPolicy()" style="background:none;border:none;color:var(--gold);text-decoration:underline;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.9rem;padding:0;font-weight:600">adatkezelési tájékoztatót</button>, és hozzájárulok adataim kezeléséhez a rendelés teljesítése céljából.</span>
     </label>
     <div style="display:flex;gap:9px;margin-top:14px">
@@ -4181,7 +4181,7 @@ function _calcComboDiscount(){
 
 function renderCartItems(){
   const itemsDiv=document.getElementById("cart-items");
-  if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("social-consent-box");hide("order-contact-form");hide("discount-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
+  if(cart.length===0){show("cart-empty");hide("cart-total-box");hide("publish-choice-box");hide("order-contact-form");hide("discount-box");hide("order-btn");hide("back-btn");itemsDiv.innerHTML="";return}
   hide("cart-empty");
   itemsDiv.innerHTML=cart.map(item=>{
     let detail;
@@ -4201,7 +4201,7 @@ function renderCartItems(){
   const afterCombo=total-comboInfo.amount;
   if(activeDiscount){const discAmount=Math.round(afterCombo*activeDiscount.percent/100);const finalTotal=afterCombo-discAmount;document.getElementById("cart-total-rows").innerHTML+='<div class="cart-total-row" style="border-top:1px solid rgba(255,255,255,.2);padding-top:6px;margin-top:6px;opacity:1"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span style="color:#90ee90">-'+fmt(discAmount)+'</span></div>';document.getElementById("cart-grand-total").textContent=fmt(finalTotal)}
   else{document.getElementById("cart-grand-total").textContent=fmt(afterCombo)}
-  show("cart-total-box");show("social-consent-box");show("order-btn");show("back-btn");
+  show("cart-total-box");show("publish-choice-box");show("order-btn");show("back-btn");
   show("order-contact-form");if(currentGallery&&currentGallery.isGroup)show("group-only-fields");else hide("group-only-fields");
   if(currentGallery&&currentGallery.discounts&&currentGallery.discounts.length>0)show("discount-box");else hide("discount-box");
   renderSmartCart();
@@ -4212,22 +4212,26 @@ function removeFromCart(id){cart=cart.filter(i=>i.id!=id);if(cart.length===0)cle
 
 function updateConsent(value){
   socialConsent=value;
-  document.getElementById("consent-yes-label").style.borderColor=value==="yes"?"var(--green)":"var(--warm)";
-  document.getElementById("consent-yes-label").style.background=value==="yes"?"#f0fdf4":"var(--cream)";
-  document.getElementById("consent-no-label").style.borderColor=value==="no"?"var(--brown)":"var(--warm)";
-  document.getElementById("consent-no-label").style.background=value==="no"?"var(--warm)":"var(--cream)";
-  document.getElementById("consent-warning").style.display=value?"none":"block";
+  document.getElementById("publish-yes-label").style.borderColor=value==="yes"?"var(--green)":"var(--warm)";
+  document.getElementById("publish-yes-label").style.background=value==="yes"?"#f0fdf4":"var(--cream)";
+  document.getElementById("publish-no-label").style.borderColor=value==="no"?"var(--brown)":"var(--warm)";
+  document.getElementById("publish-no-label").style.background=value==="no"?"var(--warm)":"var(--cream)";
+  document.getElementById("publish-warning").style.display=value?"none":"block";
 }
 function updateConsentUI(){
-  socialConsent=null;document.querySelectorAll('input[name="social-consent"]').forEach(r=>r.checked=false);
-  document.getElementById("consent-yes-label").style.borderColor="var(--warm)";document.getElementById("consent-yes-label").style.background="var(--cream)";
-  document.getElementById("consent-no-label").style.borderColor="var(--warm)";document.getElementById("consent-no-label").style.background="var(--cream)";
-  document.getElementById("consent-warning").style.display="block";
+  socialConsent=null;document.querySelectorAll('input[name="publish-choice"]').forEach(r=>r.checked=false);
+  document.getElementById("publish-yes-label").style.borderColor="var(--warm)";document.getElementById("publish-yes-label").style.background="var(--cream)";
+  document.getElementById("publish-no-label").style.borderColor="var(--warm)";document.getElementById("publish-no-label").style.background="var(--cream)";
+  document.getElementById("publish-warning").style.display="block";
 }
 async function sendOrder(){
   const parentName=document.getElementById("order-parent-name").value.trim();const phone=document.getElementById("order-phone").value.trim();
   if(!parentName||!phone){alert("Kérjük adja meg a szülő nevét és a telefonszámot!");document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});return}
-  if(!socialConsent){alert("Kérjük válaszoljon a képek közzétételére vonatkozó kérdésre!");document.getElementById("consent-warning").style.color="#c0392b";document.getElementById("social-consent-box").scrollIntoView({behavior:"smooth"});return}
+  if(!socialConsent&&!_elShown(document.getElementById("publish-choice-box"))){
+    // A közzétételi kérdés nem látszik (pl. blokkoló bővítmény elrejtette) → felugró kérdés
+    socialConsent=confirm("Hozzájárul ahhoz, hogy a fotók megjelenjenek a fotós közösségi média felületein?\n\nOK = Igen, hozzájárulok\nMégse = Nem járulok hozzá")?"yes":"no";
+  }
+  if(!socialConsent){alert("Kérjük válaszoljon a képek közzétételére vonatkozó kérdésre!");document.getElementById("publish-warning").style.color="#c0392b";document.getElementById("publish-choice-box").scrollIntoView({behavior:"smooth"});return}
   if(currentGallery.isGroup){
     const groupEmail=document.getElementById("group-order-email").value.trim().toLowerCase();const groupChild=document.getElementById("group-order-child").value.trim();
     if(!groupEmail||!groupChild){alert("Kérjük adja meg az email címét és a nevet a rendelés leadásához!");document.getElementById("order-contact-form").scrollIntoView({behavior:"smooth"});return}
@@ -4266,17 +4270,32 @@ function showOrderReview(){
   if(activeDiscount){const discAmount=Math.round(total*activeDiscount.percent/100);total=total-discAmount;totalHtml+='<div class="review-total-row review-discount"><span>🎁 Kedvezmény ('+activeDiscount.code+' -'+activeDiscount.percent+'%)</span><span>-'+fmt(discAmount)+'</span></div>'}
   totalHtml+='<div class="review-total-row review-grand"><span>Fizetendő összesen</span><span>'+fmt(total)+'</span></div>';
   document.getElementById("review-totals").innerHTML=totalHtml;
-  const gdpr=document.getElementById("gdpr-consent");if(gdpr){gdpr.checked=false;document.getElementById("gdpr-consent-box").style.border="2px solid var(--gold)"}
+  const gdpr=document.getElementById("order-accept-check");if(gdpr){gdpr.checked=false;document.getElementById("order-accept-box").style.border="2px solid var(--gold)"}
   document.getElementById("order-review-modal").classList.remove("hidden");
 }
 
 function closeOrderReview(e){if(e&&e.target!==document.getElementById("order-review-modal"))return;document.getElementById("order-review-modal").classList.add("hidden")}
 
+// Tényleg látszik-e egy elem a képernyőn? (böngésző-bővítmény is elrejtheti)
+function _elShown(el){
+  try{
+    if(!el)return false;
+    const cs=getComputedStyle(el);
+    if(cs.display==="none"||cs.visibility==="hidden"||parseFloat(cs.opacity)===0)return false;
+    const r=el.getBoundingClientRect();
+    return r.width>2&&r.height>2;
+  }catch(e){return true}
+}
 async function confirmOrder(){
-  const gdpr=document.getElementById("gdpr-consent");
+  const gdpr=document.getElementById("order-accept-check");
+  if(gdpr&&!gdpr.checked&&(!_elShown(document.getElementById("order-accept-box"))||!_elShown(gdpr))){
+    // A jelölőnégyzet nem látszik (pl. hirdetés- vagy sütiblokkoló elrejtette) → felugró kérdésben fogadható el
+    if(!confirm("Elolvastam és elfogadom az adatkezelési tájékoztatót, és hozzájárulok adataim kezeléséhez a rendelés teljesítése céljából.\n\nOK = elfogadom, és elküldöm a rendelést"))return;
+    gdpr.checked=true;
+  }
   if(gdpr&&!gdpr.checked){
-    document.getElementById("gdpr-consent-box").style.border="2.5px solid #c0392b";
-    document.getElementById("gdpr-consent-box").scrollIntoView({behavior:"smooth",block:"center"});
+    document.getElementById("order-accept-box").style.border="2.5px solid #c0392b";
+    document.getElementById("order-accept-box").scrollIntoView({behavior:"smooth",block:"center"});
     alert("Kérjük, pipáld be az adatkezelési tájékoztató elfogadását a rendelés elküldése előtt! (Lásd a jelölőnégyzetet a gomb fölött.)");
     return;
   }
