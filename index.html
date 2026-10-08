@@ -2167,6 +2167,7 @@ async function saveProducts(){
     currentDetailGallery.priceListId=newPriceList;
     currentDetailGallery.enabledProducts=newEP;currentDetailGallery.watermarkConfig=newWM;currentDetailGallery.expiresAt=newExpires;currentDetailGallery.downloadEnabled=newDownload;currentDetailGallery.themeColor=themeColor;
     const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.enabledProducts=newEP;g.watermarkConfig=newWM;g.expiresAt=newExpires;g.downloadEnabled=newDownload;g.themeColor=themeColor;g.priceListId=newPriceList}
+    try{renderDetailPhotos()}catch(e){}
     msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';setTimeout(()=>{document.getElementById("products-form").classList.add("hidden");msg.innerHTML=""},1500);
   }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt!</div>';}
 }
@@ -7016,7 +7017,7 @@ function renderDetailPhotos(){
     if(!isDownloadTab){
       const r=p.orderRestriction||"";
       restrictHtml='<select class="photo-restrict-select'+(r?" active":"")+'" onclick="event.stopPropagation()" onchange="event.stopPropagation();setPhotoRestriction('+i+',this.value)" title="Rendelési korlátozás ehhez a képhez">'
-        +'<option value=""'+(r===""?" selected":"")+'>Bárhogy rendelhető</option>'
+        +'<option value=""'+(r===""?" selected":"")+'>'+_galleryProductsLabel(currentDetailGallery)+'</option>'
         +'<option value="print"'+(r==="print"?" selected":"")+'>🖨️ Csak papírkép</option>'
         +'<option value="digital"'+(r==="digital"?" selected":"")+'>💾 Csak digitális</option>'
         +'<option value="gift"'+(r==="gift"?" selected":"")+'>🎁 Csak ajándék</option>'
@@ -7030,6 +7031,16 @@ function renderDetailPhotos(){
 }
 
 // Rendelési korlátozás beállítása egy képhez (pl. "csak papírkép rendelhető ebből")
+// A képenkénti korlátozás alapértéke: azt írja ki, amit a GALÉRIA beállítása enged (pl. "Galéria szerint: csak digitális")
+function _galleryProductsLabel(g){
+  const ep=(g&&g.enabledProducts)||{print:true,digital:true,gift:true};
+  const on=[];
+  if(ep.print!==false)on.push("papírkép");
+  if(ep.digital!==false)on.push("digitális");
+  if(ep.gift!==false)on.push("ajándék");
+  if(on.length===3||on.length===0)return "Bárhogy rendelhető";
+  return "Galéria szerint: "+(on.length===1?"csak "+on[0]:on.join(" + "));
+}
 async function setPhotoRestriction(index,value){
   const field=_currentPhotoField();
   const photos=[..._currentPhotoArray()];
