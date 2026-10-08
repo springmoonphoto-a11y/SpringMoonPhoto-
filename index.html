@@ -577,7 +577,7 @@ body.dark-mode .upload-area.dragover{background:#2e2008}
 .gallery-detail-name{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--dark)}
 .gallery-detail-meta{font-size:.82rem;color:var(--muted);margin-top:4px}
 .gallery-detail-code{display:inline-flex;align-items:center;gap:7px;background:var(--cream);border:1.5px dashed var(--gold);border-radius:6px;padding:5px 13px;font-size:.88rem;color:var(--brown);font-weight:700;letter-spacing:.1em;margin-top:8px;cursor:pointer}
-.gallery-detail-actions{display:flex;gap:10px;margin-top:12px}
+.gallery-detail-actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
 .modal-overlay{position:fixed;inset:0;background:rgba(26,18,8,.55);z-index:300;display:flex;align-items:flex-end;justify-content:center}
 .modal-sheet{background:var(--white);border-radius:24px 24px 0 0;padding:26px 18px 40px;width:100%;max-width:500px;max-height:85vh;overflow-y:auto}
 .photo-card img,.sheet-photo{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;user-drag:none;-webkit-touch-callout:none}
@@ -900,6 +900,12 @@ body.dark-mode .smart-ok{background:linear-gradient(135deg,#2e2208,#3d2e12);bord
 .cc-slip-code{font-family:'Courier New',monospace;font-weight:700;letter-spacing:.08em;font-size:1.2rem;color:#8a5e0c;background:var(--cream);border-radius:6px;padding:7px 10px;margin-bottom:8px;display:inline-block}
 .cc-slip-site{font-size:.76rem;color:var(--muted)}
 .cc-slip-hint{font-size:.72rem;color:var(--muted);margin-top:5px;line-height:1.4}
+.gallery-card-link{display:inline-block;margin:6px 0 0 6px;font-size:.76rem;color:var(--gold);background:none;border:none;padding:4px 2px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline}
+#gallery-card-preview .cc-slip{max-width:340px;margin:0 auto;background:#fffdf8}
+#gallery-card-preview .cc-slip-brand{color:#5c3d2e}
+#gallery-card-preview .cc-slip-name{color:#1a1208}
+#gallery-card-preview .cc-slip-code{background:#f7f0e6}
+#gallery-card-preview .cc-slip-site,#gallery-card-preview .cc-slip-hint{color:#8a7868}
 
 /* ===== NAGY KÉPERNYŐ (asztali gép, tablet fekvő) — telefonon nem aktív ===== */
 @media(min-width:900px){
@@ -1489,6 +1495,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <div class="gallery-detail-actions">
         <button class="btn btn-blue btn-sm" onclick="toggleEditForm()">&#128100; Személyes adatok</button>
         <button class="btn btn-outline btn-sm" onclick="toggleProductsForm()">&#9881;&#65039; Beállítások</button>
+        <button class="btn btn-gold btn-sm" onclick="openGalleryCard()">📇 Belépőkártya</button>
         <button class="btn btn-blue btn-sm" onclick="inviteToGallery()">&#9993;&#65039; Galéria küldése (válogatás)</button>
         <button class="btn btn-gold btn-sm" onclick="notifyDownloadReady()">&#128229; Kész képek értesítő</button>
         <button class="btn btn-gold btn-sm" onclick="copyGallerySettings()">&#128203; Másolás</button>
@@ -1662,6 +1669,17 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <button class="btn btn-outline btn-sm" onclick="document.getElementById('print-summary-modal').classList.add('hidden')">Bezárás</button>
       <button class="btn btn-green" style="flex:1" onclick="window.print()">&#128424;&#65039; Nyomtatás / PDF mentés</button>
     </div>
+  </div>
+</div>
+<div id="gallery-card-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeGalleryCard()">
+  <div class="modal-sheet" style="max-width:460px">
+    <div class="sheet-handle"></div>
+    <h2 style="font-size:1.2rem;margin-bottom:4px">📇 Belépőkártya</h2>
+    <p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:12px">Ezt küldheted el a megrendelőnek (pl. Messengeren): rajta van a név, a belépési kód és az oldal címe.</p>
+    <div id="gallery-card-preview"></div>
+    <div id="gallery-card-actions" style="display:flex;flex-direction:column;gap:8px;margin-top:14px"></div>
+    <div id="gallery-card-msg" style="font-size:.8rem;color:var(--muted);margin-top:8px;min-height:1.2em;text-align:center"></div>
+    <button class="btn btn-outline btn-sm" style="margin-top:6px;width:100%" onclick="closeGalleryCard()">Bezárás</button>
   </div>
 </div>
 <div id="class-codes-modal" class="modal-overlay hidden" onclick="closeClassCodes(event)">
@@ -6692,7 +6710,7 @@ function renderAdminGalleryList(){
         dlBadge='<div class="gallery-dl-badge no-dl">📭 Még nem töltötték le</div>';
       }
     }
-    return '<div class="gallery-admin-card" onclick="_galleryReturn=null;openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+(g.parentEmail||"nincs email")+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div>'+dlBadge+'</div></div></div>';
+    return '<div class="gallery-admin-card" onclick="_galleryReturn=null;openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+(g.parentEmail||"nincs email")+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><button class="gallery-card-link" onclick="event.stopPropagation();openGalleryCard(\''+g.id+'\')">📇 Belépőkártya</button><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div>'+dlBadge+'</div></div></div>';
   };
   // Osztályonkénti csoportosítás, hogy ne keveredjenek — csak keresés nélkül aktív
   if(!q){
@@ -7352,6 +7370,129 @@ async function saveEdit(){
   }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt!</div>'}
 }
 
+// === BELÉPŐKÁRTYA: galériánként kimásolható "névjegy" (név + kód + oldal), pl. Messengeren küldéshez ===
+const GALLERY_SITE="spring-moon-foto.vercel.app";
+let _galleryCardId=null;
+function _galleryCardInfo(g){
+  const isGroup=!!g.isGroup;
+  const name=(isGroup?(g.name||g.child):(g.child||g.name))||"";
+  const email=!isGroup&&g.parentEmail?g.parentEmail:"";
+  const hint=isGroup?"Lépj be a fenti oldalon a kóddal.":(email?"Lépj be a fenti oldalon a kóddal, az email címeddel és a névvel.":"Lépj be a fenti oldalon a névvel és a kóddal.");
+  return {name:String(name),code:String(g.code||""),site:GALLERY_SITE,hint,isGroup,email};
+}
+function _galleryCardText(g){
+  const c=_galleryCardInfo(g);
+  let t="📸 SpringMoonGallery – "+c.name+"\n";
+  t+="🌐 https://"+c.site+"\n";
+  t+="🔑 Belépési kód: "+c.code+"\n";
+  if(!c.isGroup)t+="👤 Név: "+c.name+"\n";
+  if(c.email)t+="✉️ Email: "+c.email+"\n";
+  t+=c.hint;
+  return t;
+}
+function openGalleryCard(galleryId){
+  const g=galleryId?galleries.find(x=>x.id===galleryId):currentDetailGallery;
+  if(!g){alert("Nincs kiválasztott galéria.");return}
+  _galleryCardId=g.id;
+  const c=_galleryCardInfo(g);
+  document.getElementById("gallery-card-preview").innerHTML='<div class="cc-slip"><div class="cc-slip-brand">SpringMoon<span>Gallery</span></div><div class="cc-slip-name">'+_pcEsc(c.name)+'</div><div class="cc-slip-code">'+_pcEsc(c.code)+'</div><div class="cc-slip-site">'+c.site+'</div><div class="cc-slip-hint">'+_pcEsc(c.hint)+'</div></div>';
+  let canShare=false;
+  try{canShare=!!(navigator.share&&navigator.canShare&&typeof File==="function"&&navigator.canShare({files:[new File([new Blob(["x"],{type:"image/png"})],"k.png",{type:"image/png"})]}))}catch(e){}
+  let h='<button class="btn btn-gold" onclick="copyGalleryCardImage()">🖼️ Kártya másolása képként</button>';
+  h+='<button class="btn btn-outline" onclick="copyGalleryCardText()">📋 Másolás szövegként (kattintható linkkel)</button>';
+  if(canShare)h+='<button class="btn btn-outline" onclick="shareGalleryCardImage()">📤 Megosztás (telefonon: Messenger stb.)</button>';
+  h+='<button class="btn btn-outline btn-sm" onclick="downloadGalleryCardImage()">⬇️ Kép letöltése</button>';
+  document.getElementById("gallery-card-actions").innerHTML=h;
+  document.getElementById("gallery-card-msg").textContent="";
+  show("gallery-card-modal");
+}
+function closeGalleryCard(){hide("gallery-card-modal");_galleryCardId=null}
+function _galleryCardGallery(){return _galleryCardId?galleries.find(x=>x.id===_galleryCardId)||null:null}
+function _galleryCardMsg(t){const el=document.getElementById("gallery-card-msg");if(el)el.textContent=t;if(typeof showToast==="function")showToast(t)}
+async function copyGalleryCardText(){
+  const g=_galleryCardGallery();if(!g)return;
+  const text=_galleryCardText(g);
+  try{
+    if(!navigator.clipboard||!navigator.clipboard.writeText)throw new Error("nincs");
+    await navigator.clipboard.writeText(text);
+    _galleryCardMsg("✓ Szöveg kimásolva – illeszd be a beszélgetésbe");
+  }catch(e){
+    // Ha a böngésző nem engedi a vágólapot: kijelölhető mezőben megmutatjuk
+    const el=document.getElementById("gallery-card-msg");
+    if(el){el.innerHTML='<textarea readonly rows="6" style="width:100%;box-sizing:border-box;font-size:.82rem;padding:8px;border-radius:8px;border:1.5px solid var(--warm)" onfocus="this.select()">'+_pcEsc(text)+'</textarea><div>Jelöld ki és másold ki innen.</div>'}
+  }
+}
+// A kártya megrajzolása képként (ugyanaz a kinézet, mint a PDF-cetliken)
+async function _galleryCardCanvas(g){
+  const c=_galleryCardInfo(g);
+  try{if(document.fonts&&document.fonts.load){await Promise.all([document.fonts.load("400 44px 'Playfair Display'"),document.fonts.load("italic 400 44px 'Playfair Display'"),document.fonts.load("500 30px 'DM Sans'")])}}catch(e){}
+  const W=1000,H=600,cv=document.createElement("canvas");cv.width=W;cv.height=H;
+  const x=cv.getContext("2d");if(!x)throw new Error("canvas");
+  const rr=(px,py,w,h,r)=>{x.beginPath();x.moveTo(px+r,py);x.lineTo(px+w-r,py);x.quadraticCurveTo(px+w,py,px+w,py+r);x.lineTo(px+w,py+h-r);x.quadraticCurveTo(px+w,py+h,px+w-r,py+h);x.lineTo(px+r,py+h);x.quadraticCurveTo(px,py+h,px,py+h-r);x.lineTo(px,py+r);x.quadraticCurveTo(px,py,px+r,py);x.closePath()};
+  x.fillStyle="#fffdf8";x.fillRect(0,0,W,H);
+  x.strokeStyle="#b8860b";x.lineWidth=4;x.setLineDash([16,12]);rr(22,22,W-44,H-44,30);x.stroke();x.setLineDash([]);
+  x.textBaseline="alphabetic";
+  // márka: "SpringMoon" + dőlt arany "Gallery", együtt középre
+  const serif="'Playfair Display',Georgia,'Times New Roman',serif",sans="'DM Sans','Segoe UI',Roboto,Arial,sans-serif";
+  x.font="400 46px "+serif;const w1=x.measureText("SpringMoon").width;
+  x.font="italic 400 46px "+serif;const w2=x.measureText("Gallery").width;
+  let bx=(W-w1-w2)/2;x.textAlign="left";
+  x.font="400 46px "+serif;x.fillStyle="#5c3d2e";x.fillText("SpringMoon",bx,118);
+  x.font="italic 400 46px "+serif;x.fillStyle="#C9A84C";x.fillText("Gallery",bx+w1,118);
+  x.textAlign="center";
+  // név (ha hosszú, kisebb betűvel, hogy kiférjen)
+  let fs=58;do{x.font="700 "+fs+"px "+sans;fs-=2}while(x.measureText(c.name).width>W-140&&fs>26);
+  x.fillStyle="#1a1208";x.fillText(c.name,W/2,222);
+  // kód
+  let cs=66;do{x.font="700 "+cs+"px 'Courier New',Courier,monospace";cs-=2}while(x.measureText(c.code).width>W-220&&cs>30);
+  const cw=x.measureText(c.code).width+70;
+  x.fillStyle="#f7f0e6";rr((W-cw)/2,268,cw,104,16);x.fill();
+  x.fillStyle="#8a5e0c";x.fillText(c.code,W/2,343);
+  // oldal + útmutató (szükség esetén két sorba törve)
+  x.fillStyle="#8a7868";x.font="500 32px "+sans;x.fillText(c.site,W/2,440);
+  x.font="400 26px "+sans;
+  const words=c.hint.split(" ");let lines=[],cur="";
+  words.forEach(wd=>{const t=cur?cur+" "+wd:wd;if(x.measureText(t).width>W-160&&cur){lines.push(cur);cur=wd}else cur=t});if(cur)lines.push(cur);
+  lines.slice(0,2).forEach((ln,i)=>x.fillText(ln,W/2,492+i*34));
+  return cv;
+}
+function _canvasBlob(cv){return new Promise((res,rej)=>{try{cv.toBlob(b=>b?res(b):rej(new Error("blob")),"image/png")}catch(e){rej(e)}})}
+function _galleryCardFileName(g){
+  const base=(_galleryCardInfo(g).name||"galeria").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_+|_+$/g,"")||"galeria";
+  return "belepokartya_"+base+".png";
+}
+async function copyGalleryCardImage(){
+  const g=_galleryCardGallery();if(!g)return;
+  try{
+    if(!navigator.clipboard||!navigator.clipboard.write||typeof ClipboardItem==="undefined")throw new Error("nincs");
+    // A kép előállítását ígéretként adjuk át (Safari csak így engedi a kattintásból a másolást)
+    const blobP=_galleryCardCanvas(g).then(_canvasBlob);
+    await navigator.clipboard.write([new ClipboardItem({"image/png":blobP})]);
+    _galleryCardMsg("✓ Kártya kimásolva képként – illeszd be (Ctrl+V) a beszélgetésbe");
+  }catch(e){
+    // Ha a böngésző nem tud képet másolni (pl. néhány telefonon): letöltjük helyette
+    try{await downloadGalleryCardImage(true)}catch(e2){_galleryCardMsg("Ezen az eszközön nem sikerült a képet előállítani – használd a szöveges másolást.")}
+  }
+}
+async function downloadGalleryCardImage(asFallback){
+  const g=_galleryCardGallery();if(!g)return;
+  const blob=await _canvasBlob(await _galleryCardCanvas(g));
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=_galleryCardFileName(g);document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>{try{URL.revokeObjectURL(url)}catch(e){}},4000);
+  _galleryCardMsg(asFallback===true?"Ez a böngésző nem tud képet másolni, ezért letöltöttem – csatold a beszélgetéshez.":"✓ Kép letöltve");
+}
+async function shareGalleryCardImage(){
+  const g=_galleryCardGallery();if(!g)return;
+  try{
+    const blob=await _canvasBlob(await _galleryCardCanvas(g));
+    const file=new File([blob],_galleryCardFileName(g),{type:"image/png"});
+    await navigator.share({files:[file],text:_galleryCardText(g)});
+  }catch(e){
+    if(e&&e.name==="AbortError")return;// a megosztást a felhasználó zárta be
+    try{await downloadGalleryCardImage(true)}catch(e2){_galleryCardMsg("Nem sikerült a megosztás – használd a szöveges másolást.")}
+  }
+}
 function copyDetailCode(){navigator.clipboard?.writeText(currentDetailGallery.code);alert("Kód másolva: "+currentDetailGallery.code)}
 function copyCode(code){navigator.clipboard?.writeText(code);alert("Kód másolva: "+code)}
 function backToAdminGalleries(){
