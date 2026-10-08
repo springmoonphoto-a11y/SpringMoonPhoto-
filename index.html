@@ -6507,6 +6507,7 @@ function renderOrderFilterBar(sActive,sCompleted){
   const so=_getOrderSort();
   h+='<div class="photo-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center"><span style="font-size:.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Sorrend:</span>';
   h+='<button class="pf-btn'+(so==="created"?" active":"")+'" onclick="setOrderSort(\'created\')">🕐 Legújabb rendelés elöl</button>';
+  h+='<button class="pf-btn'+(so==="oldest"?" active":"")+'" onclick="setOrderSort(\'oldest\')">⏳ Legrégebbi rendelés elöl</button>';
   h+='<button class="pf-btn'+(so==="paid"?" active":"")+'" onclick="setOrderSort(\'paid\')">💰 Fizetés sorrendjében</button>';
   h+='</div>';
   el.innerHTML=h;
@@ -6550,18 +6551,21 @@ let _orderSort=null;
 function _getOrderSort(){
   if(_orderSort)return _orderSort;
   _orderSort="created";
-  try{if(localStorage.getItem("adminOrderSort")==="paid")_orderSort="paid"}catch(e){}
+  try{const v=localStorage.getItem("adminOrderSort");if(v==="paid"||v==="oldest")_orderSort=v}catch(e){}
   return _orderSort;
 }
 function setOrderSort(v){
-  _orderSort=v==="paid"?"paid":"created";
+  _orderSort=(v==="paid"||v==="oldest")?v:"created";
   try{localStorage.setItem("adminOrderSort",_orderSort)}catch(e){}
   renderAdminOrders();
 }
 // Mikor fizetett: a Fizetve pipa bejelölésének ideje; a korábban bejelölt rendeléseknél ez nincs meg, ott a rendelés ideje számít
 function _orderPaidTime(o){return typeof o.paidAt==="number"&&o.paidAt>0?o.paidAt:(o.createdAt||0)}
 function _sortOrdersForList(list){
-  if(_getOrderSort()!=="paid")return list;
+  const mode=_getOrderSort();
+  // Legrégebbi rendelés elöl: a rendelés leadásának ideje szerint, fordítva
+  if(mode==="oldest")return list.slice().sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  if(mode!=="paid")return list;
   // Fizetés sorrendje: aki a legrégebben fizetett, az van legfelül (ő vár a legrégebb óta); a nem fizetettek a végén, rendelési sorrendben
   return list.slice().sort((a,b)=>{
     const pa=!!_orderFlags(a).paid,pb=!!_orderFlags(b).paid;
