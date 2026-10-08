@@ -602,6 +602,13 @@ body.dark-mode .upload-area.dragover{background:#2e2008}
 .gallery-dl-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .gallery-group-heading{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 10px;padding-bottom:8px;border-bottom:2px solid var(--warm);font-family:'Playfair Display',serif;color:var(--brown);font-size:1.05rem}
 .gallery-group-heading:first-child{margin-top:0}
+.gallery-group-heading.ggh-toggle{cursor:pointer;user-select:none}
+.gallery-group-heading.ggh-toggle:hover>span:first-child{color:var(--gold)}
+.gallery-group-heading.ggh-closed{margin:6px 0;padding:10px 12px;border:1.5px solid var(--warm);border-radius:11px;background:var(--white)}
+body.dark-mode .gallery-group-heading.ggh-closed{border-color:rgba(248,232,128,.2)}
+.ggh-arrow{display:inline-block;width:1em;font-family:'DM Sans',sans-serif;font-size:.85rem;color:var(--gold)}
+.ggh-tools{grid-column:1/-1;display:flex;justify-content:flex-end;margin-bottom:2px}
+.ggh-tools button{background:none;border:none;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:.8rem;cursor:pointer;text-decoration:underline;padding:2px 0}
 .pl-select{padding:10px 12px;border:1.5px solid var(--warm);border-radius:9px;background:var(--cream);font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--dark);max-width:100%;cursor:pointer}
 body.dark-mode .pl-select{background:#1a1408;color:#f5ede0;color-scheme:dark}
 .pl-badge{display:inline-block;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;padding:2px 9px;border-radius:99px;background:#fff3d6;color:#7a5a00;border:1px solid #e8cf8a}
@@ -6629,6 +6636,34 @@ function setGalleryDlFilter(f){
   ["all","nodl","dl"].forEach(x=>{const b=document.getElementById("gdf-"+x);if(b)b.classList.toggle("active",x===f)});
   renderAdminGalleryList();
 }
+// === Összecsukható osztályok a Galériák fülön ===
+// Melyik osztály van kinyitva (eszközönként megjegyzi). Alapból mind csukva.
+let _openGalleryClasses=null;
+function _loadOpenClasses(){
+  if(_openGalleryClasses)return _openGalleryClasses;
+  _openGalleryClasses=new Set();
+  try{const raw=localStorage.getItem("adminOpenGalleryClasses");if(raw){const arr=JSON.parse(raw);if(Array.isArray(arr))arr.forEach(x=>{if(typeof x==="string")_openGalleryClasses.add(x)})}}catch(e){}
+  return _openGalleryClasses;
+}
+function _saveOpenClasses(){try{localStorage.setItem("adminOpenGalleryClasses",JSON.stringify(Array.from(_loadOpenClasses())))}catch(e){}}
+// Ha az osztály-szűrővel épp egy osztályt választottál ki, az mindig nyitva látszik
+function _isClassOpen(key){return _loadOpenClasses().has(key)||(_galleryClassFilter!=="all"&&_galleryClassFilter===key)}
+function toggleGalleryClass(key){
+  const set=_loadOpenClasses();
+  if(_galleryClassFilter===key){
+    // szűrővel kiválasztott osztályt becsukni = a szűrő levétele
+    set.delete(key);_saveOpenClasses();setGalleryClassFilter("all");return;
+  }
+  if(set.has(key))set.delete(key);else set.add(key);
+  _saveOpenClasses();renderAdminGalleryList();
+}
+function setAllGalleryClasses(open){
+  const set=_loadOpenClasses();set.clear();
+  if(open)galleries.forEach(g=>{if(g.bulkClass&&g.bulkClass.trim())set.add(g.bulkClass)});
+  _saveOpenClasses();
+  if(!open&&_galleryClassFilter!=="all"){setGalleryClassFilter("all");return}
+  renderAdminGalleryList();
+}
 function renderAdminGalleryList(){
   const list=document.getElementById("admin-galleries-list");if(!list)return;
   const inp=document.getElementById("admin-gallery-search");const q=(inp?inp.value:"").trim().toLowerCase();
@@ -6668,15 +6703,23 @@ function renderAdminGalleryList(){
     });
     order.sort((a,b)=>{if(a==="__none__")return 1;if(b==="__none__")return -1;return a.localeCompare(b,"hu")});
     let html="";
+    // Az osztályok alapból össze vannak csukva – a nevükre kattintva nyílnak ki (így a különálló galériákhoz nem kell sokat görgetni)
+    const classKeys=order.filter(k=>k!=="__none__");
+    if(classKeys.length>0){
+      const allOpen=classKeys.every(k=>_isClassOpen(k));
+      html+='<div class="ggh-tools"><button onclick="setAllGalleryClasses('+(allOpen?"false":"true")+')">'+(allOpen?"▾ Minden osztály becsukása":"▸ Minden osztály kinyitása")+'</button></div>';
+    }
     order.forEach(key=>{
       const items=groups[key];
       if(key==="__none__"){
         if(order.length>1)html+='<div class="gallery-group-heading"><span>📁 Egyéb galériák</span><span class="ggh-count">'+items.length+'</span></div>';
+        html+=items.map(cardHtml).join("");
       }else{
         const safeKey=key.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
-        html+='<div class="gallery-group-heading"><span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
+        const open=_isClassOpen(key);
+        html+='<div class="gallery-group-heading ggh-toggle'+(open?"":" ggh-closed")+'" title="'+(open?"Kattints a becsukáshoz":"Kattints a kinyitáshoz")+'" onclick="toggleGalleryClass(\''+safeKey+'\')"><span><span class="ggh-arrow">'+(open?"▾":"▸")+'</span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
+        if(open)html+=items.map(cardHtml).join("");
       }
-      html+=items.map(cardHtml).join("");
     });
     list.innerHTML=html;
   }else{
