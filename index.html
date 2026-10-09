@@ -5032,6 +5032,41 @@ function _dayBreak(day){
   const a=_hmToMin(day.breakStart),b=_hmToMin(day.breakEnd);
   return a!==null&&b!==null&&b>a?{start:a,end:b}:null;
 }
+// === TÍPUS SZERINTI IDŐTARTAM (pl. csak a gyerek 5 perc, testvérrel/családdal 10 perc) ===
+// Ha egy napnál be van kapcsolva: a rács lépése a rövidebb idő (day.duration), a hosszabb foglalás több egymás utáni helyet foglal le.
+function _dayTyped(day){return !!(day&&day.typedDuration&&Number(day.durSolo)>0&&Number(day.durFamily)>0)}
+function _minToHm(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+function _bookingDur(b,day){const d=Number(b&&b.duration);return d>0?d:(Number(day&&day.duration)||30)}
+function _bookingRange(b,day){const st=_hmToMin(b.time);if(st===null)return b.time||"";return b.time+(Number(b.duration)>0?"–"+_minToHm(st+Number(b.duration)):"")}
+// A nap foglalt idősávjai percekben (a lemondott foglalások nem számítanak)
+function _dayIntervals(dateISO,day,list){
+  const out=[];
+  (list||[]).forEach(b=>{
+    if(!b||b.date!==dateISO||b.status==="cancelled")return;
+    const st=_hmToMin(b.time);if(st===null)return;
+    out.push({start:st,end:st+_bookingDur(b,day)});
+  });
+  return out;
+}
+function _rangeFree(start,len,intervals){return !intervals.some(iv=>start<iv.end&&start+len>iv.start)}
+// Befér-e a napba egy "len" perces foglalás a megadott kezdéssel (nyitvatartás + szünet + meglévő foglalások)
+function _canBook(day,startMin,len,intervals){
+  const endM=_hmToMin(day.end);if(endM===null||startMin+len>endM)return false;
+  const br=_dayBreak(day);if(br&&startMin<br.end&&startMin+len>br.start)return false;
+  return _rangeFree(startMin,len,intervals);
+}
+// A szülői oldal tartalék-tükréhez: minden aktív foglalás annyi rács-időpontot foglal, amennyit lefed
+function _activeTakenSlots(){
+  const avail=getAvailability();const out=[];
+  bookings.forEach(b=>{
+    if(!b||b.status==="cancelled"||!b.date||!b.time)return;
+    const day=avail[b.date]||{};const step=Number(day.duration)||30;const st=_hmToMin(b.time);
+    if(st===null){out.push(b.date+"T"+b.time);return}
+    const d=_bookingDur(b,day);
+    for(let t=st;t<st+d;t+=step)out.push(b.date+"T"+_minToHm(t));
+  });
+  return out;
+}
 function getSlotsForDate(dateISO,availability){
   const day=(availability||getAvailability())[dateISO];
   if(!day||!day.enabled||!day.start||!day.end||!day.duration)return[];
@@ -5100,8 +5135,11 @@ function renderCalendar(forAdmin){
     if(_selectedBookingDate===iso)cls+=" selected";
     if(_multiDayMode&&_multiSelectedDays.has(iso))cls+=" multi-selected";
     const hasSlots=slots.length>0;
-    const bookedCount=dayBookings.length;
-    const allBooked=hasSlots&&bookedCount>=slots.length;
+    const _dayC=avail[iso]||{};const _ivs=_dayIntervals(iso,_dayC,dayBookings);const _step=Number(_dayC.duration)||30;
+    const _freeCount=slots.filter(sl=>_rangeFree(_hmToMin(sl),_step,_ivs)).length;
+    // bookedCount: a foglalt rács-időpontok száma (hosszabb foglalás többet is lefed); foglalható nap nélkül a foglalások darabszáma
+    const bookedCount=hasSlots?slots.length-_freeCount:dayBookings.length;
+    const allBooked=hasSlots&&_freeCount===0;
     if(hasSlots&&!isPast){
       if(allBooked)cls+=" fully-booked";else cls+=" has-slots";
     }
@@ -5275,7 +5313,7 @@ async function _persistAvailability(avail,successMsg){
   try{
     await db.collection("photographers").doc(currentUser.uid).update({availability:avail});
     window.MY_PROFILE.availability=avail;
-    const activeSlots=bookings.filter(b=>b.status!=="cancelled").map(b=>b.date+"T"+b.time);
+    const activeSlots=_activeTakenSlots();
     const myGals=(galleries||[]).filter(g=>g.photographerId===currentUser.uid);
     if(myGals.length>0){
       const batch=db.batch();
@@ -5319,7 +5357,15 @@ function renderAdminDayDetail(){
   html+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="bk-enabled" '+(dayConf.enabled?"checked":"")+' style="width:auto"> Foglalható ezen a napon</label>';
   html+='<div class="avail-row" style="margin-top:10px"><div><label style="font-size:.74rem;color:var(--muted)">Kezdés</label><input id="bk-start" type="time" value="'+(dayConf.start||"09:00")+'"></div>';
   html+='<div><label style="font-size:.74rem;color:var(--muted)">Befejezés</label><input id="bk-end" type="time" value="'+(dayConf.end||"17:00")+'"></div></div>';
-  html+='<div class="avail-row" style="margin-top:8px;grid-template-columns:1fr"><div><label style="font-size:.74rem;color:var(--muted)">Időpont hossza (perc)</label><select id="bk-duration"><option value="10">10 perc</option><option value="15">15 perc</option><option value="20">20 perc</option><option value="30">30 perc</option><option value="45">45 perc</option><option value="60">60 perc</option><option value="90">90 perc</option><option value="120">120 perc</option></select></div></div>';
+  html+='<div class="avail-row" style="margin-top:8px;grid-template-columns:1fr"><div><label style="font-size:.74rem;color:var(--muted)">Időpont hossza (perc)</label><select id="bk-duration"><option value="5">5 perc</option><option value="10">10 perc</option><option value="15">15 perc</option><option value="20">20 perc</option><option value="30">30 perc</option><option value="45">45 perc</option><option value="60">60 perc</option><option value="90">90 perc</option><option value="120">120 perc</option></select></div></div>';
+  // Típus szerinti időtartam
+  const _typed=_dayTyped(dayConf);
+  const _optS=[5,10,15,20,30].map(v=>'<option value="'+v+'"'+((_typed?Number(dayConf.durSolo):5)===v?" selected":"")+'>'+v+' perc</option>').join("");
+  const _optF=[10,15,20,30,40,45,60].map(v=>'<option value="'+v+'"'+((_typed?Number(dayConf.durFamily):10)===v?" selected":"")+'>'+v+' perc</option>').join("");
+  html+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px"><input type="checkbox" id="bk-typed" '+(_typed?"checked":"")+' style="width:auto" onchange="document.getElementById(\'bk-typed-box\').style.display=this.checked?\'\':\'none\';document.getElementById(\'bk-duration\').disabled=this.checked"> Más időtartam, ha testvérrel vagy családdal jönnek</label>';
+  html+='<div id="bk-typed-box" style="'+(_typed?"":"display:none")+'"><div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">👤 Csak a gyerek</label><select id="bk-dur-solo">'+_optS+'</select></div>';
+  html+='<div><label style="font-size:.74rem;color:var(--muted)">👨‍👩‍👧 Testvérrel / családdal</label><select id="bk-dur-family">'+_optF+'</select></div></div>';
+  html+='<div style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.5">A szülő a foglalásnál először kiválasztja, hogy csak a gyereket hozza-e, vagy testvérrel / családdal jön, és ennek megfelelő hosszú időpontot kap. Ilyenkor a fenti „Időpont hossza" nem számít.</div></div>';
   // Szünet (nem foglalható sáv)
   html+='<div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">☕ Szünet kezdete</label><input id="bk-break-start" type="time" value="'+(dayConf.breakStart||"")+'"></div>';
   html+='<div><label style="font-size:.74rem;color:var(--muted)">Szünet vége</label><input id="bk-break-end" type="time" value="'+(dayConf.breakEnd||"")+'"></div></div>';
@@ -5343,8 +5389,9 @@ function renderAdminDayDetail(){
   const slots=getSlotsForDate(_selectedBookingDate);
   const dayBookings=getBookingsForDate(_selectedBookingDate,false);
   if(slots.length>0){
-    const bookedTimes=new Set(dayBookings.filter(b=>b.status!=="cancelled").map(b=>b.time));
-    html+='<div style="margin-top:14px"><div style="font-weight:500;color:var(--brown);margin-bottom:6px">Időpontok:'+(_dayBreak(dayConf)?' <span style="font-weight:400;font-size:.8rem;color:var(--muted)">(☕ szünet: '+dayConf.breakStart+'–'+dayConf.breakEnd+')</span>':'')+'</div><div class="slot-grid">';
+    const _aIvs=_dayIntervals(_selectedBookingDate,dayConf,dayBookings);const _aStep=Number(dayConf.duration)||30;
+    const bookedTimes={has:sl=>!_rangeFree(_hmToMin(sl),_aStep,_aIvs)};
+    html+='<div style="margin-top:14px"><div style="font-weight:500;color:var(--brown);margin-bottom:6px">Időpontok:'+(_dayTyped(dayConf)?' <span style="font-weight:400;font-size:.8rem;color:var(--muted)">(👤 '+dayConf.durSolo+' perc · 👨‍👩‍👧 '+dayConf.durFamily+' perc)</span>':'')+(_dayBreak(dayConf)?' <span style="font-weight:400;font-size:.8rem;color:var(--muted)">(☕ szünet: '+dayConf.breakStart+'–'+dayConf.breakEnd+')</span>':'')+'</div><div class="slot-grid">';
     slots.forEach(s=>{
       const taken=bookedTimes.has(s);
       html+='<div class="slot-btn '+(taken?"booked":"")+'">'+s+(taken?" 🔒":"")+'</div>';
@@ -5361,7 +5408,7 @@ function renderAdminDayDetail(){
       if(b.phone)metaParts.push('<a href="tel:'+b.phone+'" class="booking-link-inline">📞 '+b.phone+'</a>');
       if(b.email)metaParts.push('<a href="mailto:'+b.email+'" class="booking-link-inline">✉️ '+b.email+'</a>');
       if(b.notes)metaParts.push('💬 '+b.notes);
-      html+='<div class="booking-card"><div class="booking-card-info"><div class="booking-card-time">'+b.time+(b.type?' · '+b.type:'')+' <span class="booking-status-'+statusClass+'">'+statusLabel+'</span></div><div class="booking-card-name">'+b.name+'</div><div class="booking-card-meta">'+metaParts.join(" · ")+'</div>';
+      html+='<div class="booking-card"><div class="booking-card-info"><div class="booking-card-time">'+_bookingRange(b,dayConf)+(Number(b.duration)>0?' ('+b.duration+' perc)':'')+(b.type?' · '+b.type:'')+' <span class="booking-status-'+statusClass+'">'+statusLabel+'</span></div><div class="booking-card-name">'+b.name+'</div><div class="booking-card-meta">'+metaParts.join(" · ")+'</div>';
       // Kapcsolat-felvétel gombok
       html+='<div class="booking-contact-actions">';
       if(b.email)html+='<button onclick="emailBooking(\''+b.id+'\')">✉️ Email</button>';
@@ -5378,7 +5425,7 @@ function renderAdminDayDetail(){
   }
   detail.innerHTML=html;
   // Select időtartam dropdown beállítása
-  setTimeout(()=>{const sel=document.getElementById("bk-duration");if(sel)sel.value=String(dayConf.duration||30)},10);
+  setTimeout(()=>{const sel=document.getElementById("bk-duration");if(sel){sel.value=String(dayConf.duration||30);sel.disabled=_dayTyped(dayConf)}},10);
 }
 
 function closeDayDetail(){_selectedBookingDate=null;renderCalendar(true)}
@@ -5499,7 +5546,17 @@ async function saveDayAvailability(){
   const enabled=enabledEl?enabledEl.checked:!!existing.enabled;
   const start=(startEl&&startEl.value)||existing.start||"09:00";
   const end=(endEl&&endEl.value)||existing.end||"17:00";
-  const duration=(durationEl&&Number(durationEl.value))||existing.duration||30;
+  let duration=(durationEl&&Number(durationEl.value))||existing.duration||30;
+  // Típus szerinti időtartam: a rács lépése a rövidebb (csak a gyerek) idő
+  const typedEl=document.getElementById("bk-typed");
+  const typedDuration=typedEl?typedEl.checked:!!existing.typedDuration;
+  let durSolo=Number(existing.durSolo)||0,durFamily=Number(existing.durFamily)||0;
+  if(typedEl&&typedDuration){durSolo=Number(document.getElementById("bk-dur-solo").value)||5;durFamily=Number(document.getElementById("bk-dur-family").value)||10}
+  if(typedDuration){
+    if(!(durSolo>0&&durFamily>durSolo)){alert("⚠️ A testvéres / családos időtartam legyen hosszabb, mint a csak gyerekes.");return}
+    if(durFamily%durSolo!==0){alert("⚠️ A testvéres / családos időtartam legyen a csak gyerekes idő többszöröse (pl. 5 és 10, 5 és 15, 10 és 20 perc).");return}
+    duration=durSolo;
+  }
   const coverImage=coverUrlEl?coverUrlEl.value:(existing.coverImage||"");
   const description=descEl?descEl.value:(existing.description||"");
   if(!start||!end){alert("⚠️ Kezdés és Befejezés idő kötelező");return}
@@ -5510,10 +5567,19 @@ async function saveDayAvailability(){
   if(breakStart&&breakEnd&&_hmToMin(breakEnd)<=_hmToMin(breakStart)){alert("⚠️ A szünet vége legyen később, mint a kezdete.");return}
   if(breakStart&&breakEnd){
     const bS=_hmToMin(breakStart),bE=_hmToMin(breakEnd);
-    const hit=bookings.filter(b=>b.date===_selectedBookingDate&&b.status!=="cancelled"&&_hmToMin(b.time)!==null&&_hmToMin(b.time)<bE&&_hmToMin(b.time)+duration>bS);
+    const hit=bookings.filter(b=>b.date===_selectedBookingDate&&b.status!=="cancelled"&&_hmToMin(b.time)!==null&&_hmToMin(b.time)<bE&&_hmToMin(b.time)+(Number(b.duration)>0?Number(b.duration):(Number(existing.duration)||duration))>bS);
     if(hit.length&&!confirm("A szünet idejére már van "+hit.length+" foglalás ("+hit.map(b=>b.time).sort().join(", ")+"). Ezek megmaradnak, csak új foglalás nem jöhet erre az időre. Mented így?"))return;
   }
-  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd};
+  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
+  // Ha változik az időpont hossza, a napra már leadott (időtartam nélküli) foglalások megtartják az EREDETI hosszukat
+  const _oldDur=Number(existing.duration)||0;
+  if(_oldDur>0&&_oldDur!==duration){
+    const _legacy=bookings.filter(b=>b.date===_selectedBookingDate&&b.id&&!(Number(b.duration)>0));
+    if(_legacy.length){
+      try{const _lb=db.batch();_legacy.forEach(b=>_lb.update(db.collection("bookings").doc(b.id),{duration:_oldDur}));await _lb.commit();_legacy.forEach(b=>{b.duration=_oldDur})}
+      catch(e){alert("⚠️ Nem sikerült a meglévő foglalások időtartamát rögzíteni, ezért az időpont hosszát most nem változtattam meg. Próbáld újra.");return}
+    }
+  }
   avail[_selectedBookingDate]=dayData;
   
   let galleryStatus="";
@@ -5523,7 +5589,7 @@ async function saveDayAvailability(){
     window.MY_PROFILE.availability=avail;
     // Mentés a galériákba is - kulcsfontosságú a publikus oldalhoz
     try{
-      const activeSlots=bookings.filter(b=>b.status!=="cancelled").map(b=>b.date+"T"+b.time);
+      const activeSlots=_activeTakenSlots();
       const myGals=(galleries||[]).filter(g=>g.photographerId===currentUser.uid);
       galleryCount=myGals.length;
       if(myGals.length===0){
@@ -5582,7 +5648,7 @@ async function deleteBooking(id){
 async function syncPublicTakenSlots(){
   if(!currentUser)return;
   try{
-    const activeSlots=bookings.filter(b=>b.status!=="cancelled").map(b=>b.date+"T"+b.time);
+    const activeSlots=_activeTakenSlots();
     const myGals=(galleries||[]).filter(g=>g.photographerId===currentUser.uid);
     if(myGals.length===0)return;
     const batch=db.batch();
@@ -5633,7 +5699,7 @@ async function forceSyncToPublic(){
   }catch(e){}
   // 3. Galériákba mirror
   try{
-    const activeSlots=bookings.filter(b=>b.status!=="cancelled").map(b=>b.date+"T"+b.time);
+    const activeSlots=_activeTakenSlots();
     const myGals=(galleries||[]).filter(g=>g.photographerId===currentUser.uid);
     result.galCount=myGals.length;
     if(myGals.length>0){
@@ -5906,7 +5972,7 @@ async function openBookingPage(){
   document.getElementById("booking-confirmation-wrap").classList.add("hidden");
   // Töltsük le az első (vagy egyetlen) fotóst és annak az adatait
   await loadPublicPhotographerData();
-  _selectedBookingDate=null;
+  _selectedBookingDate=null;_publicDayType=null;_publicDayTypeDate=null;
   _calMonth=new Date().getMonth();
   _calYear=new Date().getFullYear();
   renderCalendar(false);
@@ -6027,7 +6093,11 @@ function renderPublicDayDetail(){
   const slots=getSlotsForDate(_selectedBookingDate,window._publicAvail||{});
   const dayConf=(window._publicAvail||{})[_selectedBookingDate]||{};
   if(slots.length===0){detail.innerHTML='<div class="day-detail">Ezen a napon nincsenek elérhető időpontok.</div>';return}
-  const bookedTimes=new Set((window._publicBookings||[]).filter(b=>b.date===_selectedBookingDate).map(b=>b.time));
+  const typed=_dayTyped(dayConf);
+  if(_publicDayTypeDate!==_selectedBookingDate){_publicDayType=null;_publicDayTypeDate=_selectedBookingDate}
+  const step=Number(dayConf.duration)||30;
+  const need=typed?(_publicDayType==="family"?Number(dayConf.durFamily):Number(dayConf.durSolo)):step;
+  const ivs=_dayIntervals(_selectedBookingDate,dayConf,window._publicBookings||[]);
   let html='<div class="day-detail"><div class="day-detail-title">📅 '+formatBookingDate(_selectedBookingDate)+'</div>';
   // Borítókép a tetejére
   if(dayConf.coverImage){
@@ -6039,35 +6109,64 @@ function renderPublicDayDetail(){
     const safeDesc=dayConf.description.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     html+='<div class="public-day-description">'+safeDesc+'</div>';
   }
-  html+='<div style="font-size:.85rem;color:var(--muted);margin-bottom:10px">Válasszon egy szabad időpontot:</div>';
+  if(typed){
+    // Először azt kell kiválasztani, kivel jönnek – ettől függ az időpont hossza
+    html+='<div style="font-size:.9rem;font-weight:600;color:var(--brown);margin-bottom:8px">1. Kivel érkeznek a fotózásra?</div>';
+    html+='<div class="phototype-options">';
+    html+='<label class="phototype-opt'+(_publicDayType==="solo"?" selected":"")+'" onclick="setPublicDayType(\'solo\')"><input type="radio" name="daytype" '+(_publicDayType==="solo"?"checked":"")+'><span>👤 Csak a gyermek (egyéni kép) – '+dayConf.durSolo+' perc</span></label>';
+    html+='<label class="phototype-opt'+(_publicDayType==="family"?" selected":"")+'" onclick="setPublicDayType(\'family\')"><input type="radio" name="daytype" '+(_publicDayType==="family"?"checked":"")+'><span>👨‍👩‍👧 Testvérrel vagy családdal – '+dayConf.durFamily+' perc</span></label>';
+    html+='</div>';
+    if(!_publicDayType){html+='<div style="font-size:.85rem;color:var(--muted);margin:6px 0 4px">A szabad időpontok a választás után jelennek meg.</div></div>';detail.innerHTML=html;return}
+    html+='<div style="font-size:.9rem;font-weight:600;color:var(--brown);margin:14px 0 8px">2. Válasszon egy szabad időpontot ('+need+' perc):</div>';
+  }else{
+    html+='<div style="font-size:.85rem;color:var(--muted);margin-bottom:10px">Válasszon egy szabad időpontot:</div>';
+  }
   html+='<div class="slot-grid">';
-  slots.forEach(s=>{
-    const taken=bookedTimes.has(s);
-    if(taken)html+='<div class="slot-btn booked">'+s+' 🔒</div>';
-    else html+='<div class="slot-btn" onclick="showBookingForm(\''+s+'\')">'+s+'</div>';
+  let freeN=0;
+  slots.forEach(sl=>{
+    const ok=_canBook(dayConf,_hmToMin(sl),need,ivs);
+    if(ok)freeN++;
+    if(!ok)html+='<div class="slot-btn booked">'+sl+' 🔒</div>';
+    else html+='<div class="slot-btn" onclick="showBookingForm(\''+sl+'\')">'+sl+'</div>';
   });
-  html+='</div></div>';
+  html+='</div>';
+  if(typed&&freeN===0)html+='<div style="font-size:.85rem;color:#c0392b;margin-top:10px">Erre a hosszra ezen a napon már nincs szabad időpont.</div>';
+  html+='</div>';
   detail.innerHTML=html;
 }
+let _publicDayType=null,_publicDayTypeDate=null,_pendingBookingDuration=0;
+function setPublicDayType(t){_publicDayType=t==="family"?"family":"solo";_publicDayTypeDate=_selectedBookingDate;renderPublicDayDetail()}
 
 function showBookingForm(time){
   _pendingBookingTime=time;
   _pendingPhotoType=null;
+  const _fDay=(window._publicAvail||{})[_selectedBookingDate]||{};
+  const _fTyped=_dayTyped(_fDay);
+  _pendingBookingDuration=_fTyped?(_publicDayType==="family"?Number(_fDay.durFamily):Number(_fDay.durSolo)):(Number(_fDay.duration)||0);
+  const _fRange=_pendingBookingDuration>0&&_hmToMin(time)!==null?time+"–"+_minToHm(_hmToMin(time)+_pendingBookingDuration)+" ("+_pendingBookingDuration+" perc)":time;
   document.getElementById("booking-public-main").classList.add("hidden");
   document.getElementById("booking-form-wrap").classList.remove("hidden");
   const wrap=document.getElementById("booking-form-wrap");
   let html='<div class="booking-form-block"><h3 style="font-family:Playfair Display,serif;color:var(--brown);margin-bottom:6px">Foglalás véglegesítése</h3>';
-  html+='<p style="color:var(--muted);font-size:.92rem;margin-bottom:14px">📅 '+formatBookingDate(_selectedBookingDate)+' · 🕐 '+time+'</p>';
+  html+='<p style="color:var(--muted);font-size:.92rem;margin-bottom:14px">📅 '+formatBookingDate(_selectedBookingDate)+' · 🕐 '+_fRange+'</p>';
   html+='<label>Név *</label><input id="bk-name" type="text" placeholder="Pl. Kovács Anna">';
   html+='<label>Email cím *</label><input id="bk-email" type="email" placeholder="email@példa.hu">';
   html+='<label>Telefonszám *</label><input id="bk-phone" type="tel" placeholder="+36 20 123 4567">';
   // Kötelező fotótípus kérdés
-  html+='<label style="margin-top:14px">Milyen képet szeretne? *</label>';
-  html+='<div class="phototype-options">';
-  html+='<label class="phototype-opt" id="pt-opt-egyeni"><input type="radio" name="phototype" value="Egyéni kép" onchange="setPhotoType(\'Egyéni kép\')"><span>👤 Egyéni kép (csak a gyermek)</span></label>';
-  html+='<label class="phototype-opt" id="pt-opt-csalad"><input type="radio" name="phototype" value="Szülővel / családdal" onchange="setPhotoType(\'Szülővel / családdal\')"><span>👨‍👩‍👧 Szülővel / családdal</span></label>';
-  html+='<label class="phototype-opt" id="pt-opt-mindketto"><input type="radio" name="phototype" value="Egyéni és családi is" onchange="setPhotoType(\'Egyéni és családi is\')"><span>✨ Egyéni és családi is</span></label>';
-  html+='</div>';
+  const _pt=(id,val,label)=>'<label class="phototype-opt" id="pt-opt-'+id+'"><input type="radio" name="phototype" value="'+val+'" onchange="setPhotoType(\''+val+'\')"><span>'+label+'</span></label>';
+  if(_fTyped&&_publicDayType==="solo"){
+    // Csak a gyerek: a típus adott (az időpont hossza ehhez tartozik)
+    _pendingPhotoType="Egyéni kép";
+    html+='<label style="margin-top:14px">Fotózás típusa</label><div class="phototype-options"><div class="phototype-opt selected"><span>👤 Egyéni kép (csak a gyermek)</span></div></div>';
+  }else if(_fTyped){
+    html+='<label style="margin-top:14px">Milyen képet szeretne? *</label><div class="phototype-options">';
+    html+=_pt("testver","Testvérrel","👫 Testvérrel")+_pt("csalad","Szülővel / családdal","👨‍👩‍👧 Szülővel / családdal")+_pt("mindketto","Egyéni és családi is","✨ Egyéni és családi is");
+    html+='</div>';
+  }else{
+    html+='<label style="margin-top:14px">Milyen képet szeretne? *</label><div class="phototype-options">';
+    html+=_pt("egyeni","Egyéni kép","👤 Egyéni kép (csak a gyermek)")+_pt("csalad","Szülővel / családdal","👨‍👩‍👧 Szülővel / családdal")+_pt("mindketto","Egyéni és családi is","✨ Egyéni és családi is");
+    html+='</div>';
+  }
   html+='<label>Megjegyzés</label><textarea id="bk-notes" rows="3" placeholder="Bármilyen extra információ (pl. név, résztvevők száma)..."></textarea>';
   html+='<div id="bk-form-error" class="error-msg hidden" style="margin-top:10px"></div>';
   html+='<div class="add-btn-row" style="margin-top:16px"><button class="btn btn-outline" onclick="cancelBookingForm()">Mégsem</button><button class="btn" id="bk-submit-btn" onclick="submitBooking()">Foglalás véglegesítése</button></div></div>';
@@ -6104,7 +6203,21 @@ async function submitBooking(){
   err.classList.add("hidden");
   const btn=document.getElementById("bk-submit-btn");btn.disabled=true;btn.textContent="Mentés...";
   try{
-    const data={photographerId:_publicPhotographerId,date:_selectedBookingDate,time:_pendingBookingTime,name,email,phone,type:_pendingPhotoType,photoType:_pendingPhotoType,notes,status:"pending",createdAt:Date.now()};
+    // Friss ellenőrzés közvetlenül mentés előtt: közben nem foglalta-e le más ezt az időt
+    const _sDay=(window._publicAvail||{})[_selectedBookingDate]||{};
+    const _sLen=_pendingBookingDuration>0?_pendingBookingDuration:(Number(_sDay.duration)||30);
+    try{
+      const _bk=await db.collection("bookings").where("photographerId","==",_publicPhotographerId).get();
+      if(_bk&&Array.isArray(_bk.docs))window._publicBookings=_bk.docs.map(d=>({id:d.id,...d.data()})).filter(b=>b.status!=="cancelled");
+    }catch(e){}
+    const _sStart=_hmToMin(_pendingBookingTime);
+    if(_sStart!==null&&_sDay.end&&!_canBook(_sDay,_sStart,_sLen,_dayIntervals(_selectedBookingDate,_sDay,window._publicBookings||[]))){
+      err.textContent="Ezt az időpontot közben valaki más lefoglalta. Kérjük, válasszon másikat.";err.classList.remove("hidden");
+      btn.disabled=false;btn.textContent="Foglalás véglegesítése";
+      setTimeout(()=>{cancelBookingForm();renderCalendar(false);renderPublicDayDetail()},1800);
+      return;
+    }
+    const data={photographerId:_publicPhotographerId,date:_selectedBookingDate,time:_pendingBookingTime,duration:_sLen,name,email,phone,type:_pendingPhotoType,photoType:_pendingPhotoType,notes,status:"pending",createdAt:Date.now()};
     await db.collection("bookings").add(data);
     // Cache frissítés a publikus oldalon
     window._publicBookings=window._publicBookings||[];window._publicBookings.push(data);
@@ -6120,7 +6233,7 @@ function showBookingConfirmation(name){
   document.getElementById("booking-public-main").classList.add("hidden");
   const wrap=document.getElementById("booking-confirmation-wrap");
   wrap.classList.remove("hidden");
-  wrap.innerHTML='<div class="booking-confirmation"><div class="booking-confirmation-icon">🎉</div><h2>Köszönjük, '+name+'!</h2><p style="color:var(--muted);margin-bottom:6px">📅 '+formatBookingDate(_selectedBookingDate)+'</p><p style="color:var(--muted);margin-bottom:20px">🕐 '+_pendingBookingTime+'</p><p style="margin-bottom:20px">Az időpontfoglalása rögzítve. A fotós hamarosan visszaigazolja az időpontot a megadott email címen vagy telefonszámon.</p><button class="btn btn-outline" onclick="openBookingPage()">Új foglalás</button><button class="btn" style="margin-left:8px" onclick="showPage(\'page-login\')">Vissza a főoldalra</button></div>';
+  wrap.innerHTML='<div class="booking-confirmation"><div class="booking-confirmation-icon">🎉</div><h2>Köszönjük, '+name+'!</h2><p style="color:var(--muted);margin-bottom:6px">📅 '+formatBookingDate(_selectedBookingDate)+'</p><p style="color:var(--muted);margin-bottom:20px">🕐 '+(_pendingBookingDuration>0&&_hmToMin(_pendingBookingTime)!==null?_pendingBookingTime+"–"+_minToHm(_hmToMin(_pendingBookingTime)+_pendingBookingDuration):_pendingBookingTime)+'</p><p style="margin-bottom:20px">Az időpontfoglalása rögzítve. A fotós hamarosan visszaigazolja az időpontot a megadott email címen vagy telefonszámon.</p><button class="btn btn-outline" onclick="openBookingPage()">Új foglalás</button><button class="btn" style="margin-left:8px" onclick="showPage(\'page-login\')">Vissza a főoldalra</button></div>';
 }
 
 // === ADMIN: VÉLEMÉNYEK ===
@@ -7274,7 +7387,7 @@ function downloadDayBookingsPdf(dateISO){
     return out.replace(/\s+/g," ").replace(/ ([,.;:!?])/g,"$1").trim();
   };
   const pageW=297,pageH=210,mX=12,mTop=12,mBottom=12;
-  const cols=[{t:"",w:8},{t:"Id\u0151pont",w:19},{t:"N\u00e9v",w:56},{t:"Telefon",w:36},{t:"E-mail",w:66},{t:"T\u00edpus",w:24},{t:"Megjegyz\u00e9s",w:64}];
+  const cols=[{t:"",w:8},{t:"Id\u0151pont",w:27},{t:"N\u00e9v",w:54},{t:"Telefon",w:35},{t:"E-mail",w:64},{t:"T\u00edpus",w:27},{t:"Megjegyz\u00e9s",w:58}];
   const lineH=4.3,padY=1.8,padX=1.8;
   const dateLabel=clean(formatBookingDate(date));
   let y=mTop,page=1;
@@ -7303,7 +7416,7 @@ function downloadDayBookingsPdf(dateISO){
   header(true);
   list.forEach(b=>{
     doc.setFont(FONT,"normal");doc.setFontSize(9.5);
-    const cells=["",clean(b.time),clean(b.name),clean(b.phone),clean(b.email),clean(b.type||b.photoType)+(b.status==="confirmed"?"":(b.type||b.photoType?" \u00b7 ":"")+"\u00faj"),clean(b.notes)]
+    const cells=["",clean(_bookingRange(b,dayConf)),clean(b.name),clean(b.phone),clean(b.email),clean(b.type||b.photoType)+(b.status==="confirmed"?"":(b.type||b.photoType?" \u00b7 ":"")+"\u00faj"),clean(b.notes)]
       .map((v,i)=>v?doc.splitTextToSize(v,cols[i].w-2*padX):[]);
     doc.setFont(FONT,"bold");cells[2]=cells[2].length?doc.splitTextToSize(clean(b.name),cols[2].w-2*padX):[];
     const rowH=Math.max(1,...cells.map(c=>c.length))*lineH+2*padY;
