@@ -2326,11 +2326,15 @@ async function sendStatusChangeEmail(order,newStatus){
   }catch(e){}
 }
 function fmt(n){return n.toLocaleString("hu-HU")+" Ft"}
-function lowQ(url){if(!url||url.indexOf("/upload/")<0)return url;return url.replace("/upload/","/upload/q_25,w_750/")}
+// TÁRHELY-FORGALOM KÍMÉLÉSE: rácsokban és listákban SOHA nem az eredeti (több MB-os) képet töltjük be,
+// hanem kicsinyített előnézetet. Az eredeti csak tényleges letöltéskor megy ki.
+function _cldHasTx(url){return /\/upload\/[a-z]{1,3}_[^\/]*\//.test(url)}
+function thumbQ(url){if(!url||url.indexOf("/upload/")<0||_cldHasTx(url))return url;return url.replace("/upload/","/upload/c_limit,w_800,q_auto,f_auto/")}
+function lowQ(url){if(!url||url.indexOf("/upload/")<0||_cldHasTx(url))return url;return url.replace("/upload/","/upload/q_25,w_750/")}
 
 // ===== NAGYÍTÓ (részletek megtekintése) =====
 // Nagyobb, de továbbra is védett felbontás (vízjel + jobbklikk tiltás marad)
-function zoomQ(url){if(!url||url.indexOf("/upload/")<0)return url;return url.replace("/upload/","/upload/q_70,w_1800/")}
+function zoomQ(url){if(!url||url.indexOf("/upload/")<0||_cldHasTx(url))return url;return url.replace("/upload/","/upload/q_70,w_1800/")}
 let _zoomScale=1,_zoomX=0,_zoomY=0,_zoomDrag=null,_zoomPinch=null,_zoomSwipe=null;
 let _zoomPhotos=[],_zoomIndex=0,_zoomSource=null;
 
@@ -2743,7 +2747,7 @@ async function _processNewFiles(files){
   try{for(let i=0;i<newFiles.length;i++){const url=await uploadPhoto(newFiles[i],i,newFiles.length,"progress-fill-new","upload-status-new");uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1),origName:newFiles[i].name})}document.getElementById("upload-status-new").textContent="✓ "+newFiles.length+" kép feltöltve!"+(skipped>0?" ("+skipped+" már ki volt választva)":"");renderPreviewsNew()}
   catch(e){document.getElementById("upload-status-new").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
 }
-function renderPreviewsNew(){document.getElementById("photo-previews-new").innerHTML=uploadedPhotosNew.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosNew.splice('+i+',1);uploadedPhotosNew.forEach((x,j)=>x.name=\'Portré \'+(j+1));renderPreviewsNew()">×</button></div>').join("")}
+function renderPreviewsNew(){document.getElementById("photo-previews-new").innerHTML=uploadedPhotosNew.map((p,i)=>'<div class="photo-preview-item"><img src="'+lowQ(p.url)+'" alt=""><button class="remove-photo" onclick="uploadedPhotosNew.splice('+i+',1);uploadedPhotosNew.forEach((x,j)=>x.name=\'Portré \'+(j+1));renderPreviewsNew()">×</button></div>').join("")}
 
 let _detailPhotoTab="raw";
 function setDetailPhotoTab(tab){
@@ -2833,7 +2837,7 @@ async function _extractFilesFromDrop(event){
   }
   return files;
 }
-function renderPreviewsDetail(){document.getElementById("photo-previews-detail").innerHTML=uploadedPhotosDetail.map((p,i)=>'<div class="photo-preview-item"><img src="'+p.url+'" alt=""><button class="remove-photo" onclick="uploadedPhotosDetail.splice('+i+',1);renderPreviewsDetail()">×</button></div>').join("")}
+function renderPreviewsDetail(){document.getElementById("photo-previews-detail").innerHTML=uploadedPhotosDetail.map((p,i)=>'<div class="photo-preview-item"><img src="'+lowQ(p.url)+'" alt=""><button class="remove-photo" onclick="uploadedPhotosDetail.splice('+i+',1);renderPreviewsDetail()">×</button></div>').join("")}
 
 async function saveDetailPhotos(){
   if(!uploadedPhotosDetail.length)return;
@@ -3490,7 +3494,7 @@ function renderGallery(){
     // LETÖLTHETŐ NÉZET: vízjel nélkül, letöltés gombbal
     if(_galleryView==="download"){
       const dlBtnD='<button class="photo-dl-btn" onclick="event.stopPropagation();downloadSinglePhoto(\''+photo.url+'\',\''+(photo.name||"").replace(/'/g,"\\'")+'\')" title="Letöltés">&#11015;</button>';
-      div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy">'+dlBtnD;
+      div.innerHTML='<img src="'+thumbQ(photo.url)+'" alt="'+photo.name+'" loading="lazy">'+dlBtnD;
       div.onclick=()=>{_zoomPhotos=allPhotos;_zoomIndex=realIdx;_zoomSource="download";openZoom(photo.url,photo.name)};
       grid.appendChild(div);
       return;
@@ -3503,7 +3507,7 @@ function renderGallery(){
     const selBtnHtml=isRestricted
       ?'<button class="photo-select-btn photo-select-locked" onclick="event.stopPropagation()" title="Ez a kép csak egyénileg rendelhető, koppints rá a rendeléshez">🔒</button>'
       :'<button class="photo-select-btn" onclick="event.stopPropagation();toggleMultiSelect(\''+photo.id+'\')" title="Kijelölés">✓</button>';
-    div.innerHTML='<img src="'+photo.url+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false">'+wmHtml+selBtnHtml+zoomBtn+favBtnHtml;
+    div.innerHTML='<img src="'+lowQ(photo.url)+'" alt="'+photo.name+'" loading="lazy" oncontextmenu="return false" ondragstart="return false">'+wmHtml+selBtnHtml+zoomBtn+favBtnHtml;
     div.onclick=()=>openSheet(photo);grid.appendChild(div);
   });
   updateCartUI();
@@ -4217,7 +4221,7 @@ function renderCartItems(){
     else if(item.type==="gift"){detail=item.giftLabel||"Ajándéktárgy";if(item.mugText)detail+=" - "+item.mugText}
     else detail="🖼️ Papírkép – "+item.size.label;
     const qtySuffix=item.qty>1?" · "+item.qty+" db":"";
-    return '<div class="cart-item"><img src="'+item.photo.url+'" alt=""><div class="cart-item-info"><div class="cart-item-name">'+item.photo.name+'</div><div class="cart-item-detail">'+detail+qtySuffix+'</div><div class="cart-item-price">'+fmt(item.totalPrice)+'</div></div><button class="cart-item-remove" onclick="removeFromCart(\''+item.id+'\')">×</button></div>';
+    return '<div class="cart-item"><img src="'+lowQ(item.photo.url)+'" alt=""><div class="cart-item-info"><div class="cart-item-name">'+item.photo.name+'</div><div class="cart-item-detail">'+detail+qtySuffix+'</div><div class="cart-item-price">'+fmt(item.totalPrice)+'</div></div><button class="cart-item-remove" onclick="removeFromCart(\''+item.id+'\')">×</button></div>';
   }).join("");
   const total=cart.reduce((s,i)=>s+i.totalPrice,0);
   document.getElementById("cart-total-rows").innerHTML=cart.map(i=>{let lbl;if(i.type==="digital")lbl="Digitális";else if(i.type==="gift")lbl=i.giftLabel;else lbl=i.size.label;return '<div class="cart-total-row"><span>'+i.photo.name+' ('+lbl+') × '+i.qty+'</span><span>'+fmt(i.totalPrice)+'</span></div>'}).join("");
@@ -6209,7 +6213,7 @@ function showAdminImg(){
   const item=_adminImgList[_adminImgIdx];if(!item)return;
   // Cloudinary nagyobb felbontás megjelenítéshez
   let url=item.url;
-  if(url.indexOf("/upload/")>-1&&url.indexOf("/upload/c_")===-1)url=url.replace("/upload/","/upload/w_1400,q_auto/");
+  url=zoomQ(url);
   document.getElementById("aio-img").src=url;
   document.getElementById("aio-name").textContent=item.name+(_adminImgList.length>1?(" ("+(_adminImgIdx+1)+"/"+_adminImgList.length+")"):"");
   const delBtn=document.getElementById("aio-delete-btn");
@@ -6608,7 +6612,7 @@ function renderAdminOrders(){
   if(activeOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs ilyen rendelés</div><div class="empty-state-text">A beállított szűrőknek egy rendelés sem felel meg.</div><button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="setOrderFilter(\'all\')">Szűrők törlése</button></div>';_syncOrderSelection();return}
   const countLine=(q||filterOn)?'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">'+activeOrders.length+' találat ('+totalBase+' '+(showCompleted?"teljesített":"aktív")+' rendelésből) · összesen <strong>'+fmt(activeOrders.reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0))+'</strong></div>':"";
   div.innerHTML=countLine+activeOrders.map(o=>{
-    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
+    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+lowQ(i.photoUrl)+'" alt="" loading="lazy" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
   }).join("");
   _syncOrderSelection();
@@ -6619,7 +6623,7 @@ function renderCompletedOrders(){
   const completedOrders=orders.filter(o=>o.status==="completed");
   if(completedOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">✅</span><div class="empty-state-title">Még nincs teljesített rendelés</div><div class="empty-state-text">Az "Aktív" fülön lévő rendeléseket "Teljesítve" státuszra állítva itt jelennek majd meg.</div></div>';return}
   div.innerHTML=completedOrders.map(o=>{
-    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+i.photoUrl+'" alt="" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
+    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+lowQ(i.photoUrl)+'" alt="" loading="lazy" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
   }).join("");
 }
@@ -6743,7 +6747,7 @@ function renderAdminGalleryList(){
     list.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs találat</div><div class="empty-state-text">'+emptyTxt+'</div></div>';return;
   }
   const cardHtml=(g)=>{
-    const thumbs=g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+p.url+'" alt="">').join(""):'<div class="no-photo">&#128247;</div>';
+    const thumbs=g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+lowQ(p.url)+'" alt="" loading="lazy">').join(""):'<div class="no-photo">&#128247;</div>';
     const dl=_downloadsByGallery[g.id];
     let dlBadge="";
     if(g.downloadEnabled===true){
@@ -7085,7 +7089,7 @@ function renderDetailPhotos(){
         +'<option value="gift"'+(r==="gift"?" selected":"")+'>🎁 Csak ajándék</option>'
         +'</select>';
     }
-    return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+p.url+'" alt="'+p.name+'" loading="lazy" style="cursor:zoom-in" onclick="openAdminImgFromGrid('+shownIdx+')">'+badge+favMark+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="event.stopPropagation();togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="event.stopPropagation();document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="event.stopPropagation();deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div>'+restrictHtml+'</div>';
+    return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+lowQ(p.url)+'" alt="'+p.name+'" loading="lazy" style="cursor:zoom-in" onclick="openAdminImgFromGrid('+shownIdx+')">'+badge+favMark+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="event.stopPropagation();togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="event.stopPropagation();document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="event.stopPropagation();deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div>'+restrictHtml+'</div>';
   }).join("");
   // A jelenleg szűrve látszó képek listája a nagyító lapozásához
   _detailShownPhotos=shown.map(({p})=>({id:p.id,url:p.url,name:p.name}));
