@@ -754,6 +754,18 @@ body.dark-mode .tl-dot{background:#1a130a;border-color:#2a1e0a}
 .chat-input-row{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--warm)}
 .chat-input-row input{flex:1;padding:11px 14px;border:1.5px solid var(--warm);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.92rem;background:var(--white);color:var(--text)}
 .chat-input-row input:focus{outline:none;border-color:var(--gold)}
+.chat-input-row textarea{flex:1;padding:11px 14px;border:1.5px solid var(--warm);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.92rem;line-height:1.4;background:var(--white);color:var(--text);resize:vertical;min-height:46px;max-height:220px;margin:0}
+.chat-input-row textarea:focus{outline:none;border-color:var(--gold)}
+body.dark-mode .chat-input-row textarea{background:#2a1f10;color:#f5e8a8}
+.msg-tpl-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 14px 0}
+.msg-tpl-bar .mt-label{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.msg-tpl-chip{padding:6px 12px;border:1.5px solid var(--warm);border-radius:99px;background:var(--cream);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--brown);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg-tpl-chip:hover{border-color:var(--gold)}
+.msg-tpl-manage{background:none;border:none;color:var(--gold);font-family:'DM Sans',sans-serif;font-size:.78rem;cursor:pointer;text-decoration:underline;padding:4px 2px}
+body.dark-mode .msg-tpl-chip{background:#1a1408;color:#e8d8a8;border-color:rgba(248,232,128,.2)}
+.msg-tpl-item{border:1.5px solid var(--warm);border-radius:11px;padding:10px;margin-bottom:10px;background:var(--cream)}
+.msg-tpl-item textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--warm);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.88rem;line-height:1.45;resize:vertical;min-height:130px;background:var(--white);color:var(--dark);margin:0}
+body.dark-mode .msg-tpl-item{background:#1a1408}body.dark-mode .msg-tpl-item textarea{background:#2a1f10;color:#f5e8a8}
 .chat-input-row button{background:var(--gold);color:#3a2a08;border:none;border-radius:10px;padding:0 18px;cursor:pointer;font-weight:600;font-family:'DM Sans',sans-serif}
 .chat-input-row button:disabled{opacity:.5;cursor:not-allowed}
 /* Admin üzenetlista */
@@ -1659,6 +1671,12 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="order-chat-content"></div>
   </div>
 </div>
+<div id="msg-tpl-modal" class="modal-overlay hidden" style="z-index:330" onclick="if(event.target===this)closeMsgTemplates()">
+  <div class="modal-sheet" style="max-width:560px">
+    <div class="sheet-handle"></div>
+    <div id="msg-tpl-content"></div>
+  </div>
+</div>
 <div id="price-corr-modal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
   <div class="modal-sheet" style="max-width:560px">
     <div class="sheet-handle"></div>
@@ -1856,6 +1874,8 @@ async function loadMyPrices(){
       GIFT_ITEMS=data.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
       CLASS_GIVEBACK_PERCENTS=data.classGivebackPercents||{};
       PRICE_LISTS=Array.isArray(data.priceLists)?data.priceLists.filter(x=>x&&x.id):[];
+      // Üzenetsablonok: csak a fotós felületén jelennek meg; ha még sosem mentett, pár kiinduló sablont kap
+      MSG_TEMPLATES=Array.isArray(data.messageTemplates)?data.messageTemplates.filter(x=>x&&x.id&&typeof x.text==="string"):_defaultMsgTemplates();
       MY_DEFAULT_PRICES=_pricesSnapshot();_priceEditId=null;
       ENABLED_PRODUCTS=data.enabledProducts||{print:true,digital:true,gift:true};
       WATERMARK_CONFIG=data.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"};
@@ -2681,6 +2701,11 @@ async function loadData(isInitialLoad){
       if(lastGalleryId&&galleries.find(g=>g.id===lastGalleryId)){openGalleryDetail(lastGalleryId)}
       else if(lastTab){setAdminTab(lastTab)}
     }catch(e){showPage("page-login");prefillSavedLogins()}
+  }else if(isInitialLoad&&_parseBookingLink()){
+    // Naponkénti foglalási link: egyből a foglalási oldal, csak a linkben szereplő nap(ok)kal
+    _publicOnlyDates=_parseBookingLink();
+    prefillSavedLogins();
+    try{await openBookingPage()}catch(e){showPage("page-login")}
   }else{
     showPage("page-login");
     prefillSavedLogins();
@@ -3250,7 +3275,8 @@ function openAdminConvo(galleryId,targetId,order){
   }
   html+='<div class="chat-panel"><div class="chat-panel-head"><span class="cph-title">🧒 '+_pcEsc(name)+'</span></div>';
   html+='<div class="chat-messages" id="admin-chat-messages"></div>';
-  html+='<div class="chat-input-row"><input id="admin-chat-input" type="text" placeholder="'+(targetId?"Üzenet írása…":"Válasz írása…")+'" onkeydown="if(event.key===\'Enter\')sendAdminMessage()"><button onclick="sendAdminMessage()">Küldés</button></div></div>';
+  html+=_msgTplBar("admin-chat-input");
+  html+='<div class="chat-input-row"><textarea id="admin-chat-input" rows="2" placeholder="'+(targetId?"Üzenet írása…":"Válasz írása…")+'" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();sendAdminMessage()}"></textarea><button onclick="sendAdminMessage()">Küldés</button></div></div>';
   wrap.innerHTML=html;
   renderAdminConvoMessages();
   // Valós idejű figyelés erre a beszélgetésre
@@ -3302,10 +3328,91 @@ async function deleteConversation(galleryId,ev){
   }catch(e){alert("Törlés sikertelen: "+e.message)}
 }
 
+// === ÜZENETSABLONOK (csak a fotós látja és használja; a szülői oldalon sehol nem jelennek meg) ===
+// A sablonban a {gyerek} helyére küldéskor a gyerek neve kerül.
+let MSG_TEMPLATES=[];
+function _defaultMsgTemplates(){
+  return [
+    {id:"t_kesz",title:"Képek elkészültek",text:"Kedves Szülő!\n\n{gyerek} képei elkészültek, a galériában a Letöltések résznél érhetők el.\n\nKöszönöm a rendelést!\nSpringMoonPhoto – Bukta Anita"},
+    {id:"t_fizetes",title:"Fizetési emlékeztető",text:"Kedves Szülő!\n\nSzeretném jelezni, hogy {gyerek} rendelésének összege még nem érkezett meg. A fizetési adatokat a galériában, a rendelésnél találja.\n\nKöszönöm!\nSpringMoonPhoto – Bukta Anita"},
+    {id:"t_atveheto",title:"Rendelés átvehető",text:"Kedves Szülő!\n\n{gyerek} megrendelt képei megérkeztek, átvehetők.\n\nSpringMoonPhoto – Bukta Anita"}
+  ];
+}
+function _msgChildName(galleryId,override){
+  if(typeof override==="string")return override;// körüzenetnél a címzett neve (csoportos galériánál üres)
+  const meta=_chatMetaForGallery(galleryId);
+  return meta.isGroup?"":(meta.galleryName||"");
+}
+function _fillMsgPlaceholders(text,galleryId,nameOverride){
+  if(!text||text.indexOf("{")<0)return text;
+  const name=_msgChildName(galleryId,nameOverride);
+  // név nélkül (pl. csoportos galéria) a helykitöltőt kivesszük, hogy ne menjen ki "{gyerek}" a szülőnek
+  return text.replace(/\{gyerek\}/gi,name||"a gyermek").replace(/[ \t]{2,}/g," ");
+}
+function _msgTplBar(inputId){
+  if(!currentUser)return "";
+  let h='<div class="msg-tpl-bar"><span class="mt-label">📋 Sablonok:</span>';
+  h+=MSG_TEMPLATES.map(t=>'<button type="button" class="msg-tpl-chip" title="'+_pcEsc(t.text)+'" onclick="insertMsgTemplate(\''+_pcEsc(t.id)+'\',\''+inputId+'\')">'+_pcEsc(t.title||"Névtelen sablon")+'</button>').join("");
+  h+='<button type="button" class="msg-tpl-manage" onclick="openMsgTemplates(\''+inputId+'\')">'+(MSG_TEMPLATES.length?"⚙️ Szerkesztés":"+ Sablon létrehozása")+'</button></div>';
+  return h;
+}
+function insertMsgTemplate(tplId,inputId){
+  const t=MSG_TEMPLATES.find(x=>x.id===tplId);const inp=document.getElementById(inputId);if(!t||!inp)return;
+  // Egyéni beszélgetésben a nevet azonnal beírjuk; körüzenetnél a {gyerek} marad, és küldéskor mindenkinél a saját gyereke neve kerül a helyére
+  const txt=inputId==="admin-chat-input"?_fillMsgPlaceholders(t.text,_adminChatGalleryId):t.text;
+  inp.value=inp.value.trim()?(inp.value.replace(/\s+$/,"")+"\n\n"+txt):txt;
+  if(inp.tagName==="TEXTAREA"&&inputId==="admin-chat-input")inp.rows=Math.max(2,Math.min(8,inp.value.split("\n").length+1));
+  try{inp.dispatchEvent(new Event("input",{bubbles:true}))}catch(e){}
+  inp.focus();
+}
+let _msgTplDraft=[],_msgTplReturnInput=null;
+function openMsgTemplates(inputId){
+  _msgTplReturnInput=inputId||null;
+  _msgTplDraft=JSON.parse(JSON.stringify(MSG_TEMPLATES));
+  renderMsgTemplatesEditor();
+  show("msg-tpl-modal");
+}
+function closeMsgTemplates(){hide("msg-tpl-modal")}
+function _readMsgTplDraft(){
+  _msgTplDraft.forEach((t,i)=>{const a=document.getElementById("mt-title-"+i),b=document.getElementById("mt-text-"+i);if(a)t.title=a.value;if(b)t.text=b.value});
+}
+function renderMsgTemplatesEditor(){
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px"><h2 style="font-size:1.2rem;margin:0">📋 Üzenetsablonok</h2><button class="btn btn-outline btn-sm" onclick="closeMsgTemplates()">✕ Bezárás</button></div>';
+  h+='<p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:12px">Ezeket csak te látod. A szülő csak azt az üzenetet kapja meg, amit elküldesz neki. A <strong>{gyerek}</strong> helyére küldéskor a gyerek neve kerül.</p>';
+  if(!_msgTplDraft.length)h+='<p style="font-size:.86rem;color:var(--muted);margin-bottom:10px">Még nincs sablonod.</p>';
+  h+=_msgTplDraft.map((t,i)=>'<div class="msg-tpl-item"><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="text" id="mt-title-'+i+'" value="'+_pcEsc(t.title||"")+'" placeholder="Sablon neve (pl. Képek elkészültek)" style="flex:1;margin-bottom:0"><button class="regen-btn" style="color:#c0392b" title="Sablon törlése" onclick="removeMsgTemplate('+i+')">&#128465;&#65039;</button></div><textarea id="mt-text-'+i+'" placeholder="Az üzenet szövege…">'+_pcEsc(t.text||"")+'</textarea></div>').join("");
+  h+='<button class="btn btn-outline btn-sm" style="width:100%" onclick="addMsgTemplate()">+ Új sablon</button>';
+  h+='<div id="msg-tpl-msg" style="margin-top:10px"></div><button class="btn btn-green" style="margin-top:10px;width:100%" onclick="saveMsgTemplates()">✓ Sablonok mentése</button>';
+  document.getElementById("msg-tpl-content").innerHTML=h;
+}
+function addMsgTemplate(){_readMsgTplDraft();_msgTplDraft.push({id:"t"+Date.now(),title:"",text:""});renderMsgTemplatesEditor();const el=document.getElementById("mt-title-"+(_msgTplDraft.length-1));if(el)el.focus()}
+function removeMsgTemplate(i){_readMsgTplDraft();const t=_msgTplDraft[i];if(!t)return;if((t.title||t.text)&&!confirm("Törlöd ezt a sablont: „"+(t.title||"névtelen")+"\"?"))return;_msgTplDraft.splice(i,1);renderMsgTemplatesEditor()}
+async function saveMsgTemplates(){
+  _readMsgTplDraft();
+  const msg=document.getElementById("msg-tpl-msg");
+  const clean=_msgTplDraft.map(t=>({id:String(t.id||("t"+Date.now())),title:String(t.title||"").trim(),text:String(t.text||"").trim()})).filter(t=>t.text);
+  clean.forEach(t=>{if(!t.title)t.title=t.text.split("\n")[0].slice(0,30)});
+  try{
+    await db.collection("photographers").doc(currentUser.uid).update({messageTemplates:clean});
+    MSG_TEMPLATES=clean;
+    closeMsgTemplates();
+    _refreshMsgTplBars();
+    showToast("✓ Sablonok mentve");
+  }catch(e){if(msg)msg.innerHTML='<div class="error-msg">Nem sikerült menteni. Próbáld újra.</div>'}
+}
+// A nyitott üzenet-ablakokban a sablonsáv frissítése (a beírt szöveg megmarad)
+function _refreshMsgTplBars(){
+  document.querySelectorAll(".msg-tpl-bar").forEach(bar=>{
+    const m=(bar.querySelector(".msg-tpl-manage")||{getAttribute:()=>""}).getAttribute("onclick")||"";
+    const id=(m.match(/openMsgTemplates\('([^']*)'\)/)||[])[1];if(!id)return;
+    const tmp=document.createElement("div");tmp.innerHTML=_msgTplBar(id);
+    if(tmp.firstChild)bar.replaceWith(tmp.firstChild);
+  });
+}
 async function sendAdminMessage(){
   const inp=document.getElementById("admin-chat-input");if(!inp)return;
-  const text=inp.value.trim();if(!text||!_adminChatGalleryId)return;
-  inp.value="";inp.disabled=true;
+  const text=_fillMsgPlaceholders(inp.value.trim(),_adminChatGalleryId);if(!text||!_adminChatGalleryId)return;
+  inp.value="";inp.rows=2;inp.disabled=true;
   try{
     await db.collection("messages").add(_adminMsgPayload(_adminChatGalleryId,text));
   }catch(e){alert("Küldési hiba: "+e.message)}
@@ -3375,8 +3482,9 @@ function openBulkMessage(){
   h+='<div style="background:var(--cream);border-radius:10px;padding:9px 12px;font-size:.8rem;line-height:1.6;max-height:110px;overflow-y:auto;margin-bottom:8px">'+targets.map(t=>(t.isGroup?"👥 ":"")+_pcEsc(t.label)).join(" · ")+'</div>';
   if(groups>0)h+='<div style="background:#fdebd0;color:#7a4a00;border-radius:9px;padding:8px 10px;font-size:.8rem;line-height:1.5;margin-bottom:8px">⚠️ '+groups+' csoportos galéria (👥) is van köztük: ott az üzenetet mindenki látja, aki azzal a kóddal belép.</div>';
   if(noGallery>0)h+='<div style="font-size:.78rem;color:#c0392b;margin-bottom:8px">'+noGallery+' kijelölt rendeléshez nem tartozik galéria – ők nem kapják meg.</div>';
+  h+='<div style="margin:0 -14px 8px">'+_msgTplBar("bulk-msg-text")+'</div>';
   h+='<textarea id="bulk-msg-text" rows="6" placeholder="Írd ide az üzenetet…" oninput="_bulkMsgUpdateBtn()" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1.5px solid var(--warm);border-radius:10px;font-family:\'DM Sans\',sans-serif;font-size:.92rem;line-height:1.5;resize:vertical;min-height:120px;background:var(--cream);color:var(--dark);margin-bottom:8px"></textarea>';
-  h+='<div style="font-size:.76rem;color:var(--muted);line-height:1.5;margin-bottom:10px">A szülők akkor látják, amikor belépnek a galériába (a „💬 Írj a fotósnak" gombon jelzés várja őket). Emailt erről nem kapnak. A válaszok az Üzenetek fülre érkeznek, szülőnként külön.</div>';
+  h+='<div style="font-size:.76rem;color:var(--muted);line-height:1.5;margin-bottom:10px">A sablonokban a <strong>{gyerek}</strong> helyére mindenkinél a saját gyereke neve kerül. A szülők akkor látják, amikor belépnek a galériába (a „💬 Írj a fotósnak" gombon jelzés várja őket). Emailt erről nem kapnak. A válaszok az Üzenetek fülre érkeznek, szülőnként külön.</div>';
   h+='<div id="bulk-msg-err"></div><button id="bulk-msg-send" class="btn btn-green" style="width:100%" disabled onclick="sendBulkMessage()">Küldés '+targets.length+' címzettnek</button>';
   document.getElementById("order-chat-content").innerHTML=h;
   show("order-chat-modal");
@@ -3397,7 +3505,7 @@ async function sendBulkMessage(){
     const batch=db.batch();const added=[];
     targets.forEach(t=>{
       const ref=db.collection("messages").doc();
-      const payload=_adminMsgPayload(t.galleryId,text);
+      const payload=_adminMsgPayload(t.galleryId,_fillMsgPlaceholders(text,t.galleryId,(t.isGroup||t.label==="-")?"":t.label));
       batch.set(ref,payload);added.push(Object.assign({id:ref.id},payload));
     });
     await batch.commit();
@@ -5036,6 +5144,34 @@ function _dayBreak(day){
   const a=_hmToMin(day.breakStart),b=_hmToMin(day.breakEnd);
   return a!==null&&b!==null&&b>a?{start:a,end:b}:null;
 }
+// === NAPONKÉNTI FOGLALÁSI LINK ===
+// Egy nap saját linkje: https://.../?nap=2026-10-16 — aki ezen jön, CSAK azt a napot látja (más intézmény napját nem tudja véletlenül lefoglalni).
+// A napnál beállítható az is, hogy a közös naptárban (link nélkül) egyáltalán ne látsszon ("csak linkkel foglalható").
+let _publicOnlyDates=null;
+function _parseBookingLink(){
+  try{
+    const raw=new URLSearchParams(window.location.search).get("nap");
+    if(!raw)return null;
+    const ds=raw.split(",").map(x=>x.trim()).filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x));
+    return ds.length?new Set(ds):null;
+  }catch(e){return null}
+}
+function _publicDayAllowed(iso,dayConf){
+  if(_publicOnlyDates)return _publicOnlyDates.has(iso);
+  return !(dayConf&&dayConf.linkOnly);
+}
+function bookingLinkFor(dateISO){return "https://"+GALLERY_SITE+"/?nap="+dateISO}
+async function copyBookingLink(){
+  if(!_selectedBookingDate)return;
+  const link=bookingLinkFor(_selectedBookingDate);
+  const box=document.getElementById("bk-link-box");
+  if(box)box.innerHTML='<input type="text" readonly value="'+link+'" onfocus="this.select()" style="margin:6px 0 0;font-size:.82rem">';
+  try{
+    if(!navigator.clipboard||!navigator.clipboard.writeText)throw new Error("nincs");
+    await navigator.clipboard.writeText(link);
+    showToast("✓ Foglalási link kimásolva");
+  }catch(e){showToast("Jelöld ki és másold ki a linket a mezőből")}
+}
 // === TÍPUS SZERINTI IDŐTARTAM (pl. csak a gyerek 5 perc, testvérrel/családdal 10 perc) ===
 // Ha egy napnál be van kapcsolva: a rács lépése a rövidebb idő (day.duration), a hosszabb foglalás több egymás utáni helyet foglal le.
 function _dayTyped(day){return !!(day&&day.typedDuration&&Number(day.durSolo)>0&&Number(day.durFamily)>0)}
@@ -5131,7 +5267,7 @@ function renderCalendar(forAdmin){
     const iso=dateToISO(dateObj);
     const isPast=dateObj<today;
     const isToday=iso===todayISO;
-    const slots=getSlotsForDate(iso,avail);
+    const slots=(!forAdmin&&!_publicDayAllowed(iso,avail[iso]))?[]:getSlotsForDate(iso,avail);
     const dayBookings=getBookingsForDate(iso,true);
     let cls="cal-day";
     if(isPast)cls+=" past";
@@ -5151,7 +5287,7 @@ function renderCalendar(forAdmin){
     if(forAdmin){
       if(hasSlots&&!isPast){
         const avail=slots.length-bookedCount;
-        info='<div class="cal-day-info '+(avail===0?'full':'avail')+'">'+(avail===0?'foglalt':avail+' szabad')+'</div>';
+        info='<div class="cal-day-info '+(avail===0?'full':'avail')+'">'+(_dayC.linkOnly?'🔗 ':'')+(avail===0?'foglalt':avail+' szabad')+'</div>';
       }else if(bookedCount>0){info='<div class="cal-day-info avail">'+bookedCount+' fogl.</div>'}
     }else{
       if(hasSlots&&!isPast){
@@ -5388,6 +5524,13 @@ function renderAdminDayDetail(){
   // Leírás szekció
   html+='<label style="font-size:.74rem;color:var(--muted);display:block;margin-top:14px;margin-bottom:4px">📝 Rövid leírás (opcionális — pl. "Levendulamezős családi fotózás")</label>';
   html+='<textarea id="bk-description" class="day-description-input" placeholder="Mit lehet ezen a napon foglalni?">'+((dayConf.description||"").replace(/</g,"&lt;"))+'</textarea>';
+  // Saját foglalási link ehhez a naphoz
+  html+='<div style="margin-top:14px;padding:12px;border:1.5px dashed var(--gold);border-radius:10px">';
+  html+='<div style="font-weight:600;font-size:.88rem;color:var(--brown);margin-bottom:4px">🔗 Saját foglalási link ehhez a naphoz</div>';
+  html+='<div style="font-size:.74rem;color:var(--muted);line-height:1.5;margin-bottom:8px">Aki ezen a linken jön, egyből ezt a napot látja, és más napot nem tud lefoglalni. Ezt küldd el annak az ovinak, iskolának, akiknek ez a nap szól.</div>';
+  html+='<button type="button" class="btn btn-outline btn-sm" style="width:auto" onclick="copyBookingLink()">📋 Link másolása</button><div id="bk-link-box"></div>';
+  html+='<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:10px;font-size:.84rem;line-height:1.4"><input type="checkbox" id="bk-link-only" '+(dayConf.linkOnly?"checked":"")+' style="width:auto;margin-top:2px"> <span>Csak ezzel a linkkel foglalható – a közös naptárban (az „Időpontfoglalás" gomb mögött) ne látsszon</span></label>';
+  html+='</div>';
   html+='<div class="add-btn-row" style="margin-top:12px"><button class="btn btn-outline" onclick="closeDayDetail()">Mégsem</button><button class="btn" onclick="saveDayAvailability()">Mentés</button></div>';
   html+='</div>';
   const slots=getSlotsForDate(_selectedBookingDate);
@@ -5574,7 +5717,9 @@ async function saveDayAvailability(){
     const hit=bookings.filter(b=>b.date===_selectedBookingDate&&b.status!=="cancelled"&&_hmToMin(b.time)!==null&&_hmToMin(b.time)<bE&&_hmToMin(b.time)+(Number(b.duration)>0?Number(b.duration):(Number(existing.duration)||duration))>bS);
     if(hit.length&&!confirm("A szünet idejére már van "+hit.length+" foglalás ("+hit.map(b=>b.time).sort().join(", ")+"). Ezek megmaradnak, csak új foglalás nem jöhet erre az időre. Mented így?"))return;
   }
-  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
+  const _loEl=document.getElementById("bk-link-only");
+  const linkOnly=_loEl?_loEl.checked:!!existing.linkOnly;
+  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,linkOnly,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
   // Ha változik az időpont hossza, a napra már leadott (időtartam nélküli) foglalások megtartják az EREDETI hosszukat
   const _oldDur=Number(existing.duration)||0;
   if(_oldDur>0&&_oldDur!==duration){
@@ -5979,6 +6124,20 @@ async function openBookingPage(){
   _selectedBookingDate=null;_publicDayType=null;_publicDayTypeDate=null;
   _calMonth=new Date().getMonth();
   _calYear=new Date().getFullYear();
+  const _det=document.getElementById("public-day-detail");if(_det)_det.innerHTML="";
+  if(_publicOnlyDates){
+    // Csak a linkben szereplő, ténylegesen foglalható (nem múltbeli) napok
+    const _today=dateToISO(new Date());
+    const _ok=Array.from(_publicOnlyDates).sort().filter(d=>d>=_today&&getSlotsForDate(d,window._publicAvail||{}).length>0);
+    if(_ok.length){
+      const _d0=new Date(_ok[0]+"T12:00:00");_calMonth=_d0.getMonth();_calYear=_d0.getFullYear();
+      if(_ok.length===1){selectBookingDate(_ok[0],false);return}
+    }else{
+      renderCalendar(false);
+      if(_det)_det.innerHTML='<div class="day-detail">Ezen a linken jelenleg nincs foglalható időpont. Lehet, hogy a foglalás még nem indult el, vagy már lezárult. Kérjük, keresse a fotóst.</div>';
+      return;
+    }
+  }
   renderCalendar(false);
 }
 
@@ -6096,7 +6255,7 @@ function renderPublicDayDetail(){
   const detail=document.getElementById("public-day-detail");if(!detail||!_selectedBookingDate)return;
   const slots=getSlotsForDate(_selectedBookingDate,window._publicAvail||{});
   const dayConf=(window._publicAvail||{})[_selectedBookingDate]||{};
-  if(slots.length===0){detail.innerHTML='<div class="day-detail">Ezen a napon nincsenek elérhető időpontok.</div>';return}
+  if(slots.length===0||!_publicDayAllowed(_selectedBookingDate,dayConf)){detail.innerHTML='<div class="day-detail">Ezen a napon nincsenek elérhető időpontok.</div>';return}
   const typed=_dayTyped(dayConf);
   if(_publicDayTypeDate!==_selectedBookingDate){_publicDayType=null;_publicDayTypeDate=_selectedBookingDate}
   const step=Number(dayConf.duration)||30;
