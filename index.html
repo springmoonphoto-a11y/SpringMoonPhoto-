@@ -3042,6 +3042,7 @@ function _onOrdersLiveUpdate(){
     document.getElementById("stat-orders").textContent=orders.length;
     document.getElementById("stat-revenue").textContent=fmt(orders.reduce((s,o)=>s+(typeof o.total==="number"?o.total:0),0));
     renderAdminOrders();renderCompletedOrders();
+    const ag=document.getElementById("admin-galleries");if(ag&&!ag.classList.contains("hidden")&&document.getElementById("admin-galleries-list"))renderAdminGalleryList();
     const st=document.getElementById("admin-stats");if(st&&!st.classList.contains("hidden"))renderStats();
   }catch(e){}
 }
@@ -6955,6 +6956,41 @@ function renderCompletedOrders(){
 
 let _downloadsByGallery={};
 let _galleryDlFilter="all";
+// === Ki rendelt / ki nem rendelt még a galériák közül ===
+let _galleryOrderFilter="all";// "all" | "none" (még nem rendelt) | "ordered"
+function _galleryOrderCounts(){const m={};(orders||[]).forEach(o=>{if(o&&o.galleryId)m[o.galleryId]=(m[o.galleryId]||0)+1});return m}
+function _galleryOrderBadge(g,cnt){
+  if(cnt>0)return '<div class="gallery-dl-badge has-dl gallery-order-badge">🛒 Rendelt'+(cnt>1?' ('+cnt+' rendelés)':'')+'</div>';
+  if(g.isGroup)return '<div class="gallery-dl-badge gallery-order-badge" style="background:var(--cream);color:var(--muted)">🛒 Még nincs rendelés</div>';
+  const seen=g.lastVisitAt?'megnézte: '+new Date(g.lastVisitAt).toLocaleDateString("hu-HU"):'még be sem lépett';
+  return '<div class="gallery-dl-badge no-dl gallery-order-badge">⏳ Még nem rendelt · '+seen+'</div>';
+}
+function setGalleryOrderFilter(f){_galleryOrderFilter=f;renderAdminGalleryList()}
+function _renderGalleryOrderFilterBar(cnts){
+  const bar=document.getElementById("admin-gallery-order-filter");if(!bar)return;
+  let base=galleries;
+  if(_galleryClassFilter&&_galleryClassFilter!=="all")base=base.filter(g=>g.bulkClass===_galleryClassFilter);
+  const nOrd=base.filter(g=>cnts[g.id]>0).length,nNone=base.length-nOrd;
+  const b=(f,t)=>'<button class="gdf-btn'+(_galleryOrderFilter===f?" active":"")+'" id="gof-'+f+'" onclick="setGalleryOrderFilter(\''+f+'\')">'+t+'</button>';
+  let h=b("all","Rendelés: mind")+b("none","⏳ Még nem rendelt ("+nNone+")")+b("ordered","🛒 Rendelt ("+nOrd+")");
+  if(_galleryOrderFilter==="none"&&nNone>0)h+='<button class="gdf-btn" onclick="copyNotOrderedList()">📋 Névsor másolása</button>';
+  bar.innerHTML=h;
+}
+// A még nem rendelők névsora osztályonként, kimásolható formában (pl. az óvónőnek / tanárnak)
+function _notOrderedListText(){
+  const cnts=_galleryOrderCounts();
+  let list=galleries.filter(g=>!g.isGroup&&!(cnts[g.id]>0));
+  if(_galleryClassFilter&&_galleryClassFilter!=="all")list=list.filter(g=>g.bulkClass===_galleryClassFilter);
+  const groups={};
+  list.forEach(g=>{const k=g.bulkClass&&g.bulkClass.trim()?g.bulkClass:"Egyéb galériák";(groups[k]=groups[k]||[]).push(g.child||g.name||g.code||"-")});
+  const keys=Object.keys(groups).sort((a,b)=>a==="Egyéb galériák"?1:b==="Egyéb galériák"?-1:a.localeCompare(b,"hu"));
+  return keys.map(k=>k+" ("+groups[k].length+"):\n"+groups[k].sort((a,b)=>a.localeCompare(b,"hu")).map(n=>"– "+n).join("\n")).join("\n\n");
+}
+async function copyNotOrderedList(){
+  const t=_notOrderedListText();
+  try{if(!navigator.clipboard||!navigator.clipboard.writeText)throw new Error("nincs");await navigator.clipboard.writeText(t);if(typeof showToast==="function")showToast("✓ Névsor kimásolva");else alert("✓ Névsor kimásolva")}
+  catch(e){prompt("Jelöld ki és másold ki:",t)}
+}
 async function loadDownloadsForGalleries(){
   if(!currentUser)return;
   try{
@@ -6979,6 +7015,7 @@ function renderAdminGalleries(){
       +'<input type="text" id="admin-gallery-search" class="admin-search" placeholder="🔍 Keresés név, kód vagy email alapján..." oninput="renderAdminGalleryList()">'
       +'<div id="admin-class-filter" class="gallery-dl-filter"></div>'
       +'<div class="gallery-dl-filter"><button class="gdf-btn active" id="gdf-all" onclick="setGalleryDlFilter(\'all\')">Összes galéria</button><button class="gdf-btn" id="gdf-nodl" onclick="setGalleryDlFilter(\'nodl\')">📭 Még nem töltötték le</button><button class="gdf-btn" id="gdf-dl" onclick="setGalleryDlFilter(\'dl\')">✅ Letöltötték</button></div>'
+      +'<div id="admin-gallery-order-filter" class="gallery-dl-filter"></div>'
       +'<div id="admin-galleries-list"></div>';
   }
   renderClassFilterBar();
@@ -7066,9 +7103,14 @@ function renderAdminGalleryList(){
   else if(_galleryDlFilter==="dl")filtered=filtered.filter(g=>_downloadsByGallery[g.id]);
   // Osztály-szűrő
   if(_galleryClassFilter&&_galleryClassFilter!=="all")filtered=filtered.filter(g=>g.bulkClass===_galleryClassFilter);
+  // Rendelés-szűrő (ki rendelt már / ki nem)
+  const ordCnt=_galleryOrderCounts();
+  _renderGalleryOrderFilterBar(ordCnt);
+  if(_galleryOrderFilter==="none")filtered=filtered.filter(g=>!(ordCnt[g.id]>0));
+  else if(_galleryOrderFilter==="ordered")filtered=filtered.filter(g=>ordCnt[g.id]>0);
   if(galleries.length===0){list.innerHTML='<div class="empty-state"><span class="empty-state-icon">📁</span><div class="empty-state-title">Még nincs galériád</div><div class="empty-state-text">Az <strong>+ Új</strong> fülön hozhatsz létre új galériát a szülők számára.</div></div>';return}
   if(filtered.length===0){
-    let emptyTxt=q?'Próbálj más kifejezést. Te kerested: „'+q+'"':(_galleryDlFilter==="nodl"?'Minden galériából letöltöttek már! 🎉':'Még egyik galériából sem töltöttek le.');
+    let emptyTxt=q?'Próbálj más kifejezést. Te kerested: „'+q+'"':_galleryOrderFilter==="none"?'Mindenki rendelt már! 🎉':_galleryOrderFilter==="ordered"?'Még senki nem rendelt.':(_galleryDlFilter==="nodl"?'Minden galériából letöltöttek már! 🎉':'Még egyik galériából sem töltöttek le.');
     list.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs találat</div><div class="empty-state-text">'+emptyTxt+'</div></div>';return;
   }
   const cardHtml=(g)=>{
@@ -7083,7 +7125,7 @@ function renderAdminGalleryList(){
         dlBadge='<div class="gallery-dl-badge no-dl">📭 Még nem töltötték le</div>';
       }
     }
-    return '<div class="gallery-admin-card" onclick="_galleryReturn=null;openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+(g.parentEmail||"nincs email")+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><button class="gallery-card-link" onclick="event.stopPropagation();openGalleryCard(\''+g.id+'\')">📇 Belépőkártya</button><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div>'+dlBadge+'</div></div></div>';
+    return '<div class="gallery-admin-card" onclick="_galleryReturn=null;openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+(g.parentEmail||"nincs email")+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><button class="gallery-card-link" onclick="event.stopPropagation();openGalleryCard(\''+g.id+'\')">📇 Belépőkártya</button><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div>'+_galleryOrderBadge(g,ordCnt[g.id]||0)+dlBadge+'</div></div></div>';
   };
   // Osztályonkénti csoportosítás, hogy ne keveredjenek — csak keresés nélkül aktív
   if(!q){
@@ -7109,7 +7151,7 @@ function renderAdminGalleryList(){
       }else{
         const safeKey=key.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
         const open=_isClassOpen(key);
-        html+='<div class="gallery-group-heading ggh-toggle'+(open?"":" ggh-closed")+'" title="'+(open?"Kattints a becsukáshoz":"Kattints a kinyitáshoz")+'" onclick="toggleGalleryClass(\''+safeKey+'\')"><span><span class="ggh-arrow">'+(open?"▾":"▸")+'</span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
+        html+='<div class="gallery-group-heading ggh-toggle'+(open?"":" ggh-closed")+'" title="'+(open?"Kattints a becsukáshoz":"Kattints a kinyitáshoz")+'" onclick="toggleGalleryClass(\''+safeKey+'\')"><span><span class="ggh-arrow">'+(open?"▾":"▸")+'</span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+(function(){const all=galleries.filter(x=>x.bulkClass===key&&!x.isGroup);const n=all.filter(x=>ordCnt[x.id]>0).length;return '<span class="ggh-count ggh-ordered" title="Ennyien rendeltek az osztályból">🛒 '+n+'/'+all.length+' rendelt</span>'})()+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
         if(open)html+=items.map(cardHtml).join("");
       }
     });
