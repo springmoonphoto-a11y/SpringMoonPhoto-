@@ -536,6 +536,10 @@ body.dark-mode .order-multi-badge{background:rgba(93,130,230,.2);color:#b9c9f5;b
 .admin-img-overlay .aio-prev{left:18px}
 .admin-img-overlay .aio-next{right:18px}
 .order-item-row span{flex:1}
+.item-done-check{display:flex;align-items:center;flex-shrink:0;cursor:pointer;padding:4px}
+.item-done-check input{width:22px;height:22px;accent-color:#2e8b57;cursor:pointer;margin:0}
+.order-item-row.item-done{background:rgba(46,139,87,.09);border-radius:6px}
+.order-item-row.item-done span:not(.item-price){color:var(--muted)}
 .item-price{color:var(--gold);font-weight:500}
 .bulk-bar{background:var(--brown);color:var(--white);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:8px;z-index:60;box-shadow:var(--shadow-sm)}
 .bulk-select{padding:8px 12px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:.85rem;cursor:pointer;flex:1;min-width:160px}
@@ -4540,6 +4544,45 @@ function _orderFlags(order){
   else if(s==="completed"){f.paid=true}
   return f;
 }
+// === Képenkénti pipa a rendelésben: hogy egy kép se maradjon ki ===
+// A pipák az order.itemDone mezőben vannak, a tétel sorszáma szerint ({"0":true,"3":true}). Csak te látod, a szülő nem.
+function _itemTypeLabel(i){let t;if(i.type==="digital")t="Digitális";else if(i.type==="gift"){t=i.giftLabel||"Ajándéktárgy";if(i.mugText)t+=" - "+i.mugText}else t="Papírkép ("+(i.sizeLabel||"")+")";return t}
+function _itemDone(o,idx){return !!(o&&o.itemDone&&o.itemDone[String(idx)])}
+function _orderItemsMissing(o,types){
+  const out=[];(o.items||[]).forEach((i,idx)=>{if(types&&types.indexOf(i.type==="digital"||i.type==="gift"?i.type:"print")<0)return;if(!_itemDone(o,idx))out.push(i)});
+  return out;
+}
+function _orderItemsDoneBadge(o){
+  const n=(o.items||[]).length;if(!n)return "";
+  const done=(o.items||[]).filter((i,idx)=>_itemDone(o,idx)).length;
+  if(done===n)return '<div class="order-card-meta item-done-badge" style="font-weight:600;color:#2e8b57">☑️ Minden kép kipipálva ('+done+'/'+n+')</div>';
+  // régi, már szerkesztettnek jelölt rendelésnél, ahol még nem használtad a képenkénti pipát, nem zavarunk jelvénnyel
+  if(done===0&&_orderFlags(o).edited)return "";
+  return '<div class="order-card-meta item-done-badge" style="font-weight:700;color:#d9822b">☐ Kipipált képek: '+done+'/'+n+' – még '+(n-done)+' hiányzik</div>';
+}
+function _orderItemsHtml(o){
+  const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));
+  return (o.items||[]).map((i,idx)=>{
+    const done=_itemDone(o,idx);
+    return '<div class="order-item-row'+(done?" item-done":"")+'"><label class="item-done-check" title="Kész – saját jelölés, a szülő nem látja" onclick="event.stopPropagation()"><input type="checkbox"'+(done?" checked":"")+' onchange="toggleItemDone(\''+o.id+'\','+idx+',this.checked)"></label><img src="'+lowQ(i.photoUrl)+'" alt="" loading="lazy" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+_itemTypeLabel(i)+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>';
+  }).join("");
+}
+async function toggleItemDone(orderId,idx,checked){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  const key=String(idx);
+  try{
+    // csak ezt az egy pipát írjuk, így a telefonon és gépen közben tett pipák nem írják felül egymást
+    await db.collection("orders").doc(orderId).update({["itemDone."+key]:checked});
+    o.itemDone=Object.assign({},o.itemDone||{},{[key]:checked});
+    renderAdminOrders();renderCompletedOrders();
+  }catch(e){alert("Hiba történt a mentés során!");renderAdminOrders();renderCompletedOrders()}
+}
+// Figyelmeztetés, ha egy pipát úgy jelölsz be, hogy még van kipipálatlan kép
+function _confirmItemsMissing(o,types,what){
+  const miss=_orderItemsMissing(o,types);if(!miss.length)return true;
+  const list=miss.slice(0,15).map(i=>"• "+i.photoName+" – "+_itemTypeLabel(i)+" × "+i.qty).join("\n")+(miss.length>15?"\n… és még "+(miss.length-15):"");
+  return confirm("Még "+miss.length+" kép nincs kipipálva ebben a rendelésben:\n\n"+list+"\n\nBiztosan bejelölöd: "+what+"?");
+}
 function renderStatusChecks(order){
   const type=getOrderType(order);
   const f=_orderFlags(order);
@@ -4560,6 +4603,10 @@ function renderStatusChecks(order){
 
 async function toggleStatusFlag(orderId,flag,checked){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
+  if(checked){
+    const g={edited:[null,"✏️ Szerkesztve"],digital:[["digital"],"📧 Elküldve"],delivered:[["print"],"🖨️ Papírkép megrendelve"],gift:[["gift"],"🎁 Ajándék megrendelve"]}[flag];
+    if(g&&!_confirmItemsMissing(o,g[0],g[1])){renderAdminOrders();renderCompletedOrders();return}
+  }
   const hasFlags=!!(o.statusFlags&&typeof o.statusFlags==="object");
   const flags=Object.assign({paid:false,digital:false,delivered:false},_orderFlags(o));
   flags[flag]=checked;
@@ -4586,6 +4633,8 @@ async function toggleStatusFlag(orderId,flag,checked){
 async function toggleCompleted(orderId,checked){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
   if(checked){
+    const miss=_orderItemsMissing(o,null);
+    if(miss.length&&!_confirmItemsMissing(o,null,"⭐ Teljesítve")){renderAdminOrders();renderCompletedOrders();return}
     const pend=_orderPending(o);
     if(pend.length&&!confirm("Ennél a rendelésnél még nincs minden elintézve: "+pend.map(x=>x.label).join(", ")+".\n\nBiztosan lezárod (Teljesítve)?")){renderAdminOrders();renderCompletedOrders();return}
   }
@@ -6959,8 +7008,8 @@ function renderAdminOrders(){
   if(activeOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs ilyen rendelés</div><div class="empty-state-text">A beállított szűrőknek egy rendelés sem felel meg.</div><button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="setOrderFilter(\'all\')">Szűrők törlése</button></div>';_syncOrderSelection();return}
   const countLine=childList?_orderChildBanner(childList):(q||filterOn)?'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">'+activeOrders.length+' találat ('+totalBase+' '+(showCompleted?"teljesített":"aktív")+' rendelésből) · összesen <strong>'+fmt(activeOrders.reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0))+'</strong></div>':"";
   div.innerHTML=countLine+activeOrders.map(o=>{
-    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+lowQ(i.photoUrl)+'" alt="" loading="lazy" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderMultiBadge(o)+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
+    const itemsHtml=_orderItemsHtml(o);
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderMultiBadge(o)+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+_orderItemsDoneBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
   }).join("");
   _syncOrderSelection();
 }
@@ -6971,8 +7020,8 @@ function renderCompletedOrders(){
   const completedOrders=orders.filter(o=>o.status==="completed");
   if(completedOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">✅</span><div class="empty-state-title">Még nincs teljesített rendelés</div><div class="empty-state-text">Az "Aktív" fülön lévő rendeléseket "Teljesítve" státuszra állítva itt jelennek majd meg.</div></div>';return}
   div.innerHTML=completedOrders.map(o=>{
-    const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));const itemsHtml=(o.items||[]).map(i=>{let typeLabel;if(i.type==="digital")typeLabel="Digitális";else if(i.type==="gift"){typeLabel=i.giftLabel||"Ajándéktárgy";if(i.mugText)typeLabel+=" - "+i.mugText}else typeLabel="Papírkép ("+i.sizeLabel+")";return '<div class="order-item-row"><img src="'+lowQ(i.photoUrl)+'" alt="" loading="lazy" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+typeLabel+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>'}).join("");
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderMultiBadge(o)+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
+    const itemsHtml=_orderItemsHtml(o);
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderMultiBadge(o)+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+_orderItemsDoneBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
   }).join("");
 }
 
