@@ -6683,8 +6683,19 @@ function renderPriceCorrSummary(){
 
 // === RENDELÉS-SZŰRŐK az Aktív fülön (Fizetve / Átadva / Teljesítve) ===
 // A fizetés és az átadás szűrő kombinálható (pl. Fizetve + Nincs átadva = kinek kell még odaadni a képet).
-let _orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false};
-function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.pending!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi}
+let _orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null};
+// Osztály szerinti szűrés az Aktív fülön: a rendelés galériájának osztálya (csoportos galériánál a galéria neve)
+function _orderClassKey(o){
+  const g=o&&o.galleryId?galleries.find(x=>x.id===o.galleryId):null;
+  if(!g)return {key:"__none__",label:"📁 Egyéb"};
+  const cls=g.bulkClass&&g.bulkClass.trim()?g.bulkClass.trim():"";
+  if(cls)return {key:"c:"+cls,label:"🎓 "+cls};
+  if(g.isGroup)return {key:"g:"+g.id,label:"👥 "+(g.name||g.child||"Csoportos galéria")};
+  return {key:"__none__",label:"📁 Egyéb"};
+}
+let _orderClassOpts=[];
+function setOrderClassFilter(i){const opt=_orderClassOpts[i];if(!opt)return;setOrderFilter("cls",opt.key)}
+function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.pending!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi||_orderFilter.cls!==null}
 // Milyen terméktípusok vannak egy rendelésben (darabszámmal)
 function _orderTypeCounts(o){
   const c={print:0,digital:0,gift:0};
@@ -6731,6 +6742,7 @@ function _orderTypeBadges(o){
 }
 function _orderPassesFilter(o){
   const f=_orderFlags(o);
+  if(_orderFilter.cls!==null&&_orderClassKey(o).key!==_orderFilter.cls)return false;
   if(_orderFilter.paid!==null&&!!f.paid!==_orderFilter.paid)return false;
   if(_orderFilter.edited!==null&&!!f.edited!==_orderFilter.edited)return false;
   // Terméktípus: a rendelésben legyen benne MINDEN bejelölt típus (más is lehet mellette)
@@ -6752,7 +6764,7 @@ function _orderPassesFilter(o){
 }
 function setOrderFilter(key,val){
   _orderChildView=null;
-  if(key==="all")_orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false};
+  if(key==="all")_orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null};
   else if(key==="completed")_orderFilter.completed=!_orderFilter.completed;
   else if(key==="type"){if(_orderFilter.types[val]!==undefined)_orderFilter.types[val]=!_orderFilter.types[val]}
   else if(key==="multi")_orderFilter.multi=!_orderFilter.multi;
@@ -6786,6 +6798,16 @@ function renderOrderFilterBar(sActive,sCompleted){
   h+=chip("🎁 Ajándéktárgy",cnt(o=>_orderTypeCounts(o).gift>0),ft.gift,"setOrderFilter(\'type\',\'gift\')");
   h+=chip("🔀 Többféle",cnt(o=>_orderTypeKinds(o)>=2),_orderFilter.multi,"setOrderFilter(\'multi\')");
   h+='</div>';
+  // Osztály szerinti szűrő (egyszerre egy osztály; újra rákattintva kikapcsol)
+  const cm={};
+  sActive.concat(sCompleted).forEach(o=>{const k=_orderClassKey(o);if(!cm[k.key])cm[k.key]={key:k.key,label:k.label,n:0}});
+  base.forEach(o=>{cm[_orderClassKey(o).key].n++});
+  _orderClassOpts=Object.values(cm).sort((a,b)=>{const r=x=>x.key==="__none__"?2:x.key.startsWith("g:")?1:0;return r(a)-r(b)||a.label.localeCompare(b.label,"hu")});
+  if(_orderClassOpts.length>1||_orderFilter.cls!==null){
+    h+='<div class="photo-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center"><span style="font-size:.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Osztály:</span>';
+    h+=_orderClassOpts.map((c,i)=>chip(_pcEsc(c.label),c.n,_orderFilter.cls===c.key,"setOrderClassFilter("+i+")")).join("");
+    h+='</div>';
+  }
   // Sorrend
   const so=_getOrderSort();
   h+='<div class="photo-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center"><span style="font-size:.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Sorrend:</span>';
