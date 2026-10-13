@@ -6115,7 +6115,8 @@ function notifyDownloadReady(){
   body+="Örömmel értesítelek, hogy az elkészült, megszerkesztett képek elérhetők és letölthetők az online galériában.\n\n";
   body+="Belépés:\n1. Nyisd meg: "+url+"\n2. Add meg a kódot: "+code+"\n\n";
   body+="Belépés után a „📥 Letölthető\" fülön találod a megrendelt képeidet, amelyeket vízjel nélkül, eredeti minőségben letölthetsz – egyesével vagy egyben is.\n\n";
-  body+="💡 Ha a megrendelteken felül további képeket is szeretnél, kedvezményes áron, 1.500 Ft/db áron tudod megvásárolni őket. Ha ezt szeretnéd, válaszd ki, mely képeket kérnéd, és utald át a kiválasztott képek összegét az alábbi számlaszámra, a névre és a galéria kódjára hivatkozva:\n\n";
+  let _xp=DIGITAL_PRICE;try{_xp=_savedPricesFor(g.priceListId).digitalPrice}catch(e){}
+  body+="💡 Ha a megrendelteken felül további képeket is szeretnél, "+fmt(_xp)+"/db áron tudod megvásárolni őket. Ha ezt szeretnéd, válaszd ki, mely képeket kérnéd, és utald át a kiválasztott képek összegét az alábbi számlaszámra, a névre és a galéria kódjára hivatkozva:\n\n";
   body+="Kedvezményezett neve: Bukta Anita\n";
   body+="Számlaszám: 11773391-00491127-00000000\n";
   body+="Közlemény: "+(childName||"a galéria neve")+"\n\n";
