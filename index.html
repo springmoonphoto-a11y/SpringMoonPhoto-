@@ -6310,10 +6310,10 @@ function showContactModal(){
     html+='<div class="contact-modal-field"><div class="contact-modal-label">Tárgy <span style="font-weight:400;color:var(--muted)">(szerkeszthető)</span></div><input id="contact-modal-subject" type="text" value="'+d.subject.replace(/"/g,"&quot;")+'" style="width:100%;padding:10px 12px;border:1.5px solid var(--warm);border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.92rem;background:var(--white);color:var(--text)"></div>';
     html+='<div class="contact-modal-field"><div class="contact-modal-label">Üzenet <span style="font-weight:400;color:var(--muted)">(szerkeszthető)</span></div><textarea id="contact-modal-body" rows="12" style="width:100%;padding:10px 12px;border:1.5px solid var(--warm);border-radius:8px;font-family:\'DM Sans\',sans-serif;font-size:.9rem;line-height:1.5;background:var(--white);color:var(--text);resize:vertical">'+d.body+'</textarea></div>';
     html+='<div class="contact-modal-actions">';
-    html+='<button class="primary" onclick="openInGmail()">📧 Megnyitás Gmail-ben (új fülön)</button>';
+    html+='<button class="primary" onclick="openInGmail()">📧 Megnyitás Gmail-ben (springmoonphoto@gmail.com)</button>';
     html+='<button onclick="openInDefaultMail()">✉️ Megnyitás email klienssel</button>';
     html+='<button onclick="copyEmailContent()">📋 Teljes szöveg másolása vágólapra</button>';
-    html+='</div>';
+    html+='</div><div style="font-size:.74rem;color:var(--muted);line-height:1.5;margin-top:10px">A Gmail gomb a springmoonphoto@gmail.com fiókot nyitja meg, ha ebben a böngészőben be vagy jelentkezve vele. Ha mégis a magán fiókod nyílik meg, jelentkezz be a Gmailben a springmoonphoto fiókba is (jobb felső sarok, profilkép → Másik fiók hozzáadása). Az „email klienssel” gomb mindig a gépen / telefonon beállított alap fiókot használja.</div>';
   }else if(d.type==="sms"){
     html+='<h3>💬 SMS üzenet — '+d.name+'</h3>';
     html+='<div class="contact-modal-field"><div class="contact-modal-label">Telefonszám</div><div class="contact-modal-value">'+d.to+'</div></div>';
@@ -6349,7 +6349,7 @@ function openInGmail(){
   // A springmoonphoto@gmail.com fiókot kérjük konkrétan, hogy ne a böngészőben épp
   // aktív (esetleg másik) Google-fiókból nyisson meg levelet
   const myEmail="springmoonphoto@gmail.com";
-  const url="https://mail.google.com/mail/u/"+encodeURIComponent(myEmail)+"/?view=cm&fs=1&to="+encodeURIComponent(d.to)+"&su="+encodeURIComponent(d.subject)+"&body="+encodeURIComponent(d.body);
+  const url="https://mail.google.com/mail/u/"+encodeURIComponent(myEmail)+"/?authuser="+encodeURIComponent(myEmail)+"&view=cm&fs=1&to="+encodeURIComponent(d.to)+"&su="+encodeURIComponent(d.subject)+"&body="+encodeURIComponent(d.body);
   window.open(url,"_blank","noopener");
   closeContactModal();
 }
