@@ -737,7 +737,7 @@ body.dark-mode .tc-wheel{box-shadow:0 2px 12px rgba(0,0,0,.5)}
 .tl-step:first-child::before{display:none}
 .tl-step.done{color:var(--brown);font-weight:500}
 .tl-step.done::before{background:var(--gold)}
-.tl-dot{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--cream);border:2px solid var(--warm);font-size:.95rem;position:relative;z-index:1;margin-bottom:5px;line-height:1}
+.tl-dot{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--cream);border:2px solid var(--warm);font-size:.95rem;position:relative;z-index:1;margin:0 auto 5px;line-height:1}
 .tl-step.done .tl-dot{background:linear-gradient(135deg,var(--gold),#d4a028);border-color:var(--gold);color:#fff}
 .tl-step.current .tl-dot{animation:tlPulse 1.8s ease-in-out infinite}
 @keyframes tlPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.45)}50%{box-shadow:0 0 0 8px rgba(201,168,76,0)}}
@@ -4622,8 +4622,10 @@ async function showMyOrders(){
       // Idővonal
       const st=o.status||"pending";
       const s1done=true;
-      const s2done=st!=="pending";
-      const s3done=["digital","delivered","completed"].includes(st);
+      // A státusz-pipák alapján (Fizetve, Elküldve, Papírkép megrendelve, Teljesítve)
+      const _f=_orderFlags(o);
+      const s3done=st==="completed"||(_orderTypeCounts(o).print+_orderTypeCounts(o).digital+_orderTypeCounts(o).gift>0?_orderPending(o).length===0:["digital","delivered"].includes(st));
+      const s2done=s3done||st!=="pending"||!!_f.paid||!!_f.digital||!!_f.delivered||!!_f.gift;
       const cur=s3done?-1:(s2done?2:1);
       const tl='<div class="order-timeline"><div class="tl-step done'+(cur===1?" current":"")+'"><div class="tl-dot">📥</div>Beérkezett</div><div class="tl-step'+(s2done?" done":"")+(cur===2?" current":"")+'"><div class="tl-dot">🖼️</div>Készül</div><div class="tl-step'+(s3done?" done":"")+'"><div class="tl-dot">✅</div>Elkészült</div></div>';
       // Ha még nem fizetett, a fizetési adatokat is megmutatjuk itt — hogy később is
