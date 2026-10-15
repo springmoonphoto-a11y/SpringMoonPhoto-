@@ -545,6 +545,7 @@ body.dark-mode .order-multi-badge{background:rgba(93,130,230,.2);color:#b9c9f5;b
 .admin-img-overlay .aio-prev{left:18px}
 .admin-img-overlay .aio-next{right:18px}
 .order-item-row span{flex:1}
+.order-items-hidden{font-size:.76rem;color:var(--muted);font-style:italic;padding:6px 2px 0}
 .item-done-check{display:flex;align-items:center;flex-shrink:0;cursor:pointer;padding:4px}
 .item-done-check input{width:22px;height:22px;accent-color:#2e8b57;cursor:pointer;margin:0}
 .order-item-row.item-done{background:rgba(46,139,87,.09);border-radius:6px}
@@ -4704,10 +4705,15 @@ function _orderItemsDoneBadge(o){
 }
 function _orderItemsHtml(o){
   const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));
-  return (o.items||[]).map((i,idx)=>{
+  // Ha képméretre szűrsz, csak az adott méretű tételek látszanak (a többi el van rejtve, a sorszámok/pipák nem változnak)
+  const _sz=(typeof _orderFilter!=="undefined"&&_orderFilter.size)||null;
+  let hidden=0;
+  const rows=(o.items||[]).map((i,idx)=>{
+    if(_sz&&_itemSizeKey(i)!==_sz){hidden++;return ""}
     const done=_itemDone(o,idx);
     return '<div class="order-item-row'+(done?" item-done":"")+'"><label class="item-done-check" title="Kész – saját jelölés, a szülő nem látja" onclick="event.stopPropagation()"><input type="checkbox"'+(done?" checked":"")+' onchange="toggleItemDone(\''+o.id+'\','+idx+',this.checked)"></label><img src="'+lowQ(i.photoUrl)+'" alt="" loading="lazy" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+_itemTypeLabel(i)+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>';
   }).join("");
+  return rows+(hidden?'<div class="order-items-hidden">+ '+hidden+' további tétel (más méret vagy termék) elrejtve – a „📐 '+_pcEsc(_sz)+'” szűrő miatt</div>':'');
 }
 async function toggleItemDone(orderId,idx,checked){
   const o=orders.find(x=>x.id===orderId);if(!o)return;
