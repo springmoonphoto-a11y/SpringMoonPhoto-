@@ -377,6 +377,12 @@ body.dark-mode .public-day-description{background:rgba(255,255,255,.05);color:#e
 .booking-card-meta{font-size:.74rem;color:var(--muted);margin-top:2px}
 .booking-status-pending{background:#fff3cd;color:#7d5e00;padding:3px 9px;border-radius:99px;font-size:.7rem;font-weight:600}
 .booking-status-confirmed{background:#d4f0c0;color:#2a5a2a;padding:3px 9px;border-radius:99px;font-size:.7rem;font-weight:600}
+.cancel-bk-card{max-width:520px;margin:30px auto;background:var(--white);border:1.5px solid var(--warm);border-radius:16px;padding:22px;box-sizing:border-box}
+.cancel-bk-card h2{font-size:1.3rem;margin-bottom:12px}
+.cancel-bk-card p{color:var(--muted);line-height:1.55;margin:12px 0}
+.cancel-bk-info{background:var(--cream);border-radius:10px;padding:12px 14px;line-height:1.8}
+.cancel-bk-contact{margin-top:16px;padding-top:12px;border-top:1px solid var(--warm);line-height:1.8}
+.cancel-bk-contact a{color:var(--gold)}
 .booking-status-cancelled{background:#e8d8d8;color:#7a4040;padding:3px 9px;border-radius:99px;font-size:.7rem;font-weight:600}
 .booking-mini-actions{display:flex;flex-direction:column;gap:4px}
 .booking-contact-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
@@ -1157,6 +1163,13 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div id="booking-form-wrap" class="hidden"></div>
     <div id="booking-confirmation-wrap" class="hidden"></div>
   </div>
+</div>
+<div id="page-cancel-booking" class="hidden">
+  <div class="header">
+    <div class="header-logo">SpringMoon<span>Gallery</span></div>
+    <div class="header-right"><button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="font-size:1.1rem">🌗</button></div>
+  </div>
+  <div class="wrap"><div id="cancel-booking-content" class="cancel-bk-card"><div style="text-align:center;padding:30px;color:var(--muted)">⏳ Betöltés…</div></div></div>
 </div>
 <div id="page-inquiry" class="hidden">
   <div class="header">
@@ -2669,7 +2682,7 @@ function _privacyPolicyHTML(){
 }
 let _historyInitialized=false,_isPopstateNav=false;
 function showPage(id){
-  ["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail","page-booking","page-inquiry","page-privacy"].forEach(p=>hide(p));
+  ["page-loading","page-login","page-gallery","page-cart","page-admin","page-gallery-detail","page-booking","page-inquiry","page-privacy","page-cancel-booking"].forEach(p=>hide(p));
   const el=document.getElementById(id);el.classList.remove("hidden");void el.offsetWidth;window.scrollTo({top:0,behavior:"smooth"});
   // A böngésző/telefon "vissza" gombja appon belül lépjen vissza, ne az egész alkalmazásból léptessen ki
   if(!_isPopstateNav){
@@ -2712,7 +2725,10 @@ async function loadData(isInitialLoad){
   orders=[];
   // Megvárjuk, hogy a Firebase eldöntse: van-e érvényes, korábban bejelentkezett admin-munkamenet
   await _authReadyPromise;
-  if(currentUser){
+  if(isInitialLoad&&_cancelLinkParams()){
+    // Foglalás lemondása a visszaigazolásban kapott linkkel (a szülő oldala)
+    try{await openCancelBookingPage()}catch(e){showPage("page-login");prefillSavedLogins()}
+  }else if(currentUser){
     // Van érvényes admin-bejelentkezés — automatikusan visszaléptetjük az admin felületre,
     // ideális esetben pontosan oda, ahol frissítés előtt tartott
     try{
@@ -5294,6 +5310,80 @@ function _dayBreak(day){
 // Egy nap saját linkje: https://.../?nap=2026-10-16 — aki ezen jön, CSAK azt a napot látja (más intézmény napját nem tudja véletlenül lefoglalni).
 // A napnál beállítható az is, hogy a közös naptárban (link nélkül) egyáltalán ne látsszon ("csak linkkel foglalható").
 let _publicOnlyDates=null;
+// === FOGLALÁS VISSZAIGAZOLÁSA + LEMONDÁS A SZÜLŐ ÁLTAL (legkésőbb 24 órával előtte) ===
+const BOOKING_CANCEL_HOURS=24;
+function _newCancelToken(){
+  try{const a=new Uint8Array(12);crypto.getRandomValues(a);return Array.from(a,x=>x.toString(16).padStart(2,"0")).join("")}
+  catch(e){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+}
+function _cancelLinkParams(){
+  try{const q=new URLSearchParams(window.location.search);const id=q.get("lemondas"),k=q.get("k");return id&&k?{id,k}:null}catch(e){return null}
+}
+function bookingCancelLink(b){return b&&b.id&&b.cancelToken?"https://"+GALLERY_SITE+"/?lemondas="+encodeURIComponent(b.id)+"&k="+encodeURIComponent(b.cancelToken):""}
+function _bookingStartMs(b){const p=(b.date||"").split("-").map(Number);const m=_hmToMin(b.time);if(p.length!==3||m===null)return NaN;return new Date(p[0],p[1]-1,p[2],Math.floor(m/60),m%60).getTime()}
+function _bookingTimeText(b){const st=_hmToMin(b.time);return st!==null&&Number(b.duration)>0?b.time+"–"+_minToHm(st+Number(b.duration)):(b.time||"")}
+// A visszaigazoló üzenet szövege (email vagy SMS), benne a lemondási linkkel
+function _bookingConfirmText(b,kind){
+  const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
+  const phone=(window.MY_PROFILE&&window.MY_PROFILE.phone)||"";
+  const link=bookingCancelLink(b);
+  if(kind==="sms"){
+    let t="Kedves "+(b.name||"")+"! Visszaigazolom a fotózás időpontját: "+formatBookingDate(b.date)+" "+_bookingTimeText(b)+".";
+    if(link)t+=" Ha mégsem jó, legkésőbb "+BOOKING_CANCEL_HOURS+" órával előtte itt lemondhatod: "+link;
+    return t+" - "+brand;
+  }
+  let t="Kedves "+(b.name||"")+"!\n\nKöszönöm a foglalást, visszaigazolom az időpontot:\n\n";
+  t+="📅 Dátum: "+formatBookingDate(b.date)+"\n🕐 Időpont: "+_bookingTimeText(b)+"\n"+(b.type?"📸 Típus: "+b.type+"\n":"");
+  t+="\nVárlak szeretettel a megadott időpontban!\n\n";
+  if(link)t+="Ha mégsem jó az időpont, legkésőbb "+BOOKING_CANCEL_HOURS+" órával előtte itt tudod lemondani:\n"+link+"\n\n";
+  if(phone)t+="Ha ennél később jön közbe valami, kérlek hívj: "+phone+"\n\n";
+  return t+"Üdvözlettel,\n"+brand;
+}
+// OK gomb: megerősítés, majd rögtön megnyílik a kitöltött visszaigazoló email (vagy SMS, ha nincs email)
+async function confirmBooking(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const token=b.cancelToken||_newCancelToken();
+  try{
+    await db.collection("bookings").doc(id).update({status:"confirmed",cancelToken:token,confirmedAt:Date.now()});
+    b.status="confirmed";b.cancelToken=token;
+    await syncPublicTakenSlots();
+    renderCalendar(true);
+  }catch(e){alert("Hiba: "+e.message);return}
+  if(b.email)emailBooking(id);
+  else if(b.phone)smsBooking(id);
+  else if(typeof showToast==="function")showToast("✓ Megerősítve (nincs megadva email vagy telefonszám, így üzenet nem ment)");
+}
+async function openCancelBookingPage(){
+  const prm=_cancelLinkParams();showPage("page-cancel-booking");
+  const box=document.getElementById("cancel-booking-content");
+  const say=h=>{box.innerHTML=h};
+  let b=null;
+  try{const d=await db.collection("bookings").doc(prm.id).get();if(d&&d.exists)b={id:d.id,...d.data()}}catch(e){}
+  let ph={};
+  try{if(b&&b.photographerId){const pd=await db.collection("photographers").doc(b.photographerId).get();if(pd&&pd.exists)ph=pd.data()||{}}}catch(e){}
+  const contact=(ph.phone?'📞 <a href="tel:'+_pcEsc(ph.phone)+'">'+_pcEsc(ph.phone)+'</a>':"")+(ph.contactEmail?(ph.phone?"<br>":"")+'✉️ <a href="mailto:'+_pcEsc(ph.contactEmail)+'">'+_pcEsc(ph.contactEmail)+'</a>':"");
+  const contactBox=contact?'<div class="cancel-bk-contact">'+contact+'</div>':"";
+  if(!b||!b.cancelToken||b.cancelToken!==prm.k){say('<h2>⚠️ A link nem érvényes</h2><p>Ezt a foglalást nem találom, vagy a link hibás. Kérlek, vedd fel a kapcsolatot a fotóssal.</p>'+contactBox);return}
+  const info='<div class="cancel-bk-info"><div>📅 <strong>'+_pcEsc(formatBookingDate(b.date))+'</strong></div><div>🕐 '+_pcEsc(_bookingTimeText(b))+'</div><div>👤 '+_pcEsc(b.name||"")+'</div></div>';
+  if(b.status==="cancelled"){say('<h2>Ez az időpont már le van mondva</h2>'+info+'<p>Ha új időpontot szeretnél, keresd a fotóst.</p>'+contactBox);return}
+  const start=_bookingStartMs(b);
+  if(!isNaN(start)&&Date.now()>start-BOOKING_CANCEL_HOURS*3600e3){
+    say('<h2>Online már nem mondható le</h2>'+info+'<p>Az időpontot legkésőbb '+BOOKING_CANCEL_HOURS+' órával előtte lehet itt lemondani. Ha mégsem tudsz jönni, kérlek, jelezd közvetlenül a fotósnak:</p>'+contactBox);return;
+  }
+  say('<h2>Időpont lemondása</h2>'+info+'<p>Biztosan lemondod ezt az időpontot? Utána felszabadul, és más foglalhatja le.</p><div id="cancel-bk-err"></div><button class="btn btn-danger" id="cancel-bk-btn" style="width:100%" onclick="doCancelBooking()">Igen, lemondom az időpontot</button>'+contactBox);
+  window._cancelBk=b;
+}
+async function doCancelBooking(){
+  const b=window._cancelBk;if(!b)return;
+  const btn=document.getElementById("cancel-bk-btn");if(btn){btn.disabled=true;btn.textContent="Lemondás…"}
+  try{
+    await db.collection("bookings").doc(b.id).update({status:"cancelled",cancelledBy:"parent",cancelledAt:Date.now()});
+    document.getElementById("cancel-booking-content").innerHTML='<h2>✓ Az időpontot lemondtad</h2><div class="cancel-bk-info"><div>📅 '+_pcEsc(formatBookingDate(b.date))+'</div><div>🕐 '+_pcEsc(_bookingTimeText(b))+'</div></div><p>Köszönöm, hogy jelezted! Ha új időpontot szeretnél, keresd a fotóst.</p>';
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent="Igen, lemondom az időpontot"}
+    const er=document.getElementById("cancel-bk-err");if(er)er.innerHTML='<div class="error-msg">Most nem sikerült online lemondani. Kérlek, jelezd közvetlenül a fotósnak (lent az elérhetőség).</div>';
+  }
+}
 function _parseBookingLink(){
   try{
     const raw=new URLSearchParams(window.location.search).get("nap");
@@ -5681,7 +5771,7 @@ async function saveAdminBooking(){
   if(warn&&!confirm(warn+"\n\nMégis felveszed?"))return;
   const btn=document.getElementById("abk-save");if(btn){btn.disabled=true;btn.textContent="Mentés..."}
   try{
-    const data={photographerId:currentUser.uid,date:_selectedBookingDate,time,duration:len,name,email,phone,notes,status:"confirmed",addedByAdmin:true,createdAt:Date.now()};
+    const data={photographerId:currentUser.uid,date:_selectedBookingDate,time,duration:len,name,email,phone,notes,status:"confirmed",addedByAdmin:true,cancelToken:_newCancelToken(),createdAt:Date.now()};
     if(_adminBkType){data.type=_adminBkType;data.photoType=_adminBkType}
     await db.collection("bookings").add(data);
     await loadBookings();
@@ -5753,7 +5843,7 @@ function renderAdminDayDetail(){
     html+='<div style="margin-top:18px"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px"><div style="font-weight:500;color:var(--brown)">📋 Foglalások ('+dayBookings.length+'):</div>'+(dayBookings.some(b=>b.status!=="cancelled")?'<button class="btn btn-outline btn-sm" style="width:auto" onclick="downloadDayBookingsPdf()">📄 Lista PDF-ben (nyomtatáshoz)</button>':'')+'</div>';
     dayBookings.sort((a,b)=>a.time.localeCompare(b.time)).forEach(b=>{
       const statusClass=b.status==="confirmed"?"confirmed":(b.status==="cancelled"?"cancelled":"pending");
-      const statusLabel=b.status==="confirmed"?"Megerősítve":(b.status==="cancelled"?"Lemondva":"Új");
+      const statusLabel=b.status==="confirmed"?"Megerősítve":(b.status==="cancelled"?(b.cancelledBy==="parent"?"Lemondta a szülő"+(b.cancelledAt?" ("+new Date(b.cancelledAt).toLocaleDateString("hu-HU",{month:"short",day:"numeric"})+")":""):"Lemondva"):"Új");
       let metaParts=[];
       if(b.phone)metaParts.push('<a href="tel:'+b.phone+'" class="booking-link-inline">📞 '+b.phone+'</a>');
       if(b.email)metaParts.push('<a href="mailto:'+b.email+'" class="booking-link-inline">✉️ '+b.email+'</a>');
@@ -5766,8 +5856,7 @@ function renderAdminDayDetail(){
       if(b.phone)html+='<button onclick="callBooking(\''+b.id+'\')">📞 Hívás</button>';
       html+='</div></div>';
       html+='<div class="booking-mini-actions">';
-      if(b.status!=="confirmed")html+='<button class="b-confirm" onclick="setBookingStatus(\''+b.id+'\',\'confirmed\')">✓ OK</button>';
-      if(b.status!=="cancelled")html+='<button class="b-cancel" onclick="setBookingStatus(\''+b.id+'\',\'cancelled\')">✕ Lemond</button>';
+      if(b.status!=="confirmed"&&b.status!=="cancelled")html+='<button class="b-confirm" title="Megerősítés, és megnyílik a visszaigazoló email / SMS" onclick="confirmBooking(\''+b.id+'\')">✓ OK + értesítés</button>';
       html+='<button onclick="deleteBooking(\''+b.id+'\')" style="color:#666;border-color:#ccc">🗑️</button>';
       html+='</div></div>';
     });
@@ -6192,8 +6281,8 @@ function emailBooking(id){
   const b=bookings.find(x=>x.id===id);if(!b||!b.email)return;
   const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
   const dateStr=formatBookingDate(b.date);
-  const subject="Foglalás visszaigazolása · "+b.date+" "+b.time;
-  const body="Kedves "+(b.name||"")+"!\n\nKöszönöm az időpontfoglalását.\n\nDátum: "+dateStr+"\nIdőpont: "+b.time+"\n"+(b.type?"Típus: "+b.type+"\n":"")+"\nVisszaigazolom a foglalását, várom Önt a megjelölt időpontban. Amennyiben bármi változás történne, jelezze felém!\n\nÜdvözlettel,\n"+brand;
+  const subject="Fotózás időpontja visszaigazolva · "+dateStr+" "+b.time;
+  const body=_bookingConfirmText(b,"email");
   _activeContactData={type:"email",to:b.email,subject,body,name:b.name||""};
   showContactModal();
 }
@@ -6201,7 +6290,7 @@ function emailBooking(id){
 function smsBooking(id){
   const b=bookings.find(x=>x.id===id);if(!b||!b.phone)return;
   const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
-  const body="Kedves "+(b.name||"")+"! Visszaigazolom a foglalását: "+b.date+" "+b.time+"-ra. - "+brand;
+  const body=_bookingConfirmText(b,"sms");
   _activeContactData={type:"sms",to:b.phone,body,name:b.name||""};
   showContactModal();
 }
@@ -6584,7 +6673,7 @@ async function submitBooking(){
       setTimeout(()=>{cancelBookingForm();renderCalendar(false);renderPublicDayDetail()},1800);
       return;
     }
-    const data={photographerId:_publicPhotographerId,date:_selectedBookingDate,time:_pendingBookingTime,duration:_sLen,name,email,phone,type:_pendingPhotoType,photoType:_pendingPhotoType,notes,status:"pending",createdAt:Date.now()};
+    const data={photographerId:_publicPhotographerId,date:_selectedBookingDate,time:_pendingBookingTime,duration:_sLen,name,email,phone,type:_pendingPhotoType,photoType:_pendingPhotoType,notes,status:"pending",cancelToken:_newCancelToken(),createdAt:Date.now()};
     await db.collection("bookings").add(data);
     // Cache frissítés a publikus oldalon
     window._publicBookings=window._publicBookings||[];window._publicBookings.push(data);
