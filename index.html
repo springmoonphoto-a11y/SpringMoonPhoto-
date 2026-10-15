@@ -3051,12 +3051,40 @@ async function loadPhotographerData(){
     const os=await db.collection("orders").where("photographerId","==",currentUser.uid).get();
     orders=os.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   }catch(e){galleries=[];orders=[]}
-  _watchOrders();
+  _watchOrders();_watchBookings();
 }
 
 // === ÉLŐ SZINKRON: amit egy másik eszközön (pl. telefonon) állítasz be egy rendelésen, itt is azonnal megjelenik ===
 let _ordersUnsub=null,_ordersWatchUid=null;
 function _stopOrdersWatch(){if(_ordersUnsub){try{_ordersUnsub()}catch(e){}}_ordersUnsub=null;_ordersWatchUid=null}
+// Foglalások élő figyelése: ha egy szülő a linkkel lemondja (vagy új foglalás jön), a naptárban azonnal látszik
+let _bookingsUnsub=null,_bookingsWatchUid=null,_bkSyncTimer=null,_bkLastSig=null;
+function _stopBookingsWatch(){if(_bookingsUnsub){try{_bookingsUnsub()}catch(e){}}_bookingsUnsub=null;_bookingsWatchUid=null}
+function _watchBookings(){
+  if(!currentUser)return;
+  if(_bookingsUnsub&&_bookingsWatchUid===currentUser.uid)return;
+  _stopBookingsWatch();
+  const uid=currentUser.uid;_bookingsWatchUid=uid;
+  let first=true;
+  try{
+    _bookingsUnsub=db.collection("bookings").where("photographerId","==",uid).onSnapshot(snap=>{
+      if(!currentUser||currentUser.uid!==uid)return;
+      const fresh=snap.docs.map(d=>({id:d.id,...d.data()}));
+      const old={};(bookings||[]).forEach(b=>{old[b.id]=b});
+      const wasFirst=first;
+      const newlyCancelled=first?[]:fresh.filter(b=>b.status==="cancelled"&&old[b.id]&&old[b.id].status!=="cancelled"&&b.cancelledBy==="parent");
+      first=false;
+      bookings=fresh;
+      const cal=document.getElementById("admin-calendar");
+      if(cal&&!cal.classList.contains("hidden")&&!document.getElementById("abk-name"))renderCalendar(true);
+      if(newlyCancelled.length&&typeof showToast==="function")showToast("❌ "+newlyCancelled.map(b=>b.name+" ("+b.date+" "+b.time+")").join(", ")+" lemondta az időpontot");
+      // a szülői oldal tartalék-listáját is frissítjük (kis késleltetéssel, ha több változás jön egyszerre)
+      const sig=JSON.stringify(_activeTakenSlots().sort());
+      if(!wasFirst&&sig!==_bkLastSig){clearTimeout(_bkSyncTimer);_bkSyncTimer=setTimeout(()=>{try{syncPublicTakenSlots()}catch(e){}},1500)}
+      _bkLastSig=sig;
+    },err=>{_bookingsUnsub=null;_bookingsWatchUid=null});
+  }catch(e){_bookingsUnsub=null;_bookingsWatchUid=null}
+}
 function _watchOrders(){
   if(!currentUser)return;
   if(_ordersUnsub&&_ordersWatchUid===currentUser.uid)return;// már figyeljük
@@ -3097,7 +3125,7 @@ async function logout(){
   // Galéria-szintű szín leszedése, visszatérés a globálishoz (vagy ha nincs, akkor default)
   resetGalleryTheme();
   try{const cachedTheme=localStorage.getItem("appThemeColor");if(cachedTheme&&/^#[0-9A-Fa-f]{6}$/.test(cachedTheme))applyGalleryTheme(cachedTheme)}catch(e){}
-  _stopOrdersWatch();
+  _stopOrdersWatch();_stopBookingsWatch();
   if(currentUser){await firebase.auth().signOut();currentUser=null;orders=[]}
   await loadData(false);
 }
