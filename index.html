@@ -7005,7 +7005,7 @@ function renderPriceCorrSummary(){
 
 // === RENDELÉS-SZŰRŐK az Aktív fülön (Fizetve / Átadva / Teljesítve) ===
 // A fizetés és az átadás szűrő kombinálható (pl. Fizetve + Nincs átadva = kinek kell még odaadni a képet).
-let _orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null};
+let _orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null,size:null};
 // Osztály szerinti szűrés az Aktív fülön: a rendelés galériájának osztálya (csoportos galériánál a galéria neve)
 function _orderClassKey(o){
   const g=o&&o.galleryId?galleries.find(x=>x.id===o.galleryId):null;
@@ -7016,8 +7016,13 @@ function _orderClassKey(o){
   return {key:"__none__",label:"📁 Egyéb"};
 }
 let _orderClassOpts=[];
+// Papírkép méret szerinti szűrés (pl. csak a 13×18 cm-es rendelések)
+function _itemSizeKey(i){return (i&&i.type!=="digital"&&i.type!=="gift"&&i.sizeLabel)?String(i.sizeLabel).trim():""}
+function _orderSizes(o){const m={};(o.items||[]).forEach(i=>{const k=_itemSizeKey(i);if(k)m[k]=(m[k]||0)+(Number(i.qty)||1)});return m}
+let _orderSizeOpts=[];
+function setOrderSizeFilter(i){const opt=_orderSizeOpts[i];if(!opt)return;setOrderFilter("size",opt.key)}
 function setOrderClassFilter(i){const opt=_orderClassOpts[i];if(!opt)return;setOrderFilter("cls",opt.key)}
-function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.pending!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi||_orderFilter.cls!==null}
+function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.pending!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi||_orderFilter.cls!==null||_orderFilter.size!==null}
 // Milyen terméktípusok vannak egy rendelésben (darabszámmal)
 function _orderTypeCounts(o){
   const c={print:0,digital:0,gift:0};
@@ -7065,6 +7070,7 @@ function _orderTypeBadges(o){
 function _orderPassesFilter(o){
   const f=_orderFlags(o);
   if(_orderFilter.cls!==null&&_orderClassKey(o).key!==_orderFilter.cls)return false;
+  if(_orderFilter.size!==null&&!_orderSizes(o)[_orderFilter.size])return false;
   if(_orderFilter.paid!==null&&!!f.paid!==_orderFilter.paid)return false;
   if(_orderFilter.edited!==null&&!!f.edited!==_orderFilter.edited)return false;
   // Terméktípus: a rendelésben legyen benne MINDEN bejelölt típus (más is lehet mellette)
@@ -7086,7 +7092,7 @@ function _orderPassesFilter(o){
 }
 function setOrderFilter(key,val){
   _orderChildView=null;
-  if(key==="all")_orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null};
+  if(key==="all")_orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null,size:null};
   else if(key==="completed")_orderFilter.completed=!_orderFilter.completed;
   else if(key==="type"){if(_orderFilter.types[val]!==undefined)_orderFilter.types[val]=!_orderFilter.types[val]}
   else if(key==="multi")_orderFilter.multi=!_orderFilter.multi;
@@ -7120,6 +7126,17 @@ function renderOrderFilterBar(sActive,sCompleted){
   h+=chip("🎁 Ajándéktárgy",cnt(o=>_orderTypeCounts(o).gift>0),ft.gift,"setOrderFilter(\'type\',\'gift\')");
   h+=chip("🔀 Többféle",cnt(o=>_orderTypeKinds(o)>=2),_orderFilter.multi,"setOrderFilter(\'multi\')");
   h+='</div>';
+  // Papírkép méret szerinti szűrő: a gombon a darabszám is (hány kép kell abból a méretből)
+  const sm={};
+  sActive.concat(sCompleted).forEach(o=>{Object.keys(_orderSizes(o)).forEach(k=>{if(!sm[k])sm[k]={key:k,n:0,pcs:0}})});
+  base.forEach(o=>{const z=_orderSizes(o);Object.keys(z).forEach(k=>{sm[k].n++;sm[k].pcs+=z[k]})});
+  const _szNum=k=>{const m=String(k).match(/(\d+)\s*[×x]\s*(\d+)/);return m?Number(m[1])*1000+Number(m[2]):1e9};
+  _orderSizeOpts=Object.values(sm).sort((a,b)=>_szNum(a.key)-_szNum(b.key)||a.key.localeCompare(b.key,"hu"));
+  if(_orderSizeOpts.length||_orderFilter.size!==null){
+    h+='<div class="photo-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center"><span style="font-size:.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Képméret:</span>';
+    h+=_orderSizeOpts.map((c,i)=>'<button class="pf-btn'+(_orderFilter.size===c.key?" active":"")+'" title="'+c.n+' rendelésben, összesen '+c.pcs+' db" onclick="setOrderSizeFilter('+i+')">📐 '+_pcEsc(c.key)+' ('+c.n+' rend. · '+c.pcs+' db)</button>').join("");
+    h+='</div>';
+  }
   // Osztály szerinti szűrő (egyszerre egy osztály; újra rákattintva kikapcsol)
   const cm={};
   sActive.concat(sCompleted).forEach(o=>{const k=_orderClassKey(o);if(!cm[k.key])cm[k.key]={key:k.key,label:k.label,n:0}});
