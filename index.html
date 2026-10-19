@@ -7252,8 +7252,10 @@ let _orderSizeOpts=[];
 function setOrderSizeFilter(i){const opt=_orderSizeOpts[i];if(!opt)return;setOrderFilter("size",opt.key)}
 function setOrderClassFilter(i){const opt=_orderClassOpts[i];if(!opt)return;setOrderFilter("cls",opt.key)}
 // "Mind" = az aktív ÉS a teljesített rendelések együtt; alapból (Aktív fül megnyitásakor) csak az aktívak
-let _orderScopeAll=false;
-function _orderScopeBoth(){return !_orderFilter.completed&&(_orderScopeAll||_orderFilter.size!==null)}
+// Hatókör: "auto" = szűrő nélkül csak az aktívak, BÁRMELY szűrővel az aktívak ÉS a lezártak is (pl. Nincs fizetve);
+// "active" = a 🔄 Aktív gombbal kifejezetten csak az aktívak; "all" = a Mind gombbal mindig minden
+let _orderScopeMode="auto";
+function _orderScopeBoth(){if(_orderFilter.completed)return false;if(_orderScopeMode==="all")return true;if(_orderScopeMode==="active")return false;return _orderFilterActive()}
 function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.pending!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi||_orderFilter.cls!==null||_orderFilter.size!==null}
 // Milyen terméktípusok vannak egy rendelésben (darabszámmal)
 function _orderTypeCounts(o){
@@ -7324,9 +7326,9 @@ function _orderPassesFilter(o){
 }
 function setOrderFilter(key,val){
   _orderChildView=null;
-  if(key==="all"){_orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null,size:null};_orderScopeAll=true}
-  else if(key==="active"){_orderFilter.completed=false;_orderScopeAll=false}
-  else if(key==="completed"){_orderFilter.completed=!_orderFilter.completed;_orderScopeAll=false}
+  if(key==="all"){_orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null,size:null};_orderScopeMode="all"}
+  else if(key==="active"){_orderFilter.completed=false;_orderScopeMode="active"}
+  else if(key==="completed"){_orderFilter.completed=!_orderFilter.completed;_orderScopeMode="auto"}
   else if(key==="type"){if(_orderFilter.types[val]!==undefined)_orderFilter.types[val]=!_orderFilter.types[val]}
   else if(key==="multi")_orderFilter.multi=!_orderFilter.multi;
   else _orderFilter[key]=_orderFilter[key]===val?null:val;
@@ -7335,13 +7337,14 @@ function setOrderFilter(key,val){
 function renderOrderFilterBar(sActive,sCompleted){
   const el=document.getElementById("order-filter-bar");if(!el)return;
   if(!orders.length){el.innerHTML="";return}
-  const base=_orderFilter.completed?sCompleted:(_orderScopeBoth()?sActive.concat(sCompleted):sActive);
+  // A gombokon lévő számok azt mutatják, amit rákattintva kapnál
+  const base=_orderFilter.completed?sCompleted:(_orderScopeMode==="active"?sActive:sActive.concat(sCompleted));
   const cnt=fn=>base.filter(fn).length;
   const hand=o=>_orderPhysical(o).has;
   const chip=(label,n,on,click)=>'<button class="pf-btn'+(on?" active":"")+'" onclick="'+click+'">'+label+' ('+n+')</button>';
   let h='<div class="photo-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
-  h+=chip("Mind",sActive.length+sCompleted.length,_orderScopeAll&&!_orderFilterActive(),"setOrderFilter(\'all\')");
-  h+=chip("🔄 Aktív",sActive.length,!_orderScopeAll&&!_orderFilter.completed,"setOrderFilter(\'active\')");
+  h+=chip("Mind",sActive.length+sCompleted.length,_orderScopeMode==="all"&&!_orderFilterActive(),"setOrderFilter(\'all\')");
+  h+=chip("🔄 Aktív",sActive.length,!_orderFilter.completed&&!_orderScopeBoth(),"setOrderFilter(\'active\')");
   h+=chip("✏️ Szerkesztve",cnt(o=>!!_orderFlags(o).edited),_orderFilter.edited===true,"setOrderFilter(\'edited\',true)");
   h+=chip("🕓 Nincs szerkesztve",cnt(o=>!_orderFlags(o).edited),_orderFilter.edited===false,"setOrderFilter(\'edited\',false)");
   h+=chip("💰 Fizetve",cnt(o=>!!_orderFlags(o).paid),_orderFilter.paid===true,"setOrderFilter(\'paid\',true)");
@@ -7363,7 +7366,7 @@ function renderOrderFilterBar(sActive,sCompleted){
   // Papírkép méret szerinti szűrő: a gombon a darabszám is (hány kép kell abból a méretből)
   const sm={};
   sActive.concat(sCompleted).forEach(o=>{Object.keys(_orderSizes(o)).forEach(k=>{if(!sm[k])sm[k]={key:k,n:0,pcs:0}})});
-  (_orderFilter.completed?sCompleted:sActive.concat(sCompleted)).forEach(o=>{const z=_orderSizes(o);Object.keys(z).forEach(k=>{sm[k].n++;sm[k].pcs+=z[k]})});
+  base.forEach(o=>{const z=_orderSizes(o);Object.keys(z).forEach(k=>{sm[k].n++;sm[k].pcs+=z[k]})});
   const _szNum=k=>{const m=String(k).match(/(\d+)\s*[×x]\s*(\d+)/);return m?Number(m[1])*1000+Number(m[2]):1e9};
   _orderSizeOpts=Object.values(sm).sort((a,b)=>_szNum(a.key)-_szNum(b.key)||a.key.localeCompare(b.key,"hu"));
   if(_orderSizeOpts.length||_orderFilter.size!==null){
