@@ -6461,12 +6461,23 @@ async function diagnoseSyncStatus(){
 // === Kapcsolatfelvétel az ügyféllel — popup többféle opcióval ===
 let _activeContactData=null;
 
+// A galéria szülőjének email címe: ha a galériánál nincs megadva, a rendelésből vagy a letöltésekből vesszük
+function _galleryContactEmail(g){
+  if(!g)return "";
+  if(g.parentEmail)return g.parentEmail;
+  if(g.isGroup)return "";
+  const os=(orders||[]).filter(o=>o.galleryId===g.id&&o.parentEmail&&/@/.test(o.parentEmail)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(os.length)return os[0].parentEmail;
+  const dl=_downloadsByGallery&&_downloadsByGallery[g.id];
+  if(dl&&dl.emails&&dl.emails.size)return Array.from(dl.emails)[0];
+  return "";
+}
 // Meghívó email: a galéria elkészült, jöhet a válogatás/rendelés
 function inviteToGallery(){
   if(!currentDetailGallery){alert("Nincs kiválasztott galéria");return}
   const g=currentDetailGallery;
-  const email=g.parentEmail||"";
-  if(!email&&!g.isGroup){alert("Ehhez a galériához nincs megadva email cím. Add meg a 👤 Személyes adatoknál.");return}
+  const email=_galleryContactEmail(g);
+  if(!email&&!g.isGroup){alert("Ehhez a galériához nincs megadva email cím, és rendelésből vagy letöltésből sem találtam. Add meg a 👤 Személyes adatoknál.");return}
   const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
   const name=g.child||"";
   const code=g.code||"";
@@ -6477,8 +6488,8 @@ function inviteToGallery(){
   body+="BELÉPÉS:\n";
   body+="1. Nyisd meg: "+url+"\n";
   body+="2. Belépési kód: "+code+"\n";
-  body+="3. Email cím: "+(email||"a saját email címed")+"\n";
-  body+="4. Megrendelő neve: "+(name||"a fenti név")+"\n\n";
+  if(g.parentEmail){body+="3. Email cím: "+g.parentEmail+"\n";body+="4. Megrendelő neve: "+(name||"a fenti név")+"\n\n"}
+  else body+="3. Név: "+(name||"a fenti név")+" (pontosan így, ékezetekkel)\n\n";
   body+="HOGYAN VÁLOGASS:\n";
   body+="• Koppints egy képre a nagyobb nézethez, a 🔍 gombbal pedig ki is nagyíthatod, hogy a részleteket is jól lásd.\n";
   body+="• A szívecskével kedvencnek jelölheted azokat, amik tetszenek.\n";
@@ -6501,15 +6512,16 @@ function inviteToGallery(){
 function notifyDownloadReady(){
   if(!currentDetailGallery){alert("Nincs kiválasztott galéria");return}
   const g=currentDetailGallery;
-  const email=g.parentEmail||"";
-  if(!email&&!g.isGroup){alert("Ehhez a galériához nincs megadva szülői email cím. Add meg a 👤 Személyes adatoknál.");return}
+  const email=_galleryContactEmail(g);
+  if(!email&&!g.isGroup){alert("Ehhez a galériához nincs megadva szülői email cím, és rendelésből vagy letöltésből sem találtam. Add meg a 👤 Személyes adatoknál.");return}
   const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
   const childName=g.child||"";
   const code=g.code||"";
   const url="https://spring-moon-foto.vercel.app";
   let body="Kedves "+(childName||"Megrendelő")+"!\n\n";
   body+="Örömmel értesítelek, hogy az elkészült, megszerkesztett képek elérhetők és letölthetők az online galériában.\n\n";
-  body+="Belépés:\n1. Nyisd meg: "+url+"\n2. Add meg a kódot: "+code+"\n\n";
+  // Email nélküli (pl. iskolai) galériánál a belépéshez a név is kell – pontosan úgy, ahogy a galériában szerepel
+  body+="Belépés:\n1. Nyisd meg: "+url+"\n2. Add meg a kódot: "+code+(!g.isGroup&&!g.parentEmail&&childName?"\n3. Írd be a nevet: "+childName:"")+"\n\n";
   body+="Belépés után a „📥 Letölthető\" fülön találod a megrendelt képeidet, amelyeket vízjel nélkül, eredeti minőségben letölthetsz – egyesével vagy egyben is.\n\n";
   let _xp=DIGITAL_PRICE;try{_xp=_savedPricesFor(g.priceListId).digitalPrice}catch(e){}
   body+="💡 Ha a megrendelteken felül további képeket is szeretnél, "+fmt(_xp)+"/db áron tudod megvásárolni őket. Ha ezt szeretnéd, válaszd ki, mely képeket kérnéd, és utald át a kiválasztott képek összegét az alábbi számlaszámra, a névre és a galéria kódjára hivatkozva:\n\n";
