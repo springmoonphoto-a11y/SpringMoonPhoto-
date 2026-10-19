@@ -7239,6 +7239,9 @@ function _orderSizes(o){const m={};(o.items||[]).forEach(i=>{const k=_itemSizeKe
 let _orderSizeOpts=[];
 function setOrderSizeFilter(i){const opt=_orderSizeOpts[i];if(!opt)return;setOrderFilter("size",opt.key)}
 function setOrderClassFilter(i){const opt=_orderClassOpts[i];if(!opt)return;setOrderFilter("cls",opt.key)}
+// "Mind" = az aktív ÉS a teljesített rendelések együtt; alapból (Aktív fül megnyitásakor) csak az aktívak
+let _orderScopeAll=false;
+function _orderScopeBoth(){return !_orderFilter.completed&&(_orderScopeAll||_orderFilter.size!==null)}
 function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.pending!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi||_orderFilter.cls!==null||_orderFilter.size!==null}
 // Milyen terméktípusok vannak egy rendelésben (darabszámmal)
 function _orderTypeCounts(o){
@@ -7309,8 +7312,9 @@ function _orderPassesFilter(o){
 }
 function setOrderFilter(key,val){
   _orderChildView=null;
-  if(key==="all")_orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null,size:null};
-  else if(key==="completed")_orderFilter.completed=!_orderFilter.completed;
+  if(key==="all"){_orderFilter={paid:null,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null,size:null};_orderScopeAll=true}
+  else if(key==="active"){_orderFilter.completed=false;_orderScopeAll=false}
+  else if(key==="completed"){_orderFilter.completed=!_orderFilter.completed;_orderScopeAll=false}
   else if(key==="type"){if(_orderFilter.types[val]!==undefined)_orderFilter.types[val]=!_orderFilter.types[val]}
   else if(key==="multi")_orderFilter.multi=!_orderFilter.multi;
   else _orderFilter[key]=_orderFilter[key]===val?null:val;
@@ -7319,12 +7323,13 @@ function setOrderFilter(key,val){
 function renderOrderFilterBar(sActive,sCompleted){
   const el=document.getElementById("order-filter-bar");if(!el)return;
   if(!orders.length){el.innerHTML="";return}
-  const base=_orderFilter.completed?sCompleted:(_orderFilter.size!==null?sActive.concat(sCompleted):sActive);
+  const base=_orderFilter.completed?sCompleted:(_orderScopeBoth()?sActive.concat(sCompleted):sActive);
   const cnt=fn=>base.filter(fn).length;
   const hand=o=>_orderPhysical(o).has;
   const chip=(label,n,on,click)=>'<button class="pf-btn'+(on?" active":"")+'" onclick="'+click+'">'+label+' ('+n+')</button>';
   let h='<div class="photo-filter-bar" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
-  h+=chip("Mind",sActive.length,!_orderFilterActive(),"setOrderFilter(\'all\')");
+  h+=chip("Mind",sActive.length+sCompleted.length,_orderScopeAll&&!_orderFilterActive(),"setOrderFilter(\'all\')");
+  h+=chip("🔄 Aktív",sActive.length,!_orderScopeAll&&!_orderFilter.completed,"setOrderFilter(\'active\')");
   h+=chip("✏️ Szerkesztve",cnt(o=>!!_orderFlags(o).edited),_orderFilter.edited===true,"setOrderFilter(\'edited\',true)");
   h+=chip("🕓 Nincs szerkesztve",cnt(o=>!_orderFlags(o).edited),_orderFilter.edited===false,"setOrderFilter(\'edited\',false)");
   h+=chip("💰 Fizetve",cnt(o=>!!_orderFlags(o).paid),_orderFilter.paid===true,"setOrderFilter(\'paid\',true)");
@@ -7508,15 +7513,15 @@ function renderAdminOrders(){
   renderOrderFilterBar(sActive,sCompleted);
   const showCompleted=_orderFilter.completed;
   // Képméretre szűrve a teljesített rendelések is benne vannak (pl. a nyomdai rendeléshez minden kell)
-  const bothScopes=!showCompleted&&_orderFilter.size!==null;
+  const bothScopes=_orderScopeBoth();
   const base=showCompleted?sCompleted:(bothScopes?sActive.concat(sCompleted):sActive);
   const totalBase=(showCompleted?allCompleted:(bothScopes?allActive.concat(allCompleted):allActive)).length;
   const filterOn=_orderFilterActive();
-  if(!childList&&allActive.length===0&&!filterOn){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📭</span><div class="empty-state-title">Nincs aktív rendelés</div><div class="empty-state-text">Az új rendelések itt fognak megjelenni, amint a szülők leadják.</div></div>';_syncOrderSelection();return}
+  if(!childList&&allActive.length===0&&!filterOn&&!(bothScopes&&allCompleted.length)){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📭</span><div class="empty-state-title">Nincs aktív rendelés</div><div class="empty-state-text">Az új rendelések itt fognak megjelenni, amint a szülők leadják.</div></div>';_syncOrderSelection();return}
   if(!childList&&q&&base.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs találat</div><div class="empty-state-text">Nincs a keresésnek megfelelő '+(showCompleted?"teljesített":"aktív")+' rendelés: „'+rawQ.replace(/</g,"&lt;")+'"</div></div>';_syncOrderSelection();return}
   const activeOrders=childList||_sortOrdersForList(base.filter(_orderPassesFilter));
   if(activeOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs ilyen rendelés</div><div class="empty-state-text">A beállított szűrőknek egy rendelés sem felel meg.</div><button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="setOrderFilter(\'all\')">Szűrők törlése</button></div>';_syncOrderSelection();return}
-  const countLine=childList?_orderChildBanner(childList):(q||filterOn)?'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">'+activeOrders.length+' találat ('+totalBase+' '+(showCompleted?"teljesített":(bothScopes?"– aktív és teljesített –":"aktív"))+' rendelésből) · összesen <strong>'+fmt(activeOrders.reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0))+'</strong></div>':"";
+  const countLine=childList?_orderChildBanner(childList):(q||filterOn||bothScopes)?'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">'+activeOrders.length+' találat ('+totalBase+' '+(showCompleted?"teljesített":(bothScopes?"– aktív és teljesített –":"aktív"))+' rendelésből) · összesen <strong>'+fmt(activeOrders.reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0))+'</strong></div>':"";
   div.innerHTML=countLine+activeOrders.map(o=>{
     const itemsHtml=_orderItemsHtml(o);
     return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderMultiBadge(o)+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+_orderItemsDoneBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
