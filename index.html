@@ -2294,7 +2294,7 @@ function toggleGroupGallery(){
   if(isGroup){updateGroupCode()}else{updateCode()}
 }
 function updateGroupCode(){const name=document.getElementById("new-group-name").value.trim();if(name){generatedCode=generateCode(name);document.getElementById("new-code").textContent=generatedCode;show("code-box")}else hide("code-box")}
-function checkCodeType(){const code=document.getElementById("inp-code").value.trim().toUpperCase();const emailWrap=document.getElementById("inp-email-wrap");if(!code){hide("group-info");show("individual-fields");if(emailWrap)emailWrap.style.display="";return}const found=galleries.find(g=>g.code===code);if(found&&found.isGroup){show("group-info");hide("individual-fields")}else{hide("group-info");show("individual-fields");if(emailWrap){const noEmail=found&&(!found.parentEmail||found.parentEmail==="");emailWrap.style.display=noEmail?"none":""}}}
+function checkCodeType(){const code=document.getElementById("inp-code").value.replace(/\s+/g,"").toUpperCase();const emailWrap=document.getElementById("inp-email-wrap");if(!code){hide("group-info");show("individual-fields");if(emailWrap)emailWrap.style.display="";return}const found=galleries.find(g=>g.code===code);if(found&&found.isGroup){show("group-info");hide("individual-fields")}else{hide("group-info");show("individual-fields");if(emailWrap){const noEmail=found&&(!found.parentEmail||found.parentEmail==="");emailWrap.style.display=noEmail?"none":""}}}
 
 let copiedGallerySettings=null;
 function copyGallerySettings(){
@@ -2970,22 +2970,36 @@ function showAdminLogin(){hide("parent-login-card");show("admin-login-card");sho
 function showParentLogin(){show("parent-login-card");hide("admin-login-card");showAuthMain()}
 
 async function handleLogin(){
-  const code=document.getElementById("inp-code").value.trim().toUpperCase();
+  const code=document.getElementById("inp-code").value.replace(/\s+/g,"").toUpperCase();
   const err=document.getElementById("login-error");hide("login-error");
   if(!code){err.textContent="Kérjük adja meg a belépési kódot.";show("login-error");return}
-  const found=galleries.find(g=>g.code===code);
-  if(!found){err.textContent="Érvénytelen belépési kód.";show("login-error");return}
+  let found=galleries.find(g=>g.code===code);
+  if(!found){
+    // Lehet, hogy a galéria azóta készült, hogy az oldalt megnyitották (vagy a telefon régi adatot mutat): rákérdezünk közvetlenül
+    try{
+      let snap=null;
+      try{snap=await db.collection("galleries").where("code","==",code).get({source:"server"})}catch(e1){snap=await db.collection("galleries").where("code","==",code).get()}
+      if(snap&&snap.docs&&snap.docs.length){const d=snap.docs[0];found={id:d.id,...d.data()};galleries.push(found)}
+    }catch(e){}
+  }
+  if(!found){err.textContent="Érvénytelen belépési kód. Kérjük, ellenőrizze (szóköz és elírás nélkül), vagy kérdezze meg a fotóst.";show("login-error");return}
   if(found.expiresAt&&found.expiresAt<Date.now()){const expDate=new Date(found.expiresAt).toLocaleDateString("hu-HU");err.textContent="Sajnáljuk, ez a galéria lejárt "+expDate+"-án/én. Kérjük vegye fel a kapcsolatot a fotóssal.";show("login-error");return}
   if(!found.isGroup){
-    const email=document.getElementById("inp-email").value.trim().toLowerCase();const child=document.getElementById("inp-child").value.trim().toLowerCase();
+    const _nm=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim().toLowerCase();
+    const emailEl=document.getElementById("inp-email");
+    const email=(emailEl?emailEl.value:"").trim().toLowerCase();const child=_nm(document.getElementById("inp-child").value);
     const noEmailGallery=!found.parentEmail||found.parentEmail==="";
     if(noEmailGallery){
-      // Csak név + kód (pl. iskolai fotózás, ahol nincs email)
+      // Csak név + kód (pl. iskolai fotózás, ahol nincs email). Ha a szülő mégis beírta az email címét, az nem akadály:
+      // beengedjük, és az email címet eltesszük a galériához (a fotós értesítőihez), de a belépéshez továbbra sem kell.
       if(!child){err.textContent="Kérjük adja meg a nevet.";show("login-error");return}
-      if(found.child.toLowerCase()!==child){err.textContent="A név nem egyezik a kódhoz tartozó névvel.";show("login-error");return}
+      if(_nm(found.child)!==child){err.textContent="A név nem egyezik a kódhoz tartozó névvel. Kérjük, a gyermek nevét írja be úgy, ahogy a fotóstól kapott lapon szerepel.";show("login-error");return}
+      if(email&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)&&found.contactEmail!==email){
+        try{db.collection("galleries").doc(found.id).update({contactEmail:email}).catch(()=>{});found.contactEmail=email}catch(e){}
+      }
     }else{
       if(!email||!child){err.textContent="Kérjük töltse ki az email címet és a megrendelő nevét.";show("login-error");return}
-      if(found.parentEmail.toLowerCase()!==email||found.child.toLowerCase()!==child){err.textContent="Az email cím vagy a megrendelő neve nem egyezik.";show("login-error");return}
+      if(found.parentEmail.toLowerCase()!==email||_nm(found.child)!==child){err.textContent="Az email cím vagy a megrendelő neve nem egyezik.";show("login-error");return}
     }
   }
   const btn=document.querySelector('button.btn[onclick="handleLogin()"]');
@@ -6466,6 +6480,7 @@ function _galleryContactEmail(g){
   if(!g)return "";
   if(g.parentEmail)return g.parentEmail;
   if(g.isGroup)return "";
+  if(g.contactEmail)return g.contactEmail;
   const os=(orders||[]).filter(o=>o.galleryId===g.id&&o.parentEmail&&/@/.test(o.parentEmail)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
   if(os.length)return os[0].parentEmail;
   const dl=_downloadsByGallery&&_downloadsByGallery[g.id];
