@@ -1586,6 +1586,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <h3 style="font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--dark);margin-bottom:10px">👤 Személyes adatok</h3>
         <label>Megrendelő neve</label><input type="text" id="edit-child" placeholder="pl. Kovács Bence vagy cégnév">
         <label>Szülő email címe</label><input type="email" id="edit-email" placeholder="szulo@email.com">
+        <div id="edit-contact-email" class="hidden" style="font-size:.8rem;line-height:1.5;background:var(--cream);border-radius:9px;padding:9px 11px;margin:-6px 0 14px"></div>
         <label>Belépési kód</label>
         <p style="font-size:.74rem;color:var(--muted);margin-bottom:6px">A kódot kézzel is átírhatod. Ha a nevet javítod, a kód NEM változik automatikusan.</p>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
@@ -7742,7 +7743,7 @@ function renderAdminGalleryList(){
         dlBadge='<div class="gallery-dl-badge no-dl">📭 Még nem töltötték le</div>';
       }
     }
-    return '<div class="gallery-admin-card" onclick="_galleryReturn=null;openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+(g.parentEmail||"nincs email")+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><button class="gallery-card-link" onclick="event.stopPropagation();openGalleryCard(\''+g.id+'\')">📇 Belépőkártya</button><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div>'+_galleryOrderBadge(g,ordCnt[g.id]||0)+dlBadge+'</div></div></div>';
+    return '<div class="gallery-admin-card" onclick="_galleryReturn=null;openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div><div class="gallery-admin-email">&#128231; '+(g.parentEmail?_pcEsc(g.parentEmail):(function(){const k=g.isGroup?[]:_galleryKnownEmails(g);return k.length?'<span title="A szülő adta meg ('+k[0].src+') – a belépéshez nem kell">'+_pcEsc(k[0].email)+' <em style="opacity:.7">(szülő adta meg)</em></span>':"nincs email"})())+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><button class="gallery-card-link" onclick="event.stopPropagation();openGalleryCard(\''+g.id+'\')">📇 Belépőkártya</button><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div>'+_galleryOrderBadge(g,ordCnt[g.id]||0)+dlBadge+'</div></div></div>';
   };
   // Osztályonkénti csoportosítás, hogy ne keveredjenek — csak keresés nélkül aktív
   if(!q){
@@ -8373,12 +8374,29 @@ async function deleteCurrentGallery(){
   catch(e){alert("Hiba történt!")}
 }
 
+// A szülő által (belépéskor, rendeléskor vagy letöltéskor) megadott email – ha a galériánál nincs belépési email
+function _galleryKnownEmails(g){
+  const out=[];const add=(e,src)=>{e=String(e||"").trim();if(e&&/@/.test(e)&&!out.some(x=>x.email.toLowerCase()===e.toLowerCase()))out.push({email:e,src})};
+  if(!g)return out;
+  add(g.contactEmail,"belépéskor adta meg");
+  (orders||[]).filter(o=>o.galleryId===g.id).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).forEach(o=>add(o.parentEmail,"rendelésnél adta meg"));
+  const dl=_downloadsByGallery&&_downloadsByGallery[g.id];if(dl&&dl.emails)Array.from(dl.emails).forEach(e=>add(e,"letöltésnél adta meg"));
+  return out;
+}
+function _renderEditContactEmail(){
+  const box=document.getElementById("edit-contact-email");const g=currentDetailGallery;if(!box)return;
+  const list=g&&!g.isGroup&&!g.parentEmail?_galleryKnownEmails(g):[];
+  if(!list.length){box.classList.add("hidden");box.innerHTML="";return}
+  box.classList.remove("hidden");
+  box.innerHTML='<div style="font-weight:600;color:var(--brown);margin-bottom:3px">✉️ A szülő által megadott email:</div>'+list.map(x=>'<div><a href="mailto:'+_pcEsc(x.email)+'" style="color:var(--gold)">'+_pcEsc(x.email)+'</a> <span style="color:var(--muted)">('+x.src+')</span></div>').join("")+'<div style="color:var(--muted);font-size:.74rem;margin-top:4px">Az értesítők ide mennek. A belépéshez nem kell – ha a fenti „Szülő email címe” mezőbe beírod, onnantól a belépésnél is kérni fogja.</div>';
+}
 function toggleEditForm(){
   const form=document.getElementById("edit-form");form.classList.toggle("hidden");
   if(!form.classList.contains("hidden")){
     document.getElementById("products-form").classList.add("hidden");
     document.getElementById("edit-child").value=currentDetailGallery.child;
     document.getElementById("edit-email").value=currentDetailGallery.parentEmail||"";
+    _renderEditContactEmail();
     document.getElementById("edit-code").value=currentDetailGallery.code;
     document.getElementById("edit-msg").innerHTML="";
   }
