@@ -1334,7 +1334,6 @@ body.dark-mode .upload-area:hover{background:#1a1408}
           <strong style="font-size:1.3rem;color:var(--gold)" id="success-total"></strong>
         </div>
       </div>
-      <div class="payment-hint">&#128161; Az utalás beérkezése után a fotós elküldi a digitális képeket, illetve feldolgozza a papírképek rendelését.</div>
       <div class="expect-timeline">
         <div class="expect-title">📅 Mit várhatsz ezután?</div>
         <div class="exp-step exp-current">
@@ -8584,9 +8583,8 @@ async function _payCardCanvas(o){
   row("BANK",PAY_INFO.bank,"700 {s}px "+sans,44,DARK);
   row("SZÁMLASZÁM",PAY_INFO.account,"700 {s}px "+mono,44,"#8a5e0c");
   row("KÖZLEMÉNY (ezt írd a megjegyzésbe)",c.memo||"a gyermek neve","700 {s}px "+sans,42,DARK,true);
-  x.textAlign="center";x.fillStyle=MUTED;x.font="400 27px "+sans;
-  x.fillText("Az utalás beérkezése után elkészítem a képeket.",cx,1160);
-  x.fillStyle=GOLD;x.font="700 29px "+sans;x.fillText("Köszönöm, hogy nálam rendeltél!",cx,1225);
+  x.textAlign="center";
+  x.fillStyle=GOLD;x.font="700 32px "+sans;x.fillText("Köszönöm, hogy nálam rendeltél!",cx,1185);
   return cv;
 }
 async function openPayCard(orderId){
