@@ -6786,59 +6786,46 @@ async function sendInquiry(){
 }
 
 async function loadPublicPhotographerData(){
+  // A fotós kiválasztása: ha több fiókhoz is tartozik galéria (pl. egy régi/teszt fiók), azt választjuk,
+  // amelyiknek a naptárában a linkben kért nap be van állítva; különben akihez a legtöbb galéria tartozik.
   try{
-    let photographerId=null;
-    let g0=null;
-    // Forrás 1: Galériák (ha van)
-    try{
-      if(galleries.length>0){g0=galleries[0];photographerId=g0.photographerId}
-      else{
-        const gs=await db.collection("galleries").limit(1).get();
-        if(!gs.empty){g0={id:gs.docs[0].id,...gs.docs[0].data()};photographerId=g0.photographerId}
-      }
-    }catch(e){}
-    // Forrás 2: ha nincs galéria, foglalások alapján találd meg a fotóst
-    if(!photographerId){
-      try{
-        const bs=await db.collection("bookings").limit(1).get();
-        if(!bs.empty)photographerId=bs.docs[0].data().photographerId;
-      }catch(e){}
+    let gl=galleries&&galleries.length?galleries:[];
+    if(!gl.length){try{const gs=await db.collection("galleries").limit(50).get();gl=gs.docs.map(d=>({id:d.id,...d.data()}))}catch(e){}}
+    const cnt={};gl.forEach(g=>{if(g&&g.photographerId)cnt[g.photographerId]=(cnt[g.photographerId]||0)+1});
+    let ids=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a]);
+    if(!ids.length){
+      try{const bs=await db.collection("bookings").limit(1).get();if(!bs.empty&&bs.docs[0].data().photographerId)ids=[bs.docs[0].data().photographerId]}catch(e){}
     }
-    if(!photographerId){
-      
-      window._publicAvail={};window._publicBookings=[];return;
+    if(!ids.length){window._publicAvail={};window._publicBookings=[];return}
+    const want=_publicOnlyDates?Array.from(_publicOnlyDates):[];
+    const dayOk=(av,d)=>{const x=av&&av[d];return !!(x&&x.enabled&&x.start&&x.end&&x.duration)};
+    // egy fotós naptárának beolvasása: a fiókból (szerverről), ha az nem megy, a galériák másolatából (a legfrissebbet keresve)
+    const readAvail=async(pid)=>{
+      let av=null,pd=null;
+      try{let pdoc=null;try{pdoc=await db.collection("photographers").doc(pid).get({source:"server"})}catch(e){pdoc=await db.collection("photographers").doc(pid).get()}
+        if(pdoc&&pdoc.exists){pd=pdoc.data();if(pd.availability&&Object.keys(pd.availability).length)av=pd.availability}}catch(e){}
+      const mine=gl.filter(g=>g.photographerId===pid&&g.publicAvailability);
+      if(!av&&mine.length)av=mine[0].publicAvailability;
+      // ha a kért nap a fiókban nincs meg, de valamelyik galéria másolatában igen, azt is felhasználjuk
+      if(want.length){want.forEach(d=>{if(!dayOk(av,d)){const g=mine.find(x=>dayOk(x.publicAvailability,d));if(g){av=Object.assign({},av||{});av[d]=g.publicAvailability[d]}}})}
+      return {av:av||{},pd};
+    };
+    let chosen=null,res=null;
+    for(const pid of ids){
+      const r=await readAvail(pid);
+      if(!res){chosen=pid;res=r}
+      if(!want.length||want.some(d=>dayOk(r.av,d))){chosen=pid;res=r;break}
     }
-    _publicPhotographerId=photographerId;
-    // FŐ FORRÁS: photographer doc-ot olvassuk a SZERVERRŐL (fresh, nem cache)
-    let availFromPhotog=null;
+    _publicPhotographerId=chosen;
+    if(res.pd){if(res.pd.themeColor)applyGalleryTheme(res.pd.themeColor);if(res.pd.brandName||res.pd.brandFont)applyBrand(res.pd.brandName||"SpringMoonPhoto",res.pd.brandFont||"great-vibes")}
+    window._publicAvail=res.av;
+    // Foglalt időpontok: közvetlenül a foglalásokból, különben a galéria-másolatból
     try{
-      let pdoc=null;
-      try{pdoc=await db.collection("photographers").doc(photographerId).get({source:"server"})}
-      catch(e){pdoc=await db.collection("photographers").doc(photographerId).get()}
-      if(pdoc.exists){
-        const pd=pdoc.data();
-        if(pd.themeColor)applyGalleryTheme(pd.themeColor);
-        if(pd.brandName||pd.brandFont)applyBrand(pd.brandName||"SpringMoonPhoto",pd.brandFont||"great-vibes");
-        if(pd.availability)availFromPhotog=pd.availability;
-      }
-    }catch(e){}
-    // Availability: photog doc-ból (előnyösen), különben galéria publicAvailability
-    if(availFromPhotog&&Object.keys(availFromPhotog).length>0){
-      window._publicAvail=availFromPhotog;
-    }else if(g0&&g0.publicAvailability){
-      window._publicAvail=g0.publicAvailability;
-    }else{
-      window._publicAvail={};
-    }
-    // Foglalt slotok: bookings-ból (közvetlenül), különben galéria mirrorból
-    try{
-      const bk=await db.collection("bookings").where("photographerId","==",photographerId).get();
+      const bk=await db.collection("bookings").where("photographerId","==",chosen).get();
       window._publicBookings=bk.docs.map(d=>({id:d.id,...d.data()})).filter(b=>b.status!=="cancelled");
     }catch(e){
-      
-      if(g0&&g0.publicTakenSlots){
-        window._publicBookings=g0.publicTakenSlots.map(slot=>{const [date,time]=slot.split("T");return{date,time,status:"confirmed"}});
-      }else{window._publicBookings=[]}
+      const g0=gl.find(g=>g.photographerId===chosen&&g.publicTakenSlots);
+      window._publicBookings=g0?g0.publicTakenSlots.map(slot=>{const [date,time]=slot.split("T");return{date,time,status:"confirmed"}}):[];
     }
   }catch(e){window._publicAvail={};window._publicBookings=[]}
 }
