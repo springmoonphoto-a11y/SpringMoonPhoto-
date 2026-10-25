@@ -1769,6 +1769,18 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <button class="btn btn-outline btn-sm" style="margin-top:6px;width:100%" onclick="closeGalleryCard()">Bezárás</button>
   </div>
 </div>
+<div id="pay-card-modal" class="modal-overlay hidden" onclick="if(event.target===this)closePayCard()">
+  <div class="modal-sheet" style="max-width:460px">
+    <div class="sheet-handle"></div>
+    <h2 style="font-size:1.2rem;margin-bottom:4px">🧾 Utalási adatok</h2>
+    <p style="font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:10px">Kép a szülőnek az utalási adatokkal – benne a gyermek neve és a fizetendő összeg.</p>
+    <div id="pay-card-note"></div>
+    <img id="pay-card-preview" alt="Utalási adatok" style="width:100%;border-radius:12px;border:1px solid var(--warm);display:block">
+    <div id="pay-card-actions" style="display:flex;flex-direction:column;gap:8px;margin-top:14px"></div>
+    <div id="pay-card-msg" style="font-size:.8rem;color:var(--muted);margin-top:8px;min-height:1.2em;text-align:center"></div>
+    <button class="btn btn-outline btn-sm" style="margin-top:6px;width:100%" onclick="closePayCard()">Bezárás</button>
+  </div>
+</div>
 <div id="project-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeProjectManager()">
   <div class="modal-sheet" style="max-width:620px">
     <div class="sheet-handle"></div>
@@ -1946,6 +1958,7 @@ async function loadMyPrices(){
       COMBO_DISCOUNT=typeof data.comboDiscount==="number"?data.comboDiscount:0;
       GIFT_ITEMS=data.giftItems||JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
       CLASS_GIVEBACK_PERCENTS=data.classGivebackPercents||{};
+      CHAT_SEEN=(data.chatSeen&&typeof data.chatSeen==='object')?data.chatSeen:{};
       PROJECTS=Array.isArray(data.projects)?data.projects:[];
       PRICE_LISTS=Array.isArray(data.priceLists)?data.priceLists.filter(x=>x&&x.id):[];
       // Üzenetsablonok: csak a fotós felületén jelennek meg; ha még sosem mentett, pár kiinduló sablont kap
@@ -3389,11 +3402,27 @@ async function loadAllMessages(){
   }catch(e){_allMessages=[]}
 }
 
+// Olvasottság: eszközönként (localStorage) ÉS a fiókban is (photographers.chatSeen), hogy telefonon és gépen is eltűnjön a jelzés.
+// Az időpont legalább a beszélgetés legutolsó üzenetének ideje – így akkor is olvasottnak számít, ha a szülő telefonjának órája siet.
+let CHAT_SEEN={};
+const _chatSeenSaveTimers={};
 function _adminChatLastSeen(gid){
-  try{return Number(localStorage.getItem("adminChatSeen_"+gid)||0)}catch(e){return 0}
+  let l=0;try{l=Number(localStorage.getItem("adminChatSeen_"+gid)||0)}catch(e){}
+  return Math.max(l,Number(CHAT_SEEN[gid])||0);
 }
 function _setAdminChatLastSeen(gid){
-  try{localStorage.setItem("adminChatSeen_"+gid,String(Date.now()))}catch(e){}
+  if(!gid)return;
+  const newest=(_allMessages||[]).filter(m=>m.galleryId===gid).reduce((t,m)=>Math.max(t,Number(m.createdAt)||0),0);
+  const ts=Math.max(Date.now(),newest);
+  const prev=_adminChatLastSeen(gid);
+  try{localStorage.setItem("adminChatSeen_"+gid,String(ts))}catch(e){}
+  CHAT_SEEN[gid]=ts;
+  // a fiókba csak akkor írunk, ha volt még olvasatlan (ne írjon minden újrarajzolásnál)
+  if(currentUser&&newest>prev){
+    clearTimeout(_chatSeenSaveTimers[gid]);
+    _chatSeenSaveTimers[gid]=setTimeout(()=>{try{db.collection("photographers").doc(currentUser.uid).update({["chatSeen."+gid]:ts}).catch(()=>{})}catch(e){}},800);
+  }
+  try{updateMessagesBadge()}catch(e){}
 }
 
 // Hány galériában van olvasatlan szülői üzenet (a fül-badge-hez)
@@ -3409,7 +3438,7 @@ function updateMessagesBadge(){
     if(hasUnread)unreadConvos++;
   });
   if(unreadConvos>0){badge.textContent=unreadConvos;badge.style.cssText="background:#e53935;color:#fff;border-radius:99px;font-size:.66rem;padding:1px 6px;font-weight:700;margin-left:2px"}
-  else badge.textContent="";
+  else{badge.textContent="";badge.style.cssText=""}// a piros háttér is tűnjön el, ne maradjon üres pötty
 }
 
 function renderMessagesList(){
@@ -7555,7 +7584,7 @@ function renderAdminOrders(){
   const countLine=childList?_orderChildBanner(childList):(q||filterOn||bothScopes)?'<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">'+activeOrders.length+' találat ('+totalBase+' '+(showCompleted?"teljesített":(bothScopes?"– aktív és teljesített –":"aktív"))+' rendelésből) · összesen <strong>'+fmt(activeOrders.reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0))+'</strong></div>':"";
   div.innerHTML=countLine+activeOrders.map(o=>{
     const itemsHtml=_orderItemsHtml(o);
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderMultiBadge(o)+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+_orderItemsDoneBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderMultiBadge(o)+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+_orderItemsDoneBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+_orderPayCardBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
   }).join("");
   _syncOrderSelection();
 }
@@ -7567,7 +7596,7 @@ function renderCompletedOrders(){
   if(completedOrders.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">✅</span><div class="empty-state-title">Még nincs teljesített rendelés</div><div class="empty-state-text">Az "Aktív" fülön lévő rendeléseket "Teljesítve" státuszra állítva itt jelennek majd meg.</div></div>';return}
   div.innerHTML=completedOrders.map(o=>{
     const itemsHtml=_orderItemsHtml(o);
-    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderMultiBadge(o)+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+_orderItemsDoneBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
+    return '<div class="order-card"><div class="order-card-inner"><input type="checkbox" class="order-checkbox" data-id="'+o.id+'"'+(selectedOrderIds.has(o.id)?" checked":"")+' onchange="toggleOrderSelect(\''+o.id+'\',this.checked)"><div style="flex:1"><div class="order-head"><div><div class="order-card-name">&#129426; '+_orderNameLink(o)+'</div>'+_orderMultiBadge(o)+_orderClassBadge(o)+_orderTypeBadges(o)+_orderPendingBadge(o)+_orderItemsDoneBadge(o)+'<div class="order-card-meta">&#128100; '+(o.parentName||"-")+'</div><div class="order-card-meta">&#128222; '+(o.phone||"-")+'</div><div class="order-card-meta">&#128231; '+o.parentEmail+'</div><div class="order-card-meta">&#128336; '+o.date+'</div>'+_orderPaidLine(o)+consentBadge(o)+'<div style="margin-top:6px">'+renderStatusChecks(o)+'</div>'+_pcRefundHtml(o)+_orderChatBtn(o)+_orderPayCardBtn(o)+'</div><div class="order-card-total">'+_pcTotalHtml(o)+'</div></div><div class="order-items-list">'+itemsHtml+'</div><div style="margin-top:10px;text-align:right"><button class="btn btn-danger btn-sm" onclick="deleteOrder(\''+o.id+'\')">&#128465;&#65039; Rendelés törlése</button></div></div></div></div>';
   }).join("");
 }
 
@@ -8510,6 +8539,101 @@ function _canvasBlob(cv){return new Promise((res,rej)=>{try{cv.toBlob(b=>b?res(b
 function _galleryCardFileName(g){
   const base=(_galleryCardInfo(g).name||"galeria").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_+|_+$/g,"")||"galeria";
   return "belepokartya_"+base+".png";
+}
+// === UTALÁSI KÁRTYA: kép a szülőnek az utalási adatokkal, a gyermek nevével és a rendelés összegével ===
+const PAY_INFO={name:"Bukta Anita",bank:"OTP Bank",account:"11773391-00491127-00000000"};
+let _payCardOrderId=null;
+function _orderPayCardBtn(o){return '<div style="margin-top:6px"><button class="btn btn-outline btn-sm" onclick="openPayCard(\''+o.id+'\')">🧾 Utalási adatok képként</button></div>'}
+function _payCardInfo(o){
+  const g=o.galleryId?galleries.find(x=>x.id===o.galleryId):null;
+  const cls=g&&g.bulkClass&&g.bulkClass.trim()?g.bulkClass.trim():"";
+  const name=(o.child||(g&&(g.child||g.name))||"").trim();
+  return {name,memo:name+(cls?" – "+cls:""),amount:typeof o.total==="number"?o.total:0};
+}
+async function _payCardCanvas(o){
+  const c=_payCardInfo(o);
+  try{if(document.fonts&&document.fonts.load){await Promise.all([document.fonts.load("400 60px 'Playfair Display'"),document.fonts.load("italic 400 60px 'Playfair Display'"),document.fonts.load("700 60px 'Playfair Display'"),document.fonts.load("500 30px 'DM Sans'"),document.fonts.load("700 30px 'DM Sans'")])}}catch(e){}
+  const W=1080,H=1350,cv=document.createElement("canvas");cv.width=W;cv.height=H;const x=cv.getContext("2d");if(!x)throw new Error("canvas");
+  const serif="'Playfair Display',Georgia,'Times New Roman',serif",sans="'DM Sans','Segoe UI',Roboto,Arial,sans-serif",mono="'Courier New',Courier,monospace";
+  const CREAM="#fffdf8",BROWN="#5c3d2e",GOLD="#C9A84C",DARK="#1a1208",MUTED="#8a7868",BOX="#f7f0e6",LINE="#e8dcc8";
+  const rr=(px,py,w,h,r)=>{x.beginPath();x.moveTo(px+r,py);x.lineTo(px+w-r,py);x.quadraticCurveTo(px+w,py,px+w,py+r);x.lineTo(px+w,py+h-r);x.quadraticCurveTo(px+w,py+h,px+w-r,py+h);x.lineTo(px+r,py+h);x.quadraticCurveTo(px,py+h,px,py+h-r);x.lineTo(px,py+r);x.quadraticCurveTo(px,py,px+r,py);x.closePath()};
+  const fit=(t,font,size,maxW,min)=>{let s=size;do{x.font=font.replace("{s}",s);s-=2}while(x.measureText(t).width>maxW&&s>min);return s+2};
+  x.fillStyle=CREAM;x.fillRect(0,0,W,H);
+  x.strokeStyle=GOLD;x.lineWidth=4;x.setLineDash([22,14]);rr(36,36,W-72,H-72,40);x.stroke();x.setLineDash([]);
+  x.textBaseline="alphabetic";const cx=W/2;
+  // logó
+  x.font="400 70px "+serif;const w1=x.measureText("SpringMoon").width;x.font="italic 400 70px "+serif;const w2=x.measureText("Gallery").width;
+  let bx=(W-w1-w2)/2;x.textAlign="left";x.font="400 70px "+serif;x.fillStyle=BROWN;x.fillText("SpringMoon",bx,170);x.font="italic 400 70px "+serif;x.fillStyle=GOLD;x.fillText("Gallery",bx+w1,170);
+  x.textAlign="center";x.font="500 22px "+sans;x.fillStyle=GOLD;x.fillText("BY",cx,220);
+  x.strokeStyle=GOLD;x.lineWidth=2;[[cx-150,cx-48],[cx+48,cx+150]].forEach(([a,b])=>{x.beginPath();x.moveTo(a,213);x.lineTo(b,213);x.stroke()});
+  [cx-30,cx+30].forEach(sx=>{x.beginPath();x.moveTo(sx,205);x.lineTo(sx+7,213);x.lineTo(sx,221);x.lineTo(sx-7,213);x.closePath();x.fill()});
+  x.font="italic 400 44px "+serif;x.fillText("SpringMoonPhoto",cx,272);
+  x.fillStyle=DARK;x.font="700 62px "+serif;x.fillText("Utalási adatok",cx,370);
+  // összeg kiemelve
+  x.fillStyle=MUTED;x.font="500 28px "+sans;x.fillText("Fizetendő összeg",cx,432);
+  x.fillStyle="#8a5e0c";x.font="700 76px "+sans;x.fillText(fmt(c.amount),cx,512);
+  // adatdoboz
+  const bx0=110,by0=575,bw=W-220,bh=500;x.fillStyle=BOX;rr(bx0,by0,bw,bh,28);x.fill();
+  x.textAlign="left";let y=by0+60;const L=bx0+50,R=bx0+bw-50;
+  const row=(label,val,font,size,color,last)=>{
+    x.fillStyle=MUTED;x.font="700 22px "+sans;x.fillText(label,L,y);
+    const s=fit(val,font,size,R-L,24);x.fillStyle=color;x.font=font.replace("{s}",s);x.fillText(val,L,y+52);
+    y+=118;if(!last){x.strokeStyle=LINE;x.lineWidth=2;x.beginPath();x.moveTo(L,y-36);x.lineTo(R,y-36);x.stroke()}
+  };
+  row("KEDVEZMÉNYEZETT",PAY_INFO.name,"700 {s}px "+sans,44,DARK);
+  row("BANK",PAY_INFO.bank,"700 {s}px "+sans,44,DARK);
+  row("SZÁMLASZÁM",PAY_INFO.account,"700 {s}px "+mono,44,"#8a5e0c");
+  row("KÖZLEMÉNY (ezt írd a megjegyzésbe)",c.memo||"a gyermek neve","700 {s}px "+sans,42,DARK,true);
+  x.textAlign="center";x.fillStyle=MUTED;x.font="400 27px "+sans;
+  x.fillText("Az utalás beérkezése után elkészítem a képeket.",cx,1160);
+  x.fillStyle=GOLD;x.font="700 29px "+sans;x.fillText("Köszönöm, hogy nálam rendeltél!",cx,1225);
+  return cv;
+}
+async function openPayCard(orderId){
+  const o=orders.find(x=>x.id===orderId);if(!o)return;
+  _payCardOrderId=orderId;
+  const note=document.getElementById("pay-card-note");
+  note.innerHTML=_orderFlags(o).paid?'<div style="background:#fdebd0;color:#7a4a00;border-radius:9px;padding:8px 10px;font-size:.8rem;margin-bottom:8px">⚠️ Ez a rendelés már <strong>Fizetve</strong> van jelölve.</div>':"";
+  document.getElementById("pay-card-msg").textContent="";
+  const img=document.getElementById("pay-card-preview");img.removeAttribute("src");
+  let canShare=false;try{canShare=!!(navigator.share&&navigator.canShare&&typeof File==="function"&&navigator.canShare({files:[new File([new Blob(["x"],{type:"image/png"})],"k.png",{type:"image/png"})]}))}catch(e){}
+  let h='<button class="btn btn-gold" onclick="copyPayCardImage()">🖼️ Kép másolása (Messengerbe beilleszthető)</button>';
+  if(canShare)h+='<button class="btn btn-outline" onclick="sharePayCardImage()">📤 Megosztás (telefonon: Messenger stb.)</button>';
+  h+='<button class="btn btn-outline btn-sm" onclick="downloadPayCardImage()">⬇️ Kép letöltése</button>';
+  h+='<button class="btn btn-outline btn-sm" onclick="copyPayCardText()">📋 Másolás szövegként</button>';
+  document.getElementById("pay-card-actions").innerHTML=h;
+  show("pay-card-modal");
+  try{const cv=await _payCardCanvas(o);img.src=cv.toDataURL("image/png")}catch(e){document.getElementById("pay-card-msg").textContent="A kép előállítása nem sikerült – használd a szöveges másolást."}
+}
+function closePayCard(){hide("pay-card-modal");_payCardOrderId=null}
+function _payCardOrder(){return _payCardOrderId?orders.find(x=>x.id===_payCardOrderId)||null:null}
+function _payCardFileName(o){const n=(_payCardInfo(o).name||"rendeles").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Za-z0-9]+/g,"_").replace(/^_+|_+$/g,"")||"rendeles";return "utalas_"+n+".png"}
+function _payCardMsg(t){const el=document.getElementById("pay-card-msg");if(el)el.textContent=t;if(typeof showToast==="function")showToast(t)}
+async function copyPayCardImage(){
+  const o=_payCardOrder();if(!o)return;
+  try{
+    if(!navigator.clipboard||!navigator.clipboard.write||typeof ClipboardItem==="undefined")throw new Error("nincs");
+    const blobP=_payCardCanvas(o).then(_canvasBlob);
+    await navigator.clipboard.write([new ClipboardItem({"image/png":blobP})]);
+    _payCardMsg("✓ Kép kimásolva – illeszd be (Ctrl+V) a beszélgetésbe");
+  }catch(e){try{await downloadPayCardImage(true)}catch(e2){_payCardMsg("Nem sikerült – használd a szöveges másolást.")}}
+}
+async function downloadPayCardImage(asFallback){
+  const o=_payCardOrder();if(!o)return;
+  const blob=await _canvasBlob(await _payCardCanvas(o));const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=_payCardFileName(o);document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>{try{URL.revokeObjectURL(url)}catch(e){}},4000);
+  _payCardMsg(asFallback===true?"Ez a böngésző nem tud képet másolni, ezért letöltöttem – csatold a beszélgetéshez.":"✓ Kép letöltve");
+}
+async function sharePayCardImage(){
+  const o=_payCardOrder();if(!o)return;
+  try{const blob=await _canvasBlob(await _payCardCanvas(o));await navigator.share({files:[new File([blob],_payCardFileName(o),{type:"image/png"})]})}
+  catch(e){if(e&&e.name==="AbortError")return;try{await downloadPayCardImage(true)}catch(e2){_payCardMsg("Nem sikerült a megosztás.")}}
+}
+async function copyPayCardText(){
+  const o=_payCardOrder();if(!o)return;const c=_payCardInfo(o);
+  const t="Utalási adatok\nKedvezményezett: "+PAY_INFO.name+"\nBank: "+PAY_INFO.bank+"\nSzámlaszám: "+PAY_INFO.account+"\nÖsszeg: "+fmt(c.amount)+"\nKözlemény: "+(c.memo||"a gyermek neve")+"\n\nKöszönöm!";
+  try{await navigator.clipboard.writeText(t);_payCardMsg("✓ Szöveg kimásolva")}catch(e){prompt("Jelöld ki és másold ki:",t)}
 }
 async function copyGalleryCardImage(){
   const g=_galleryCardGallery();if(!g)return;
