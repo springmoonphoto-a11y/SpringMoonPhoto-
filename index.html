@@ -5316,7 +5316,8 @@ function renderClientsList(){
   const wrap=document.getElementById("admin-clients");if(!wrap)return;
   let html='<div class="client-search-bar"><input id="client-search" type="text" placeholder="Keresés név, email, telefon, intézmény, gyermek..." value="'+(_clientSearch||"").replace(/"/g,'&quot;')+'" oninput="onClientSearchChange(this.value)"></div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><button class="btn" onclick="showClientForm()">+ Új ügyfél</button><button class="btn btn-outline" id="sync-bookings-btn" onclick="manualSyncBookings()">🔄 Foglalások szink.</button></div>';
-  html+='<button class="btn btn-outline" id="sync-galleries-btn" style="width:100%;margin-bottom:14px" onclick="manualSyncGalleries()">🔄 Galériák szinkronizálása ügyfelekkel</button>';
+  html+='<button class="btn btn-outline" id="sync-galleries-btn" style="width:100%;margin-bottom:8px" onclick="manualSyncGalleries()">🔄 Galériák szinkronizálása ügyfelekkel</button>';
+  html+='<button class="btn btn-outline" id="merge-clients-btn" style="width:100%;margin-bottom:14px" onclick="manualMergeClients()">🧹 Duplikált ügyfelek összevonása</button>';
   html+='<div id="client-cards-list"></div>';
   wrap.innerHTML=html;
   renderClientCards();
@@ -5479,10 +5480,84 @@ async function loadBookings(){
 }
 
 // === Foglalások automatikus átemelése ügyfelek közé (duplikátum-védelemmel) ===
-function _normalizePhone(p){return(p||"").replace(/[\s\-\+\(\)]/g,"")}
+// Telefonszám összevetéshez: csak a számjegyek, és az utolsó 9 (így a +36 30…, 06 30…, 30… ugyanaz)
+function _normalizePhone(p){const d=String(p||"").replace(/\D/g,"");return d.length>=9?d.slice(-9):d}
 function _normalizeEmail(e){return(e||"").toLowerCase().trim()}
+function _normalizeName(n){return String(n||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9]+/g," ").trim().toLowerCase()}
+// Ugyanaz az ügyfél-e: azonos email VAGY azonos telefon VAGY azonos név (ha az email/telefon nem mond ellent)
+function _sameClient(a,b){
+  const ea=_normalizeEmail(a.email),eb=_normalizeEmail(b.email),pa=_normalizePhone(a.phone),pb=_normalizePhone(b.phone);
+  if(ea&&eb&&ea===eb)return true;
+  if(pa&&pb&&pa===pb)return true;
+  const na=_normalizeName(a.name),nb=_normalizeName(b.name);
+  if(na&&nb&&na===nb){if(ea&&eb&&ea!==eb)return false;if(pa&&pb&&pa!==pb)return false;return true}
+  return false;
+}
+function _findClient(x){return clients.find(c=>_sameClient(c,x))||null}
+// Egyszerre csak egy szinkron futhat (különben két párhuzamos futás ugyanazt az ügyfelet kétszer hozná létre)
+let _clientSyncChain=Promise.resolve();
+function _clientSyncLock(fn){const p=_clientSyncChain.then(fn,fn);_clientSyncChain=p.catch(()=>{});return p}
+// Hiányzó adatok pótlása egy meglévő ügyfélnél (pl. a foglalásnál megadott telefonszám)
+async function _fillClientGaps(c,x){
+  const up={};
+  if(!c.email&&x.email)up.email=x.email;
+  if(!c.phone&&x.phone)up.phone=x.phone;
+  if(!Object.keys(up).length)return;
+  try{up.updatedAt=Date.now();await db.collection("clients").doc(c.id).update(up);Object.assign(c,up)}catch(e){}
+}
+// === Duplikált ügyfelek összevonása: ugyanaz a név / email / telefon → egy ügyfél marad, az adatok összeadódnak ===
+async function mergeDuplicateClients(silent){
+  return _clientSyncLock(async()=>{
+    if(!currentUser||clients.length<2)return {merged:0,groups:0};
+    const n=clients.length,par=clients.map((_,i)=>i);
+    const find=i=>{while(par[i]!==i){par[i]=par[par[i]];i=par[i]}return i};
+    for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(_sameClient(clients[i],clients[j])){const a=find(i),b=find(j);if(a!==b)par[b]=a}
+    const groups={};clients.forEach((c,i)=>{const r=find(i);(groups[r]=groups[r]||[]).push(c)});
+    const dup=Object.values(groups).filter(g=>g.length>1);
+    if(!dup.length)return {merged:0,groups:0};
+    let merged=0;
+    for(const g of dup){
+      g.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+      const keep=g[0],others=g.slice(1);
+      const up={};
+      ["name","email","phone","address","partnerName","birthDate","weddingDate"].forEach(f=>{if(!keep[f]){const o=others.find(x=>x[f]);if(o)up[f]=o[f]}});
+      // eltérő email / telefon nem vész el: a megjegyzésbe kerül
+      const extra=[];
+      others.forEach(o=>{
+        if(o.email&&_normalizeEmail(o.email)!==_normalizeEmail(up.email||keep.email))extra.push("Másik email: "+o.email);
+        if(o.phone&&_normalizePhone(o.phone)!==_normalizePhone(up.phone||keep.phone))extra.push("Másik telefon: "+o.phone);
+      });
+      const kids=(keep.children||[]).slice();
+      others.forEach(o=>(o.children||[]).forEach(ch=>{if(ch&&!kids.some(k=>_normalizeName(k.name)===_normalizeName(ch.name)))kids.push(ch)}));
+      const tags=Array.from(new Set([].concat(keep.tags||[],...others.map(o=>o.tags||[])).filter(Boolean)));
+      const notes=[];[keep].concat(others).forEach(o=>String(o.notes||"").split(/\n\s*\n/).forEach(p=>{p=p.trim();if(p&&!notes.includes(p))notes.push(p)}));
+      extra.forEach(e=>{if(!notes.includes(e))notes.push(e)});
+      up.children=kids;up.tags=tags;up.notes=notes.join("\n\n");up.updatedAt=Date.now();
+      try{
+        const batch=db.batch();
+        batch.update(db.collection("clients").doc(keep.id),up);
+        others.forEach(o=>batch.delete(db.collection("clients").doc(o.id)));
+        await batch.commit();
+        Object.assign(keep,up);
+        const ids=new Set(others.map(o=>o.id));clients=clients.filter(c=>!ids.has(c.id));
+        merged+=others.length;
+      }catch(e){}
+    }
+    clients.sort((a,b)=>(a.name||"").localeCompare(b.name||"","hu"));
+    if(!silent&&typeof showToast==="function")showToast(merged?"✓ "+merged+" duplikált ügyfél összevonva":"✓ Nincs duplikált ügyfél");
+    return {merged,groups:dup.length};
+  });
+}
+async function manualMergeClients(){
+  const btn=document.getElementById("merge-clients-btn");if(btn){btn.disabled=true;btn.textContent="🧹 Összevonás..."}
+  await loadClients();const r=await mergeDuplicateClients(true);
+  if(btn){btn.disabled=false;btn.textContent="🧹 Duplikált ügyfelek összevonása"}
+  if(typeof showToast==="function")showToast(r.merged?"✓ "+r.merged+" duplikált ügyfél összevonva ("+r.groups+" ügyfélnél)":"✓ Nincs duplikált ügyfél");
+  renderClientsList();
+}
 
-async function autoImportBookingsAsClients(){
+async function autoImportBookingsAsClients(){return _clientSyncLock(_autoImportBookingsAsClients)}
+async function _autoImportBookingsAsClients(){
   if(!currentUser){return{created:0,found:0,error:"no-user"}}
   if(!bookings.length){return{created:0,found:0}}
   
@@ -5490,12 +5565,8 @@ async function autoImportBookingsAsClients(){
   let lastError=null;
   for(const b of bookings){
     if(!b.name||(!b.email&&!b.phone)){continue}
-    const bEmail=_normalizeEmail(b.email);
-    const bPhone=_normalizePhone(b.phone);
-    let existing=null;
-    if(bEmail)existing=clients.find(c=>_normalizeEmail(c.email)===bEmail&&bEmail);
-    if(!existing&&bPhone)existing=clients.find(c=>_normalizePhone(c.phone)===bPhone&&bPhone);
-    if(existing){foundCount++;continue}
+    const existing=_findClient(b);
+    if(existing){foundCount++;await _fillClientGaps(existing,b);continue}
     // Nem létezik, létrehozzuk
     try{
       
@@ -5531,6 +5602,7 @@ async function manualSyncBookings(){
   if(btn){btn.disabled=true;btn.textContent="🔄 Szinkronizálás..."}
   await loadBookings();
   const result=await autoImportBookingsAsClients();
+  await mergeDuplicateClients(true);
   if(btn){btn.disabled=false;btn.textContent="🔄 Foglalások szink."}
   let msg="";
   if(result.error&&result.error>0)msg="❌ Hiba: "+(result.lastError||"ismeretlen");
@@ -5542,7 +5614,8 @@ async function manualSyncBookings(){
 }
 
 // Galériák ügyfélként való importálása (azoknál, ahol van email cím)
-async function autoImportGalleriesAsClients(){
+async function autoImportGalleriesAsClients(){return _clientSyncLock(_autoImportGalleriesAsClients)}
+async function _autoImportGalleriesAsClients(){
   if(!currentUser)return{created:0,found:0,error:0};
   let createdCount=0,foundCount=0,errorCount=0,lastError=null;
   for(const g of galleries){
@@ -5550,7 +5623,7 @@ async function autoImportGalleriesAsClients(){
     if(!g.child||!g.parentEmail)continue;// email nélküli (pl. iskolai) galériát nem tudunk párosítani
     const gEmail=_normalizeEmail(g.parentEmail);
     if(!gEmail)continue;
-    const existing=clients.find(c=>_normalizeEmail(c.email)===gEmail&&gEmail);
+    const existing=_findClient({name:g.child,email:g.parentEmail});
     if(existing){foundCount++;continue}
     try{
       const cdata={
@@ -5575,6 +5648,7 @@ async function manualSyncGalleries(){
   const btn=document.getElementById("sync-galleries-btn");
   if(btn){btn.disabled=true;btn.textContent="🔄 Szinkronizálás..."}
   const result=await autoImportGalleriesAsClients();
+  await mergeDuplicateClients(true);
   if(btn){btn.disabled=false;btn.textContent="🔄 Galériák szinkronizálása ügyfelekkel"}
   let msg="";
   if(result.error&&result.error>0)msg="❌ Hiba: "+(result.lastError||"ismeretlen");
@@ -7039,7 +7113,7 @@ function setAdminTab(tab){
   if(tab==="messages"){_adminChatGalleryId=null;document.getElementById("admin-messages").innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">⏳ Üzenetek betöltése…</div>';loadAllMessages().then(()=>{renderMessagesList();updateMessagesBadge()})}
   if(tab==="clients"){
     // Foglalások szinkronizálása, hogy a friss ügyfeleket lássuk
-    loadBookings().then(async()=>{await autoImportBookingsAsClients();renderClientsList()});
+    loadBookings().then(async()=>{await autoImportBookingsAsClients();await mergeDuplicateClients(true);renderClientsList()});
   }
   if(tab==="calendar"){_publicMode=false;_selectedBookingDate=null;loadBookings().then(async()=>{await autoImportBookingsAsClients();await syncPublicAvailability();await syncPublicTakenSlots();renderCalendar(true)})}
 }
