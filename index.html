@@ -8338,7 +8338,7 @@ function _downloadTablePdf(opts){
   const rows=opts.rows||[];
   if(!rows.length){alert("Nincs mit letölteni: a lista üres.");return}
   const { jsPDF }=window.jspdf;
-  const land=opts.landscape!==false;
+  const land=opts.landscape===true;// alapból álló (portré) A4
   const doc=new jsPDF({unit:"mm",format:"a4",orientation:land?"landscape":"portrait"});
   let FONT="Roboto";
   try{
@@ -8375,7 +8375,7 @@ function _downloadTablePdf(opts){
   const cols=opts.cols;
   const tw=cols.reduce((t,c)=>t+c.w,0),avail=pageW-2*mX;
   if(Math.abs(tw-avail)>0.5)cols.forEach(c=>c.w=c.w*avail/tw);
-  const lineH=4,padY=1.6,padX=1.6,fs=8.8;
+  const lineH=4.2,padY=2.2,padX=1.8,fs=9;
   let y=mTop,page=1;
   function header(first){
     y=mTop;
@@ -8399,17 +8399,29 @@ function _downloadTablePdf(opts){
   header(true);
   rows.forEach((r,ri)=>{
     doc.setFontSize(fs);
-    const cells=r.map((v,i)=>{doc.setFont(FONT,cols[i].bold?"bold":"normal");const t=clean(v);return t?doc.splitTextToSize(t,cols[i].w-2*padX):[]});
+    // egy cella több sorból is állhat (tömb); a sorok lehetnek félkövérek / halványak
+    const cells=r.map((v,i)=>{
+      const parts=Array.isArray(v)?v:[v];const out=[];
+      parts.forEach((pt,pi)=>{
+        const o=(pt&&typeof pt==="object")?pt:{t:pt};
+        const b=o.b!==undefined?o.b:(cols[i].bold&&pi===0);
+        doc.setFont(FONT,b?"bold":"normal");doc.setFontSize(fs);
+        const t=clean(o.t);if(!t)return;
+        doc.splitTextToSize(t,cols[i].w-2*padX).forEach(l=>out.push({l,b,m:!!o.muted,c:o.color||null}));
+      });
+      return out;
+    });
     const rowH=Math.max(1,...cells.map(c=>c.length))*lineH+2*padY;
     if(y+rowH>pageH-mBottom){footer();doc.addPage();page++;header(false)}
     if(ri%2===1){doc.setFillColor(250,247,242);doc.rect(mX,y,avail,rowH,"F")}
     let x=mX;
     cols.forEach((c,i)=>{
-      if(cells[i].length){
-        doc.setFont(FONT,c.bold?"bold":"normal");doc.setFontSize(fs);doc.setTextColor(30,22,14);
-        if(c.right)doc.text(cells[i],x+c.w-padX,y+padY+3.1,{align:"right"});
-        else doc.text(cells[i],x+padX,y+padY+3.1);
-      }
+      cells[i].forEach((ln,li)=>{
+        doc.setFont(FONT,ln.b?"bold":"normal");doc.setFontSize(fs);
+        if(ln.c)doc.setTextColor(ln.c[0],ln.c[1],ln.c[2]);else if(ln.m)doc.setTextColor(115,100,90);else doc.setTextColor(30,22,14);
+        const yy=y+padY+3.1+li*lineH;
+        if(c.right)doc.text(ln.l,x+c.w-padX,yy,{align:"right"});else doc.text(ln.l,x+padX,yy);
+      });
       x+=c.w;
     });
     y+=rowH;
@@ -8455,14 +8467,19 @@ function _pdfOrdersDownload(list,title,filters,fileBase){
   const rows=list.map((o,i)=>{
     const f=_orderFlags(o);
     let d="";try{if(o.createdAt)d=new Date(o.createdAt).toLocaleDateString("hu-HU")}catch(e){}
-    return [String(i+1),o.child||"-",_pdfStripEmoji(_orderClassKey(o).label).replace(/^Egyéb$/,""),o.parentName||"",o.parentEmail||"",o.phone||"",_pdfOrderSummary(o),typeof o.total==="number"?fmt(o.total):"",f.paid?"Igen":"NEM",d];
+    const cls=_pdfStripEmoji(_orderClassKey(o).label).replace(/^Egyéb$/,"");
+    return [String(i+1),
+      [{t:o.child||"-",b:true},cls?{t:cls,muted:true}:"",d?{t:"rendelve: "+d,muted:true}:""],
+      [{t:o.parentName||"",b:true},o.parentEmail||"",o.phone||""],
+      [_pdfOrderSummary(o)],
+      [{t:typeof o.total==="number"?fmt(o.total):"",b:true},f.paid?{t:"fizetve",b:true,color:[46,139,87]}:{t:"nincs fizetve",b:true,color:[200,90,30]}]];
   });
   const sum=list.reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0);
   const paid=list.filter(o=>_orderFlags(o).paid).reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0);
   _downloadTablePdf({
     title:title,
     subtitle:(filters.length?"Szűrés: "+filters.join(", ")+" · ":"")+list.length+" rendelés",
-    cols:[{t:"#",w:7},{t:"Gyerek",w:36,bold:true},{t:"Osztály",w:20},{t:"Szülő",w:32},{t:"E-mail",w:48},{t:"Telefon",w:26},{t:"Rendelés",w:46},{t:"Összeg",w:20,right:true},{t:"Fizetve",w:15},{t:"Dátum",w:23}],
+    cols:[{t:"#",w:8},{t:"Gyerek",w:44},{t:"Szülő · elérhetőség",w:62},{t:"Rendelés",w:42},{t:"Összeg",w:30,right:true}],
     rows:rows,
     summary:"Összesen: "+fmt(sum)+" · fizetve: "+fmt(paid)+" · még fizetendő: "+fmt(sum-paid),
     filename:fileBase+(filters.length?"_"+_pdfFileSafe(filters.join("_")):"")+"_"+_pdfDateStamp()+".pdf"
@@ -8477,7 +8494,10 @@ function downloadGalleriesPdf(){
     const em=g.parentEmail||(_galleryKnownEmails(g)[0]||{}).email||"";
     const dl=_downloadsByGallery[g.id];
     const seen=g.lastVisitAt?new Date(g.lastVisitAt).toLocaleDateString("hu-HU"):"még nem";
-    return [String(i+1),g.child||g.name||"-",g.bulkClass||(g.isGroup?"csoportos":""),g.code||"",em,cnt[g.id]>0?"Igen ("+cnt[g.id]+")":"Nem",g.downloadEnabled===true?(dl?"Igen ("+dl.count+"×)":"Nem"):"–",seen];
+    return [String(i+1),
+      [{t:g.child||g.name||"-",b:true},{t:(g.bulkClass||(g.isGroup?"csoportos":""))+(g.code?" · kód: "+g.code:""),muted:true}],
+      [em||{t:"nincs e-mail",muted:true}],
+      [cnt[g.id]>0?{t:"rendelt ("+cnt[g.id]+")",color:[46,139,87]}:{t:"még nem rendelt",b:true,color:[200,90,30]},g.downloadEnabled===true?{t:dl?"letöltötte ("+dl.count+"×)":"még nem töltötte le",muted:true}:"",{t:"belépett: "+seen,muted:true}]];
   });
   const f=[];
   if(_galleryClassFilter&&_galleryClassFilter!=="all")f.push("Osztály: "+_galleryClassFilter);
@@ -8487,18 +8507,18 @@ function downloadGalleriesPdf(){
   _downloadTablePdf({
     title:"Galériák",
     subtitle:(f.length?"Szűrés: "+f.join(", ")+" · ":"")+list.length+" galéria",
-    cols:[{t:"#",w:8},{t:"Név",w:50,bold:true},{t:"Osztály",w:30},{t:"Kód",w:24},{t:"E-mail",w:62},{t:"Rendelt",w:28},{t:"Letöltötte",w:30},{t:"Utolsó belépés",w:41}],
+    cols:[{t:"#",w:8},{t:"Név",w:60},{t:"E-mail",w:68},{t:"Állapot",w:50}],
     rows:rows,
     filename:"galeriak"+(f.length?"_"+_pdfFileSafe(f.join("_")):"")+"_"+_pdfDateStamp()+".pdf"
   });
 }
 function downloadClientsPdf(){
-  const rows=_pdfClients.map((c,i)=>[String(i+1),c.name||"-",c.phone||"",c.email||"",(c.children||[]).map(ch=>ch.institution?ch.name+" ("+ch.institution+")":ch.name).join(", "),(c.tags||[]).join(", ")]);
+  const rows=_pdfClients.map((c,i)=>[String(i+1),[{t:c.name||"-",b:true},(c.tags||[]).length?{t:(c.tags||[]).join(", "),muted:true}:""],[c.phone||"",c.email||""],(c.children||[]).map(ch=>ch.institution?ch.name+" ("+ch.institution+")":ch.name)]);
   const q=(_clientSearch||"").trim();
   _downloadTablePdf({
     title:"Ügyfelek",
     subtitle:(q?"Keresés: „"+q+"” · ":"")+_pdfClients.length+" ügyfél",
-    cols:[{t:"#",w:8},{t:"Név",w:48,bold:true},{t:"Telefon",w:32},{t:"E-mail",w:62},{t:"Gyerek(ek)",w:80},{t:"Címkék",w:43}],
+    cols:[{t:"#",w:8},{t:"Név",w:52},{t:"Elérhetőség",w:64},{t:"Gyerek(ek)",w:62}],
     rows:rows,
     filename:"ugyfelek"+(q?"_"+_pdfFileSafe(q):"")+"_"+_pdfDateStamp()+".pdf"
   });
