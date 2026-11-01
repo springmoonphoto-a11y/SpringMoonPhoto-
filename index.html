@@ -399,6 +399,8 @@ body.dark-mode .public-day-description{background:rgba(255,255,255,.05);color:#e
 .pm-count{font-size:.74rem;color:var(--muted)}
 .pm-mixed{font-size:.7rem;background:#fdebd0;color:#7a4a00;border-radius:99px;padding:1px 7px}
 .pm-empty{font-size:.8rem;color:var(--muted);font-style:italic;padding:4px 0}
+.stat-click{cursor:pointer}
+.stat-click:hover{outline:1.5px solid var(--gold)}
 .pm-sum-row{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--cream);border-radius:10px;cursor:pointer}
 .pm-sum-row:hover{outline:1.5px solid var(--gold)}
 .proj-stat-title{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--brown);margin-bottom:10px}
@@ -4935,7 +4937,8 @@ function renderStats(){
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem">'+fmt(avgOrder)+'</div><div class="stat-label">Átlag rendelés</div></div>';
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:var(--green)">'+fmt(paidRev)+'</div><div class="stat-label">💰 Fizetett</div></div>';
   html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:#2a6fb0">'+fmt(completedRev)+'</div><div class="stat-label">⭐ Teljesítve</div></div>';
-  html+='<div class="stat-card"><div class="stat-num" style="font-size:1.5rem;color:#856404">'+fmt(pendingRev)+'</div><div class="stat-label">Még nincs fizetve</div></div></div>';
+  const _unpaidN=orders.filter(o=>!_orderFlags(o).paid).length;
+  html+='<div class="stat-card stat-click" onclick="showUnpaidOrders()" title="Megmutatja, kik nem fizettek még"><div class="stat-num" style="font-size:1.5rem;color:#856404">'+fmt(pendingRev)+'</div><div class="stat-label">⏳ Még nincs fizetve ('+_unpaidN+' rendelés)<br><span style="font-size:.72rem;text-decoration:underline">Kattints a listához →</span></div></div></div>';
   html+='<div class="new-form"><h3>📈 Havi bevétel (utolsó 12 hónap)</h3>';
   if(months.length===0){html+='<p style="color:var(--muted);font-style:italic">Még nincs adat.</p>'}
   else{html+='<div style="display:flex;flex-direction:column;gap:8px">';months.forEach(k=>{const m=monthlyData[k];const pct=(m.revenue/maxMonthRev)*100;html+='<div><div style="display:flex;justify-content:space-between;font-size:.83rem;margin-bottom:3px"><span style="color:var(--dark);font-weight:500">'+m.label+'</span><span style="color:var(--gold);font-weight:600">'+fmt(m.revenue)+' ('+m.count+' rendelés)</span></div><div style="background:var(--warm);height:10px;border-radius:5px;overflow:hidden"><div style="background:var(--gold);height:100%;width:'+pct+'%;transition:width .3s"></div></div></div>'});html+='</div>'}
@@ -5168,7 +5171,7 @@ function _projectBudgetHtml(orders,classRevenue){
     const nn=orders.filter(o=>_projOfOrder(o)==="__none__");if(nn.length)rows.push({id:"__none__",name:"Nincs fotózáshoz rendelve",os:nn,exp:0});
     let h='<div class="new-form" style="margin-bottom:14px"><h3>📁 Fotózásonként</h3><div style="display:flex;flex-direction:column;gap:8px">';
     rows.forEach(r=>{const paid=r.os.filter(o=>_orderFlags(o).paid).reduce((t,o)=>t+o.total,0),tot=r.os.reduce((t,o)=>t+o.total,0);
-      h+='<div class="pm-sum-row" onclick="setProjectFilter(\''+_pcEsc(r.id)+'\')"><div><strong>'+_pcEsc(r.name)+'</strong><div style="font-size:.76rem;color:var(--muted)">'+r.os.length+' rendelés · '+fmt(tot)+' összesen'+(r.exp?' · kiadás: '+fmt(r.exp):'')+'</div></div><div style="text-align:right"><div style="font-weight:700;color:var(--green)">'+fmt(paid-r.exp)+'</div><div style="font-size:.72rem;color:var(--muted)">'+(r.exp?'fizetett − kiadás':'fizetett')+'</div></div></div>'});
+      h+='<div class="pm-sum-row" onclick="setProjectFilter(\''+_pcEsc(r.id)+'\')"><div><strong>'+_pcEsc(r.name)+'</strong><div style="font-size:.76rem;color:var(--muted)">'+r.os.length+' rendelés · '+fmt(tot)+' összesen'+(r.exp?' · kiadás: '+fmt(r.exp):'')+(tot-paid>0?'<br><span style="color:#b07a10">⏳ még nem fizetett: '+fmt(tot-paid)+' ('+r.os.filter(o=>!_orderFlags(o).paid).length+' rendelés)</span>':'')+'</div></div><div style="text-align:right"><div style="font-weight:700;color:var(--green)">'+fmt(paid-r.exp)+'</div><div style="font-size:.72rem;color:var(--muted)">'+(r.exp?'fizetett − kiadás':'fizetett')+'</div></div></div>'});
     return h+'</div><p style="font-size:.74rem;color:var(--muted);margin-top:8px">Kattints egy fotózásra a részletes statisztikájához.</p></div>';
   }
   if(f==="__none__")return "";
@@ -5189,6 +5192,15 @@ function _projectBudgetHtml(orders,classRevenue){
   exps.forEach(e=>{h+='<div class="exp-row"><span>'+_pcEsc(e.label)+(e.date?' <span style="color:var(--muted);font-size:.74rem">· '+new Date(e.date).toLocaleDateString("hu-HU")+'</span>':'')+'</span><strong>'+fmt(Number(e.amount)||0)+'</strong><button title="Törlés" onclick="removeProjectExpense(\''+e.id+'\')">🗑️</button></div>'});
   h+='<div class="exp-add"><input id="exp-label" type="text" placeholder="Megnevezés, pl. Nyomda – 10×15 képek"><input id="exp-amount" type="number" min="0" step="1" placeholder="Összeg (Ft)" onkeydown="if(event.key===\'Enter\')addProjectExpense()"><button class="btn btn-sm" style="width:auto" onclick="addProjectExpense()">➕ Hozzáadás</button></div>';
   return h+'</div>';
+}
+// A "Még nincs fizetve" kártyáról: az Aktív fül a lezártakkal együtt, csak a nem fizetett rendelésekkel
+function showUnpaidOrders(){
+  setAdminTab("orders");
+  _orderFilter={paid:false,delivered:null,edited:null,pending:null,completed:false,types:{print:false,digital:false,gift:false},multi:false,cls:null,size:null};
+  _orderScopeMode="all";_orderChildView=null;
+  if(typeof clearSelection==="function")clearSelection();
+  renderAdminOrders();
+  setTimeout(()=>{const el=document.getElementById("order-filter-bar");if(el)try{el.scrollIntoView({behavior:"smooth",block:"start"})}catch(e){}},80);
 }
 function renderAdmin(){
   renderProjectBar();_renderHeaderStats();
