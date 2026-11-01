@@ -342,6 +342,7 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .slot-btn.booked{background:#fde0e0;border-color:#e8a0a0;color:#8a3030;cursor:not-allowed}
 .slot-btn.booked:hover{transform:none}
 .slot-btn.slot-admin-free{border-style:dashed}
+.public-day-price{font-size:1rem;color:var(--brown);margin:0 0 10px;padding:8px 12px;background:var(--cream);border-radius:10px;display:inline-block}
 .admin-bk-box{border:1.5px solid var(--gold);border-radius:12px;padding:14px;background:var(--cream)}
 .admin-bk-box input,.admin-bk-box select{width:100%;box-sizing:border-box}
 .avail-settings{background:var(--cream);border-radius:8px;padding:12px;margin-bottom:14px}
@@ -5316,7 +5317,8 @@ function renderClientsList(){
   const wrap=document.getElementById("admin-clients");if(!wrap)return;
   let html='<div class="client-search-bar"><input id="client-search" type="text" placeholder="Keresés név, email, telefon, intézmény, gyermek..." value="'+(_clientSearch||"").replace(/"/g,'&quot;')+'" oninput="onClientSearchChange(this.value)"></div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><button class="btn" onclick="showClientForm()">+ Új ügyfél</button><button class="btn btn-outline" id="sync-bookings-btn" onclick="manualSyncBookings()">🔄 Foglalások szink.</button></div>';
-  html+='<button class="btn btn-outline" id="sync-galleries-btn" style="width:100%;margin-bottom:14px" onclick="manualSyncGalleries()">🔄 Galériák szinkronizálása ügyfelekkel</button>';
+  html+='<button class="btn btn-outline" id="sync-galleries-btn" style="width:100%;margin-bottom:8px" onclick="manualSyncGalleries()">🔄 Galériák szinkronizálása ügyfelekkel</button>';
+  html+='<button class="btn btn-outline" id="merge-clients-btn" style="width:100%;margin-bottom:14px" onclick="manualMergeClients()">🧹 Duplikált ügyfelek összevonása</button>';
   html+='<div id="client-cards-list"></div>';
   wrap.innerHTML=html;
   renderClientCards();
@@ -5479,10 +5481,84 @@ async function loadBookings(){
 }
 
 // === Foglalások automatikus átemelése ügyfelek közé (duplikátum-védelemmel) ===
-function _normalizePhone(p){return(p||"").replace(/[\s\-\+\(\)]/g,"")}
+// Telefonszám összevetéshez: csak a számjegyek, és az utolsó 9 (így a +36 30…, 06 30…, 30… ugyanaz)
+function _normalizePhone(p){const d=String(p||"").replace(/\D/g,"");return d.length>=9?d.slice(-9):d}
 function _normalizeEmail(e){return(e||"").toLowerCase().trim()}
+function _normalizeName(n){return String(n||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9]+/g," ").trim().toLowerCase()}
+// Ugyanaz az ügyfél-e: azonos email VAGY azonos telefon VAGY azonos név (ha az email/telefon nem mond ellent)
+function _sameClient(a,b){
+  const ea=_normalizeEmail(a.email),eb=_normalizeEmail(b.email),pa=_normalizePhone(a.phone),pb=_normalizePhone(b.phone);
+  if(ea&&eb&&ea===eb)return true;
+  if(pa&&pb&&pa===pb)return true;
+  const na=_normalizeName(a.name),nb=_normalizeName(b.name);
+  if(na&&nb&&na===nb){if(ea&&eb&&ea!==eb)return false;if(pa&&pb&&pa!==pb)return false;return true}
+  return false;
+}
+function _findClient(x){return clients.find(c=>_sameClient(c,x))||null}
+// Egyszerre csak egy szinkron futhat (különben két párhuzamos futás ugyanazt az ügyfelet kétszer hozná létre)
+let _clientSyncChain=Promise.resolve();
+function _clientSyncLock(fn){const p=_clientSyncChain.then(fn,fn);_clientSyncChain=p.catch(()=>{});return p}
+// Hiányzó adatok pótlása egy meglévő ügyfélnél (pl. a foglalásnál megadott telefonszám)
+async function _fillClientGaps(c,x){
+  const up={};
+  if(!c.email&&x.email)up.email=x.email;
+  if(!c.phone&&x.phone)up.phone=x.phone;
+  if(!Object.keys(up).length)return;
+  try{up.updatedAt=Date.now();await db.collection("clients").doc(c.id).update(up);Object.assign(c,up)}catch(e){}
+}
+// === Duplikált ügyfelek összevonása: ugyanaz a név / email / telefon → egy ügyfél marad, az adatok összeadódnak ===
+async function mergeDuplicateClients(silent){
+  return _clientSyncLock(async()=>{
+    if(!currentUser||clients.length<2)return {merged:0,groups:0};
+    const n=clients.length,par=clients.map((_,i)=>i);
+    const find=i=>{while(par[i]!==i){par[i]=par[par[i]];i=par[i]}return i};
+    for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(_sameClient(clients[i],clients[j])){const a=find(i),b=find(j);if(a!==b)par[b]=a}
+    const groups={};clients.forEach((c,i)=>{const r=find(i);(groups[r]=groups[r]||[]).push(c)});
+    const dup=Object.values(groups).filter(g=>g.length>1);
+    if(!dup.length)return {merged:0,groups:0};
+    let merged=0;
+    for(const g of dup){
+      g.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+      const keep=g[0],others=g.slice(1);
+      const up={};
+      ["name","email","phone","address","partnerName","birthDate","weddingDate"].forEach(f=>{if(!keep[f]){const o=others.find(x=>x[f]);if(o)up[f]=o[f]}});
+      // eltérő email / telefon nem vész el: a megjegyzésbe kerül
+      const extra=[];
+      others.forEach(o=>{
+        if(o.email&&_normalizeEmail(o.email)!==_normalizeEmail(up.email||keep.email))extra.push("Másik email: "+o.email);
+        if(o.phone&&_normalizePhone(o.phone)!==_normalizePhone(up.phone||keep.phone))extra.push("Másik telefon: "+o.phone);
+      });
+      const kids=(keep.children||[]).slice();
+      others.forEach(o=>(o.children||[]).forEach(ch=>{if(ch&&!kids.some(k=>_normalizeName(k.name)===_normalizeName(ch.name)))kids.push(ch)}));
+      const tags=Array.from(new Set([].concat(keep.tags||[],...others.map(o=>o.tags||[])).filter(Boolean)));
+      const notes=[];[keep].concat(others).forEach(o=>String(o.notes||"").split(/\n\s*\n/).forEach(p=>{p=p.trim();if(p&&!notes.includes(p))notes.push(p)}));
+      extra.forEach(e=>{if(!notes.includes(e))notes.push(e)});
+      up.children=kids;up.tags=tags;up.notes=notes.join("\n\n");up.updatedAt=Date.now();
+      try{
+        const batch=db.batch();
+        batch.update(db.collection("clients").doc(keep.id),up);
+        others.forEach(o=>batch.delete(db.collection("clients").doc(o.id)));
+        await batch.commit();
+        Object.assign(keep,up);
+        const ids=new Set(others.map(o=>o.id));clients=clients.filter(c=>!ids.has(c.id));
+        merged+=others.length;
+      }catch(e){}
+    }
+    clients.sort((a,b)=>(a.name||"").localeCompare(b.name||"","hu"));
+    if(!silent&&typeof showToast==="function")showToast(merged?"✓ "+merged+" duplikált ügyfél összevonva":"✓ Nincs duplikált ügyfél");
+    return {merged,groups:dup.length};
+  });
+}
+async function manualMergeClients(){
+  const btn=document.getElementById("merge-clients-btn");if(btn){btn.disabled=true;btn.textContent="🧹 Összevonás..."}
+  await loadClients();const r=await mergeDuplicateClients(true);
+  if(btn){btn.disabled=false;btn.textContent="🧹 Duplikált ügyfelek összevonása"}
+  if(typeof showToast==="function")showToast(r.merged?"✓ "+r.merged+" duplikált ügyfél összevonva ("+r.groups+" ügyfélnél)":"✓ Nincs duplikált ügyfél");
+  renderClientsList();
+}
 
-async function autoImportBookingsAsClients(){
+async function autoImportBookingsAsClients(){return _clientSyncLock(_autoImportBookingsAsClients)}
+async function _autoImportBookingsAsClients(){
   if(!currentUser){return{created:0,found:0,error:"no-user"}}
   if(!bookings.length){return{created:0,found:0}}
   
@@ -5490,12 +5566,8 @@ async function autoImportBookingsAsClients(){
   let lastError=null;
   for(const b of bookings){
     if(!b.name||(!b.email&&!b.phone)){continue}
-    const bEmail=_normalizeEmail(b.email);
-    const bPhone=_normalizePhone(b.phone);
-    let existing=null;
-    if(bEmail)existing=clients.find(c=>_normalizeEmail(c.email)===bEmail&&bEmail);
-    if(!existing&&bPhone)existing=clients.find(c=>_normalizePhone(c.phone)===bPhone&&bPhone);
-    if(existing){foundCount++;continue}
+    const existing=_findClient(b);
+    if(existing){foundCount++;await _fillClientGaps(existing,b);continue}
     // Nem létezik, létrehozzuk
     try{
       
@@ -5531,6 +5603,7 @@ async function manualSyncBookings(){
   if(btn){btn.disabled=true;btn.textContent="🔄 Szinkronizálás..."}
   await loadBookings();
   const result=await autoImportBookingsAsClients();
+  await mergeDuplicateClients(true);
   if(btn){btn.disabled=false;btn.textContent="🔄 Foglalások szink."}
   let msg="";
   if(result.error&&result.error>0)msg="❌ Hiba: "+(result.lastError||"ismeretlen");
@@ -5542,7 +5615,8 @@ async function manualSyncBookings(){
 }
 
 // Galériák ügyfélként való importálása (azoknál, ahol van email cím)
-async function autoImportGalleriesAsClients(){
+async function autoImportGalleriesAsClients(){return _clientSyncLock(_autoImportGalleriesAsClients)}
+async function _autoImportGalleriesAsClients(){
   if(!currentUser)return{created:0,found:0,error:0};
   let createdCount=0,foundCount=0,errorCount=0,lastError=null;
   for(const g of galleries){
@@ -5550,7 +5624,7 @@ async function autoImportGalleriesAsClients(){
     if(!g.child||!g.parentEmail)continue;// email nélküli (pl. iskolai) galériát nem tudunk párosítani
     const gEmail=_normalizeEmail(g.parentEmail);
     if(!gEmail)continue;
-    const existing=clients.find(c=>_normalizeEmail(c.email)===gEmail&&gEmail);
+    const existing=_findClient({name:g.child,email:g.parentEmail});
     if(existing){foundCount++;continue}
     try{
       const cdata={
@@ -5575,6 +5649,7 @@ async function manualSyncGalleries(){
   const btn=document.getElementById("sync-galleries-btn");
   if(btn){btn.disabled=true;btn.textContent="🔄 Szinkronizálás..."}
   const result=await autoImportGalleriesAsClients();
+  await mergeDuplicateClients(true);
   if(btn){btn.disabled=false;btn.textContent="🔄 Galériák szinkronizálása ügyfelekkel"}
   let msg="";
   if(result.error&&result.error>0)msg="❌ Hiba: "+(result.lastError||"ismeretlen");
@@ -5618,12 +5693,12 @@ function _bookingConfirmText(b,kind){
   const phone=(window.MY_PROFILE&&window.MY_PROFILE.phone)||"";
   const link=bookingCancelLink(b);
   if(kind==="sms"){
-    let t="Kedves "+(b.name||"")+"! Visszaigazolom a fotózás időpontját: "+formatBookingDate(b.date)+" "+_bookingTimeText(b)+".";
+    let t="Kedves "+(b.name||"")+"! Visszaigazolom a fotózás időpontját: "+formatBookingDate(b.date)+" "+_bookingTimeText(b)+"."+(Number(b.price)>0?" Ár: "+fmt(Number(b.price))+".":"");
     if(link)t+=" Ha mégsem jó, legkésőbb "+BOOKING_CANCEL_HOURS+" órával előtte itt lemondhatod: "+link;
     return t+" - "+brand;
   }
   let t="Kedves "+(b.name||"")+"!\n\nKöszönöm a foglalást, visszaigazolom az időpontot:\n\n";
-  t+="📅 Dátum: "+formatBookingDate(b.date)+"\n🕐 Időpont: "+_bookingTimeText(b)+"\n"+(b.type?"📸 Típus: "+b.type+"\n":"");
+  t+="📅 Dátum: "+formatBookingDate(b.date)+"\n🕐 Időpont: "+_bookingTimeText(b)+"\n"+(b.type?"📸 Típus: "+b.type+"\n":"")+(Number(b.price)>0?"💰 Ár: "+fmt(Number(b.price))+"\n":"");
   t+="\nVárlak szeretettel a megadott időpontban!\n\n";
   if(link)t+="Ha mégsem jó az időpont, legkésőbb "+BOOKING_CANCEL_HOURS+" órával előtte itt tudod lemondani:\n"+link+"\n\n";
   if(phone)t+="Ha ennél később jön közbe valami, kérlek hívj: "+phone+"\n\n";
@@ -5700,6 +5775,9 @@ async function copyBookingLink(){
 }
 // === TÍPUS SZERINTI IDŐTARTAM (pl. csak a gyerek 5 perc, testvérrel/családdal 10 perc) ===
 // Ha egy napnál be van kapcsolva: a rács lépése a rövidebb idő (day.duration), a hosszabb foglalás több egymás utáni helyet foglal le.
+// Ár a naphoz (nem kötelező): típusos napnál külön a csak gyerek / családos időpont ára
+function _dayPrice(day,kind){if(!day)return 0;if(_dayTyped(day))return Number(kind==="family"?day.priceFamily:day.priceSolo)||0;return Number(day.price)||0}
+function _priceTxt(n){return n>0?fmt(n):""}
 function _dayTyped(day){return !!(day&&day.typedDuration&&Number(day.durSolo)>0&&Number(day.durFamily)>0)}
 function _minToHm(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
 function _bookingDur(b,day){const d=Number(b&&b.duration);return d>0?d:(Number(day&&day.duration)||30)}
@@ -6063,6 +6141,7 @@ async function saveAdminBooking(){
   try{
     const data={photographerId:currentUser.uid,date:_selectedBookingDate,time,duration:len,name,email,phone,notes,status:"confirmed",addedByAdmin:true,cancelToken:_newCancelToken(),createdAt:Date.now()};
     if(_adminBkType){data.type=_adminBkType;data.photoType=_adminBkType}
+    const _ap=_dayPrice(day,_dayTyped(day)?(_adminBkType==="Szülővel / családdal"?"family":"solo"):null);if(_ap>0)data.price=_ap;
     await db.collection("bookings").add(data);
     await loadBookings();
     await syncPublicTakenSlots();
@@ -6079,14 +6158,16 @@ function renderAdminDayDetail(){
   html+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="bk-enabled" '+(dayConf.enabled?"checked":"")+' style="width:auto"> Foglalható ezen a napon</label>';
   html+='<div class="avail-row" style="margin-top:10px"><div><label style="font-size:.74rem;color:var(--muted)">Kezdés</label><input id="bk-start" type="time" value="'+(dayConf.start||"09:00")+'"></div>';
   html+='<div><label style="font-size:.74rem;color:var(--muted)">Befejezés</label><input id="bk-end" type="time" value="'+(dayConf.end||"17:00")+'"></div></div>';
-  html+='<div class="avail-row" style="margin-top:8px;grid-template-columns:1fr"><div><label style="font-size:.74rem;color:var(--muted)">Időpont hossza (perc)</label><select id="bk-duration"><option value="5">5 perc</option><option value="10">10 perc</option><option value="15">15 perc</option><option value="20">20 perc</option><option value="30">30 perc</option><option value="45">45 perc</option><option value="60">60 perc</option><option value="90">90 perc</option><option value="120">120 perc</option></select></div></div>';
+  html+='<div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">Időpont hossza (perc)</label><select id="bk-duration"><option value="5">5 perc</option><option value="10">10 perc</option><option value="15">15 perc</option><option value="20">20 perc</option><option value="30">30 perc</option><option value="45">45 perc</option><option value="60">60 perc</option><option value="90">90 perc</option><option value="120">120 perc</option></select></div><div id="bk-price-single"'+(_dayTyped(dayConf)?' style="display:none"':'')+'><label style="font-size:.74rem;color:var(--muted)">💰 Ár (Ft) – nem kötelező</label><input id="bk-price" type="number" min="0" step="100" placeholder="pl. 15000" value="'+(Number(dayConf.price)>0?Number(dayConf.price):"")+'"></div></div>';
   // Típus szerinti időtartam
   const _typed=_dayTyped(dayConf);
   const _optS=[5,10,15,20,30].map(v=>'<option value="'+v+'"'+((_typed?Number(dayConf.durSolo):5)===v?" selected":"")+'>'+v+' perc</option>').join("");
   const _optF=[10,15,20,30,40,45,60].map(v=>'<option value="'+v+'"'+((_typed?Number(dayConf.durFamily):10)===v?" selected":"")+'>'+v+' perc</option>').join("");
-  html+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px"><input type="checkbox" id="bk-typed" '+(_typed?"checked":"")+' style="width:auto" onchange="document.getElementById(\'bk-typed-box\').style.display=this.checked?\'\':\'none\';document.getElementById(\'bk-duration\').disabled=this.checked"> Más időtartam, ha testvérrel vagy családdal jönnek</label>';
+  html+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px"><input type="checkbox" id="bk-typed" '+(_typed?"checked":"")+' style="width:auto" onchange="document.getElementById(\'bk-typed-box\').style.display=this.checked?\'\':\'none\';document.getElementById(\'bk-duration\').disabled=this.checked;document.getElementById(\'bk-price-single\').style.display=this.checked?\'none\':\'\'"> Más időtartam, ha testvérrel vagy családdal jönnek</label>';
   html+='<div id="bk-typed-box" style="'+(_typed?"":"display:none")+'"><div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">👤 Csak a gyerek</label><select id="bk-dur-solo">'+_optS+'</select></div>';
   html+='<div><label style="font-size:.74rem;color:var(--muted)">👨‍👩‍👧 Testvérrel / családdal</label><select id="bk-dur-family">'+_optF+'</select></div></div>';
+  html+='<div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">💰 Ár – csak a gyerek (Ft)</label><input id="bk-price-solo" type="number" min="0" step="100" placeholder="nem kötelező" value="'+(Number(dayConf.priceSolo)>0?Number(dayConf.priceSolo):"")+'"></div>';
+  html+='<div><label style="font-size:.74rem;color:var(--muted)">💰 Ár – testvérrel / családdal (Ft)</label><input id="bk-price-family" type="number" min="0" step="100" placeholder="nem kötelező" value="'+(Number(dayConf.priceFamily)>0?Number(dayConf.priceFamily):"")+'"></div></div>';
   html+='<div style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.5">A szülő a foglalásnál először kiválasztja, hogy csak a gyereket hozza-e, vagy testvérrel / családdal jön, és ennek megfelelő hosszú időpontot kap. Ilyenkor a fenti „Időpont hossza" nem számít.</div></div>';
   // Szünet (nem foglalható sáv)
   html+='<div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">☕ Szünet kezdete</label><input id="bk-break-start" type="time" value="'+(dayConf.breakStart||"")+'"></div>';
@@ -6138,7 +6219,7 @@ function renderAdminDayDetail(){
       if(b.phone)metaParts.push('<a href="tel:'+b.phone+'" class="booking-link-inline">📞 '+b.phone+'</a>');
       if(b.email)metaParts.push('<a href="mailto:'+b.email+'" class="booking-link-inline">✉️ '+b.email+'</a>');
       if(b.notes)metaParts.push('💬 '+b.notes);
-      html+='<div class="booking-card"><div class="booking-card-info"><div class="booking-card-time">'+_bookingRange(b,dayConf)+(Number(b.duration)>0?' ('+b.duration+' perc)':'')+(b.type?' · '+b.type:'')+' <span class="booking-status-'+statusClass+'">'+statusLabel+'</span>'+(b.addedByAdmin?' <span style="font-size:.72rem;color:var(--muted)">✍️ te írtad be</span>':'')+'</div><div class="booking-card-name">'+_pcEsc(b.name||"")+'</div><div class="booking-card-meta">'+metaParts.join(" · ")+'</div>';
+      html+='<div class="booking-card"><div class="booking-card-info"><div class="booking-card-time">'+_bookingRange(b,dayConf)+(Number(b.duration)>0?' ('+b.duration+' perc)':'')+(b.type?' · '+b.type:'')+(Number(b.price)>0?' · 💰 '+fmt(Number(b.price)):'')+' <span class="booking-status-'+statusClass+'">'+statusLabel+'</span>'+(b.addedByAdmin?' <span style="font-size:.72rem;color:var(--muted)">✍️ te írtad be</span>':'')+'</div><div class="booking-card-name">'+_pcEsc(b.name||"")+'</div><div class="booking-card-meta">'+metaParts.join(" · ")+'</div>';
       // Kapcsolat-felvétel gombok
       html+='<div class="booking-contact-actions">';
       if(b.email)html+='<button onclick="emailBooking(\''+b.id+'\')">✉️ Email</button>';
@@ -6301,7 +6382,9 @@ async function saveDayAvailability(){
   }
   const _loEl=document.getElementById("bk-link-only");
   const linkOnly=_loEl?_loEl.checked:!!existing.linkOnly;
-  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,linkOnly,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
+  const _pv=id=>{const el=document.getElementById(id);if(!el)return null;const v=Math.round(Number(String(el.value).replace(/\s/g,"")));return v>0?v:0};
+  const _p1=_pv("bk-price"),_pS=_pv("bk-price-solo"),_pF=_pv("bk-price-family");
+  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,linkOnly,price:_p1===null?(Number(existing.price)||0):_p1,priceSolo:_pS===null?(Number(existing.priceSolo)||0):_pS,priceFamily:_pF===null?(Number(existing.priceFamily)||0):_pF,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
   // Ha változik az időpont hossza, a napra már leadott (időtartam nélküli) foglalások megtartják az EREDETI hosszukat
   const _oldDur=Number(existing.duration)||0;
   if(_oldDur>0&&_oldDur!==duration){
@@ -6859,12 +6942,13 @@ function renderPublicDayDetail(){
     // Először azt kell kiválasztani, kivel jönnek – ettől függ az időpont hossza
     html+='<div style="font-size:.9rem;font-weight:600;color:var(--brown);margin-bottom:8px">1. Kivel érkeznek a fotózásra?</div>';
     html+='<div class="phototype-options">';
-    html+='<label class="phototype-opt'+(_publicDayType==="solo"?" selected":"")+'" onclick="setPublicDayType(\'solo\')"><input type="radio" name="daytype" '+(_publicDayType==="solo"?"checked":"")+'><span>👤 Csak a gyermek (egyéni kép) – '+dayConf.durSolo+' perc</span></label>';
-    html+='<label class="phototype-opt'+(_publicDayType==="family"?" selected":"")+'" onclick="setPublicDayType(\'family\')"><input type="radio" name="daytype" '+(_publicDayType==="family"?"checked":"")+'><span>👨‍👩‍👧 Testvérrel vagy családdal – '+dayConf.durFamily+' perc</span></label>';
+    html+='<label class="phototype-opt'+(_publicDayType==="solo"?" selected":"")+'" onclick="setPublicDayType(\'solo\')"><input type="radio" name="daytype" '+(_publicDayType==="solo"?"checked":"")+'><span>👤 Csak a gyermek (egyéni kép) – '+dayConf.durSolo+' perc'+(_dayPrice(dayConf,"solo")?' · <strong>'+fmt(_dayPrice(dayConf,"solo"))+'</strong>':'')+'</span></label>';
+    html+='<label class="phototype-opt'+(_publicDayType==="family"?" selected":"")+'" onclick="setPublicDayType(\'family\')"><input type="radio" name="daytype" '+(_publicDayType==="family"?"checked":"")+'><span>👨‍👩‍👧 Testvérrel vagy családdal – '+dayConf.durFamily+' perc'+(_dayPrice(dayConf,"family")?' · <strong>'+fmt(_dayPrice(dayConf,"family"))+'</strong>':'')+'</span></label>';
     html+='</div>';
     if(!_publicDayType){html+='<div style="font-size:.85rem;color:var(--muted);margin:6px 0 4px">A szabad időpontok a választás után jelennek meg.</div></div>';detail.innerHTML=html;return}
     html+='<div style="font-size:.9rem;font-weight:600;color:var(--brown);margin:14px 0 8px">2. Válasszon egy szabad időpontot ('+need+' perc):</div>';
   }else{
+    if(_dayPrice(dayConf))html+='<div class="public-day-price">💰 Ár: <strong>'+fmt(_dayPrice(dayConf))+'</strong></div>';
     html+='<div style="font-size:.85rem;color:var(--muted);margin-bottom:10px">Válasszon egy szabad időpontot:</div>';
   }
   html+='<div class="slot-grid">';
@@ -6880,7 +6964,7 @@ function renderPublicDayDetail(){
   html+='</div>';
   detail.innerHTML=html;
 }
-let _publicDayType=null,_publicDayTypeDate=null,_pendingBookingDuration=0;
+let _publicDayType=null,_publicDayTypeDate=null,_pendingBookingDuration=0,_pendingBookingPrice=0;
 function setPublicDayType(t){_publicDayType=t==="family"?"family":"solo";_publicDayTypeDate=_selectedBookingDate;renderPublicDayDetail()}
 
 function showBookingForm(time){
@@ -6894,7 +6978,8 @@ function showBookingForm(time){
   document.getElementById("booking-form-wrap").classList.remove("hidden");
   const wrap=document.getElementById("booking-form-wrap");
   let html='<div class="booking-form-block"><h3 style="font-family:Playfair Display,serif;color:var(--brown);margin-bottom:6px">Foglalás véglegesítése</h3>';
-  html+='<p style="color:var(--muted);font-size:.92rem;margin-bottom:14px">📅 '+formatBookingDate(_selectedBookingDate)+' · 🕐 '+_fRange+'</p>';
+  _pendingBookingPrice=_dayPrice(_fDay,_fTyped?_publicDayType:null);
+  html+='<p style="color:var(--muted);font-size:.92rem;margin-bottom:14px">📅 '+formatBookingDate(_selectedBookingDate)+' · 🕐 '+_fRange+(_pendingBookingPrice?' · 💰 <strong style="color:var(--brown)">'+fmt(_pendingBookingPrice)+'</strong>':'')+'</p>';
   html+='<label>Név *</label><input id="bk-name" type="text" placeholder="Pl. Kovács Anna">';
   html+='<label>Email cím *</label><input id="bk-email" type="email" placeholder="email@példa.hu">';
   html+='<label>Telefonszám *</label><input id="bk-phone" type="tel" placeholder="+36 20 123 4567">';
@@ -6964,6 +7049,7 @@ async function submitBooking(){
       return;
     }
     const data={photographerId:_publicPhotographerId,date:_selectedBookingDate,time:_pendingBookingTime,duration:_sLen,name,email,phone,type:_pendingPhotoType,photoType:_pendingPhotoType,notes,status:"pending",cancelToken:_newCancelToken(),createdAt:Date.now()};
+    if(_pendingBookingPrice>0)data.price=_pendingBookingPrice;
     await db.collection("bookings").add(data);
     // Cache frissítés a publikus oldalon
     window._publicBookings=window._publicBookings||[];window._publicBookings.push(data);
@@ -6979,7 +7065,7 @@ function showBookingConfirmation(name){
   document.getElementById("booking-public-main").classList.add("hidden");
   const wrap=document.getElementById("booking-confirmation-wrap");
   wrap.classList.remove("hidden");
-  wrap.innerHTML='<div class="booking-confirmation"><div class="booking-confirmation-icon">🎉</div><h2>Köszönjük, '+name+'!</h2><p style="color:var(--muted);margin-bottom:6px">📅 '+formatBookingDate(_selectedBookingDate)+'</p><p style="color:var(--muted);margin-bottom:20px">🕐 '+(_pendingBookingDuration>0&&_hmToMin(_pendingBookingTime)!==null?_pendingBookingTime+"–"+_minToHm(_hmToMin(_pendingBookingTime)+_pendingBookingDuration):_pendingBookingTime)+'</p><p style="margin-bottom:20px">Az időpontfoglalása rögzítve. A fotós hamarosan visszaigazolja az időpontot a megadott email címen vagy telefonszámon.</p><button class="btn btn-outline" onclick="openBookingPage()">Új foglalás</button><button class="btn" style="margin-left:8px" onclick="showPage(\'page-login\')">Vissza a főoldalra</button></div>';
+  wrap.innerHTML='<div class="booking-confirmation"><div class="booking-confirmation-icon">🎉</div><h2>Köszönjük, '+name+'!</h2><p style="color:var(--muted);margin-bottom:6px">📅 '+formatBookingDate(_selectedBookingDate)+'</p><p style="color:var(--muted);margin-bottom:20px">🕐 '+(_pendingBookingDuration>0&&_hmToMin(_pendingBookingTime)!==null?_pendingBookingTime+"–"+_minToHm(_hmToMin(_pendingBookingTime)+_pendingBookingDuration):_pendingBookingTime)+'</p>'+(_pendingBookingPrice?'<p style="color:var(--brown);font-weight:600;margin:-12px 0 20px">💰 Ár: '+fmt(_pendingBookingPrice)+'</p>':'')+'<p style="margin-bottom:20px">Az időpontfoglalása rögzítve. A fotós hamarosan visszaigazolja az időpontot a megadott email címen vagy telefonszámon.</p><button class="btn btn-outline" onclick="openBookingPage()">Új foglalás</button><button class="btn" style="margin-left:8px" onclick="showPage(\'page-login\')">Vissza a főoldalra</button></div>';
 }
 
 // === ADMIN: VÉLEMÉNYEK ===
@@ -7039,7 +7125,7 @@ function setAdminTab(tab){
   if(tab==="messages"){_adminChatGalleryId=null;document.getElementById("admin-messages").innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">⏳ Üzenetek betöltése…</div>';loadAllMessages().then(()=>{renderMessagesList();updateMessagesBadge()})}
   if(tab==="clients"){
     // Foglalások szinkronizálása, hogy a friss ügyfeleket lássuk
-    loadBookings().then(async()=>{await autoImportBookingsAsClients();renderClientsList()});
+    loadBookings().then(async()=>{await autoImportBookingsAsClients();await mergeDuplicateClients(true);renderClientsList()});
   }
   if(tab==="calendar"){_publicMode=false;_selectedBookingDate=null;loadBookings().then(async()=>{await autoImportBookingsAsClients();await syncPublicAvailability();await syncPublicTakenSlots();renderCalendar(true)})}
 }
