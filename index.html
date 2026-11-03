@@ -6974,7 +6974,10 @@ function renderPublicDayDetail(){
   }
   html+='<div class="slot-grid">';
   let freeN=0;
-  slots.forEach(sl=>{
+  // A hosszabb (családos) időpontnál csak a saját hosszával léptetett kezdések látszanak (pl. 60 percesnél 12:00, 13:00, 14:00…)
+  const _st0=_hmToMin(dayConf.start)||0;
+  const _onGrid=sl=>!(typed&&_publicDayType==="family")||((_hmToMin(sl)-_st0)%need===0);
+  slots.filter(_onGrid).forEach(sl=>{
     const ok=_canBook(dayConf,_hmToMin(sl),need,ivs);
     if(ok)freeN++;
     if(!ok)html+='<div class="slot-btn booked">'+sl+' 🔒</div>';
