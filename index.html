@@ -5794,6 +5794,15 @@ function _dayKindLabel(day,kind){
   if(day&&day.soloAnyone)return kind==="family"?"⏱️ Hosszabb fotózás – "+day.durFamily+" perc":"📸 Rövidebb fotózás – "+day.durSolo+" perc (gyermek vagy család)";
   return kind==="family"?"👨‍👩‍👧 Testvérrel vagy családdal – "+(day?day.durFamily:"")+" perc":"👤 Csak a gyermek (egyéni kép) – "+(day?day.durSolo:"")+" perc";
 }
+// Az admin beállításnál a feliratok azonnal kövessék a „család is jöhet” pipát
+function _bkSoloAnyLabels(on){
+  const set=(c,t)=>{const el=document.querySelector(c);if(el)el.textContent=t};
+  set(".bk-lbl-solo",on?"📸 Rövidebb időpont":"👤 Csak a gyerek");
+  set(".bk-lbl-family",on?"⏱️ Hosszabb időpont":"👨‍👩‍👧 Testvérrel / családdal");
+  set(".bk-lbl-psolo",on?"💰 Ár – rövidebb (Ft)":"💰 Ár – csak a gyerek (Ft)");
+  set(".bk-lbl-pfamily",on?"💰 Ár – hosszabb (Ft)":"💰 Ár – testvérrel / családdal (Ft)");
+  set(".bk-typed-hint",on?"A szülő először kiválasztja, hogy rövidebb vagy hosszabb fotózást szeretne (mindkettőre jöhet család is), és ennek megfelelő hosszú időpontot kap. A hosszabbnál csak a saját hosszával léptetett kezdések látszanak (pl. 60 percesnél egész órák). Ilyenkor a fenti „Időpont hossza” nem számít.":"A szülő a foglalásnál először kiválasztja, hogy csak a gyereket hozza-e, vagy testvérrel / családdal jön, és ennek megfelelő hosszú időpontot kap. Ilyenkor a fenti „Időpont hossza” nem számít.");
+}
 // Ár a naphoz (nem kötelező): típusos napnál külön a csak gyerek / családos időpont ára
 function _dayPrice(day,kind){if(!day)return 0;if(_dayTyped(day))return Number(kind==="family"?day.priceFamily:day.priceSolo)||0;return Number(day.price)||0}
 function _priceTxt(n){return n>0?fmt(n):""}
@@ -6183,12 +6192,12 @@ function renderAdminDayDetail(){
   const _optS=[5,10,15,20,30].map(v=>'<option value="'+v+'"'+((_typed?Number(dayConf.durSolo):5)===v?" selected":"")+'>'+v+' perc</option>').join("");
   const _optF=[10,15,20,30,40,45,60].map(v=>'<option value="'+v+'"'+((_typed?Number(dayConf.durFamily):10)===v?" selected":"")+'>'+v+' perc</option>').join("");
   html+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px"><input type="checkbox" id="bk-typed" '+(_typed?"checked":"")+' style="width:auto" onchange="document.getElementById(\'bk-typed-box\').style.display=this.checked?\'\':\'none\';document.getElementById(\'bk-duration\').disabled=this.checked;document.getElementById(\'bk-price-single\').style.display=this.checked?\'none\':\'\'"> Más időtartam, ha testvérrel vagy családdal jönnek</label>';
-  html+='<div id="bk-typed-box" style="'+(_typed?"":"display:none")+'"><div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">👤 Csak a gyerek</label><select id="bk-dur-solo">'+_optS+'</select></div>';
-  html+='<div><label style="font-size:.74rem;color:var(--muted)">👨‍👩‍👧 Testvérrel / családdal</label><select id="bk-dur-family">'+_optF+'</select></div></div>';
-  html+='<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:8px;font-size:.84rem;line-height:1.4"><input type="checkbox" id="bk-solo-any" '+(dayConf.soloAnyone?"checked":"")+' style="width:auto;margin-top:2px"> <span>A rövidebb időpontra <strong>család is jöhet</strong> (nem csak a gyermek) – ilyenkor a két lehetőség „rövidebb” és „hosszabb fotózás” néven jelenik meg</span></label>';
-  html+='<div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">💰 Ár – csak a gyerek (Ft)</label><input id="bk-price-solo" type="number" min="0" step="100" placeholder="nem kötelező" value="'+(Number(dayConf.priceSolo)>0?Number(dayConf.priceSolo):"")+'"></div>';
-  html+='<div><label style="font-size:.74rem;color:var(--muted)">💰 Ár – testvérrel / családdal (Ft)</label><input id="bk-price-family" type="number" min="0" step="100" placeholder="nem kötelező" value="'+(Number(dayConf.priceFamily)>0?Number(dayConf.priceFamily):"")+'"></div></div>';
-  html+='<div style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.5">A szülő a foglalásnál először kiválasztja, hogy csak a gyereket hozza-e, vagy testvérrel / családdal jön, és ennek megfelelő hosszú időpontot kap. Ilyenkor a fenti „Időpont hossza" nem számít.</div></div>';
+  html+='<div id="bk-typed-box" style="'+(_typed?"":"display:none")+'"><div class="avail-row" style="margin-top:8px"><div><label class="bk-lbl-solo" style="font-size:.74rem;color:var(--muted)">'+(dayConf.soloAnyone?'📸 Rövidebb időpont':'👤 Csak a gyerek')+'</label><select id="bk-dur-solo">'+_optS+'</select></div>';
+  html+='<div><label class="bk-lbl-family" style="font-size:.74rem;color:var(--muted)">'+(dayConf.soloAnyone?'⏱️ Hosszabb időpont':'👨‍👩‍👧 Testvérrel / családdal')+'</label><select id="bk-dur-family">'+_optF+'</select></div></div>';
+  html+='<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:8px;font-size:.84rem;line-height:1.4"><input type="checkbox" id="bk-solo-any" '+(dayConf.soloAnyone?"checked":"")+' style="width:auto;margin-top:2px" onchange="_bkSoloAnyLabels(this.checked)"> <span>A rövidebb időpontra <strong>család is jöhet</strong> (nem csak a gyermek) – ilyenkor a két lehetőség „rövidebb” és „hosszabb fotózás” néven jelenik meg</span></label>';
+  html+='<div class="avail-row" style="margin-top:8px"><div><label class="bk-lbl-psolo" style="font-size:.74rem;color:var(--muted)">'+(dayConf.soloAnyone?'💰 Ár – rövidebb (Ft)':'💰 Ár – csak a gyerek (Ft)')+'</label><input id="bk-price-solo" type="number" min="0" step="100" placeholder="nem kötelező" value="'+(Number(dayConf.priceSolo)>0?Number(dayConf.priceSolo):"")+'"></div>';
+  html+='<div><label class="bk-lbl-pfamily" style="font-size:.74rem;color:var(--muted)">'+(dayConf.soloAnyone?'💰 Ár – hosszabb (Ft)':'💰 Ár – testvérrel / családdal (Ft)')+'</label><input id="bk-price-family" type="number" min="0" step="100" placeholder="nem kötelező" value="'+(Number(dayConf.priceFamily)>0?Number(dayConf.priceFamily):"")+'"></div></div>';
+  html+='<div class="bk-typed-hint" style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.5"></div></div>';
   // Szünet (nem foglalható sáv)
   html+='<div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">☕ Szünet kezdete</label><input id="bk-break-start" type="time" value="'+(dayConf.breakStart||"")+'"></div>';
   html+='<div><label style="font-size:.74rem;color:var(--muted)">Szünet vége</label><input id="bk-break-end" type="time" value="'+(dayConf.breakEnd||"")+'"></div></div>';
@@ -6256,6 +6265,7 @@ function renderAdminDayDetail(){
   detail.innerHTML=html;
   // Select időtartam dropdown beállítása
   setTimeout(()=>{const sel=document.getElementById("bk-duration");if(sel){sel.value=String(dayConf.duration||30);sel.disabled=_dayTyped(dayConf)}},10);
+  _bkSoloAnyLabels(!!dayConf.soloAnyone);
 }
 
 function closeDayDetail(){_selectedBookingDate=null;renderCalendar(true)}
