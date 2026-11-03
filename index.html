@@ -5789,6 +5789,11 @@ async function copyBookingLink(){
 }
 // === TÍPUS SZERINTI IDŐTARTAM (pl. csak a gyerek 5 perc, testvérrel/családdal 10 perc) ===
 // Ha egy napnál be van kapcsolva: a rács lépése a rövidebb idő (day.duration), a hosszabb foglalás több egymás utáni helyet foglal le.
+// A két időpont-típus felirata: alapból "csak a gyermek" / "testvérrel, családdal"; ha a rövidebbre család is jöhet, "rövidebb" / "hosszabb fotózás"
+function _dayKindLabel(day,kind){
+  if(day&&day.soloAnyone)return kind==="family"?"⏱️ Hosszabb fotózás – "+day.durFamily+" perc":"📸 Rövidebb fotózás – "+day.durSolo+" perc (gyermek vagy család)";
+  return kind==="family"?"👨‍👩‍👧 Testvérrel vagy családdal – "+(day?day.durFamily:"")+" perc":"👤 Csak a gyermek (egyéni kép) – "+(day?day.durSolo:"")+" perc";
+}
 // Ár a naphoz (nem kötelező): típusos napnál külön a csak gyerek / családos időpont ára
 function _dayPrice(day,kind){if(!day)return 0;if(_dayTyped(day))return Number(kind==="family"?day.priceFamily:day.priceSolo)||0;return Number(day.price)||0}
 function _priceTxt(n){return n>0?fmt(n):""}
@@ -6113,11 +6118,11 @@ function openAdminBookingForm(time){
   const box=document.getElementById("admin-bk-form");if(!box||!_selectedBookingDate)return;
   const day=getAvailability()[_selectedBookingDate]||{};
   const typed=_dayTyped(day);
-  _adminBkLen=typed?Number(day.durSolo):(Number(day.duration)||30);_adminBkType=typed?"Egyéni kép":"";
+  _adminBkLen=typed?Number(day.durSolo):(Number(day.duration)||30);_adminBkType=typed?(day.soloAnyone?"Rövidebb fotózás":"Egyéni kép"):"";
   let h='<div class="admin-bk-box"><div style="font-weight:600;color:var(--brown);margin-bottom:8px">➕ Foglalás felvétele – '+formatBookingDate(_selectedBookingDate)+'</div>';
   h+='<div class="avail-row"><div><label style="font-size:.74rem;color:var(--muted)">Kezdés *</label><input id="abk-time" type="time" value="'+(time||"")+'"></div>';
   if(typed){
-    h+='<div><label style="font-size:.74rem;color:var(--muted)">Típus</label><select id="abk-kind" onchange="_adminBkKind(this.value)"><option value="solo">👤 Gyerek – '+day.durSolo+' perc</option><option value="family">👨‍👩‍👧 Család – '+day.durFamily+' perc</option></select></div></div>';
+    h+='<div><label style="font-size:.74rem;color:var(--muted)">Típus</label><select id="abk-kind" onchange="_adminBkKind(this.value)"><option value="solo">'+(day.soloAnyone?"📸 Rövidebb – ":"👤 Gyerek – ")+day.durSolo+' perc</option><option value="family">'+(day.soloAnyone?"⏱️ Hosszabb – ":"👨‍👩‍👧 Család – ")+day.durFamily+' perc</option></select></div></div>';
   }else{
     const opts=[5,10,15,20,30,45,60,90,120];if(opts.indexOf(_adminBkLen)<0)opts.push(_adminBkLen);opts.sort((a,b)=>a-b);
     h+='<div><label style="font-size:.74rem;color:var(--muted)">Időtartam</label><select id="abk-len" onchange="_adminBkLen=Number(this.value)">'+opts.map(v=>'<option value="'+v+'"'+(v===_adminBkLen?" selected":"")+'>'+v+' perc</option>').join("")+'</select></div></div>';
@@ -6132,7 +6137,7 @@ function openAdminBookingForm(time){
   box.innerHTML=h;
   setTimeout(()=>{try{box.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}const f=document.getElementById(time?"abk-name":"abk-time");if(f)f.focus()},60);
 }
-function _adminBkKind(v){const day=getAvailability()[_selectedBookingDate]||{};if(v==="family"){_adminBkLen=Number(day.durFamily);_adminBkType="Szülővel / családdal"}else{_adminBkLen=Number(day.durSolo);_adminBkType="Egyéni kép"}}
+function _adminBkKind(v){const day=getAvailability()[_selectedBookingDate]||{};if(v==="family"){_adminBkLen=Number(day.durFamily);_adminBkType=day.soloAnyone?"Hosszabb fotózás":"Szülővel / családdal"}else{_adminBkLen=Number(day.durSolo);_adminBkType=day.soloAnyone?"Rövidebb fotózás":"Egyéni kép"}}
 function closeAdminBookingForm(){const box=document.getElementById("admin-bk-form");if(box)box.innerHTML=_adminBkAddBtn()}
 async function saveAdminBooking(){
   const err=document.getElementById("abk-err");const v=id=>(document.getElementById(id)||{}).value||"";
@@ -6155,7 +6160,7 @@ async function saveAdminBooking(){
   try{
     const data={photographerId:currentUser.uid,date:_selectedBookingDate,time,duration:len,name,email,phone,notes,status:"confirmed",addedByAdmin:true,cancelToken:_newCancelToken(),createdAt:Date.now()};
     if(_adminBkType){data.type=_adminBkType;data.photoType=_adminBkType}
-    const _ap=_dayPrice(day,_dayTyped(day)?(_adminBkType==="Szülővel / családdal"?"family":"solo"):null);if(_ap>0)data.price=_ap;
+    const _ap=_dayPrice(day,_dayTyped(day)?(_adminBkLen===Number(day.durFamily)?"family":"solo"):null);if(_ap>0)data.price=_ap;
     await db.collection("bookings").add(data);
     await loadBookings();
     await syncPublicTakenSlots();
@@ -6180,6 +6185,7 @@ function renderAdminDayDetail(){
   html+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:10px"><input type="checkbox" id="bk-typed" '+(_typed?"checked":"")+' style="width:auto" onchange="document.getElementById(\'bk-typed-box\').style.display=this.checked?\'\':\'none\';document.getElementById(\'bk-duration\').disabled=this.checked;document.getElementById(\'bk-price-single\').style.display=this.checked?\'none\':\'\'"> Más időtartam, ha testvérrel vagy családdal jönnek</label>';
   html+='<div id="bk-typed-box" style="'+(_typed?"":"display:none")+'"><div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">👤 Csak a gyerek</label><select id="bk-dur-solo">'+_optS+'</select></div>';
   html+='<div><label style="font-size:.74rem;color:var(--muted)">👨‍👩‍👧 Testvérrel / családdal</label><select id="bk-dur-family">'+_optF+'</select></div></div>';
+  html+='<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;margin-top:8px;font-size:.84rem;line-height:1.4"><input type="checkbox" id="bk-solo-any" '+(dayConf.soloAnyone?"checked":"")+' style="width:auto;margin-top:2px"> <span>A rövidebb időpontra <strong>család is jöhet</strong> (nem csak a gyermek) – ilyenkor a két lehetőség „rövidebb” és „hosszabb fotózás” néven jelenik meg</span></label>';
   html+='<div class="avail-row" style="margin-top:8px"><div><label style="font-size:.74rem;color:var(--muted)">💰 Ár – csak a gyerek (Ft)</label><input id="bk-price-solo" type="number" min="0" step="100" placeholder="nem kötelező" value="'+(Number(dayConf.priceSolo)>0?Number(dayConf.priceSolo):"")+'"></div>';
   html+='<div><label style="font-size:.74rem;color:var(--muted)">💰 Ár – testvérrel / családdal (Ft)</label><input id="bk-price-family" type="number" min="0" step="100" placeholder="nem kötelező" value="'+(Number(dayConf.priceFamily)>0?Number(dayConf.priceFamily):"")+'"></div></div>';
   html+='<div style="font-size:.72rem;color:var(--muted);margin-top:4px;line-height:1.5">A szülő a foglalásnál először kiválasztja, hogy csak a gyereket hozza-e, vagy testvérrel / családdal jön, és ennek megfelelő hosszú időpontot kap. Ilyenkor a fenti „Időpont hossza" nem számít.</div></div>';
@@ -6398,7 +6404,8 @@ async function saveDayAvailability(){
   const linkOnly=_loEl?_loEl.checked:!!existing.linkOnly;
   const _pv=id=>{const el=document.getElementById(id);if(!el)return null;const v=Math.round(Number(String(el.value).replace(/\s/g,"")));return v>0?v:0};
   const _p1=_pv("bk-price"),_pS=_pv("bk-price-solo"),_pF=_pv("bk-price-family");
-  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,linkOnly,price:_p1===null?(Number(existing.price)||0):_p1,priceSolo:_pS===null?(Number(existing.priceSolo)||0):_pS,priceFamily:_pF===null?(Number(existing.priceFamily)||0):_pF,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
+  const _saEl=document.getElementById("bk-solo-any");const soloAnyone=_saEl?_saEl.checked:!!existing.soloAnyone;
+  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,linkOnly,soloAnyone,price:_p1===null?(Number(existing.price)||0):_p1,priceSolo:_pS===null?(Number(existing.priceSolo)||0):_pS,priceFamily:_pF===null?(Number(existing.priceFamily)||0):_pF,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
   // Ha változik az időpont hossza, a napra már leadott (időtartam nélküli) foglalások megtartják az EREDETI hosszukat
   const _oldDur=Number(existing.duration)||0;
   if(_oldDur>0&&_oldDur!==duration){
@@ -6956,8 +6963,8 @@ function renderPublicDayDetail(){
     // Először azt kell kiválasztani, kivel jönnek – ettől függ az időpont hossza
     html+='<div style="font-size:.9rem;font-weight:600;color:var(--brown);margin-bottom:8px">1. Kivel érkeznek a fotózásra?</div>';
     html+='<div class="phototype-options">';
-    html+='<label class="phototype-opt'+(_publicDayType==="solo"?" selected":"")+'" onclick="setPublicDayType(\'solo\')"><input type="radio" name="daytype" '+(_publicDayType==="solo"?"checked":"")+'><span>👤 Csak a gyermek (egyéni kép) – '+dayConf.durSolo+' perc'+(_dayPrice(dayConf,"solo")?' · <strong>'+fmt(_dayPrice(dayConf,"solo"))+'</strong>':'')+'</span></label>';
-    html+='<label class="phototype-opt'+(_publicDayType==="family"?" selected":"")+'" onclick="setPublicDayType(\'family\')"><input type="radio" name="daytype" '+(_publicDayType==="family"?"checked":"")+'><span>👨‍👩‍👧 Testvérrel vagy családdal – '+dayConf.durFamily+' perc'+(_dayPrice(dayConf,"family")?' · <strong>'+fmt(_dayPrice(dayConf,"family"))+'</strong>':'')+'</span></label>';
+    html+='<label class="phototype-opt'+(_publicDayType==="solo"?" selected":"")+'" onclick="setPublicDayType(\'solo\')"><input type="radio" name="daytype" '+(_publicDayType==="solo"?"checked":"")+'><span>'+_dayKindLabel(dayConf,"solo")+(_dayPrice(dayConf,"solo")?' · <strong>'+fmt(_dayPrice(dayConf,"solo"))+'</strong>':'')+'</span></label>';
+    html+='<label class="phototype-opt'+(_publicDayType==="family"?" selected":"")+'" onclick="setPublicDayType(\'family\')"><input type="radio" name="daytype" '+(_publicDayType==="family"?"checked":"")+'><span>'+_dayKindLabel(dayConf,"family")+(_dayPrice(dayConf,"family")?' · <strong>'+fmt(_dayPrice(dayConf,"family"))+'</strong>':'')+'</span></label>';
     html+='</div>';
     if(!_publicDayType){html+='<div style="font-size:.85rem;color:var(--muted);margin:6px 0 4px">A szabad időpontok a választás után jelennek meg.</div></div>';detail.innerHTML=html;return}
     html+='<div style="font-size:.9rem;font-weight:600;color:var(--brown);margin:14px 0 8px">2. Válasszon egy szabad időpontot ('+need+' perc):</div>';
@@ -6967,7 +6974,10 @@ function renderPublicDayDetail(){
   }
   html+='<div class="slot-grid">';
   let freeN=0;
-  slots.forEach(sl=>{
+  // A hosszabb (családos) időpontnál csak a saját hosszával léptetett kezdések látszanak (pl. 60 percesnél 12:00, 13:00, 14:00…)
+  const _st0=_hmToMin(dayConf.start)||0;
+  const _onGrid=sl=>!(typed&&_publicDayType==="family")||((_hmToMin(sl)-_st0)%need===0);
+  slots.filter(_onGrid).forEach(sl=>{
     const ok=_canBook(dayConf,_hmToMin(sl),need,ivs);
     if(ok)freeN++;
     if(!ok)html+='<div class="slot-btn booked">'+sl+' 🔒</div>';
@@ -6999,11 +7009,11 @@ function showBookingForm(time){
   html+='<label>Telefonszám *</label><input id="bk-phone" type="tel" placeholder="+36 20 123 4567">';
   // Kötelező fotótípus kérdés
   const _pt=(id,val,label)=>'<label class="phototype-opt" id="pt-opt-'+id+'"><input type="radio" name="phototype" value="'+val+'" onchange="setPhotoType(\''+val+'\')"><span>'+label+'</span></label>';
-  if(_fTyped&&_publicDayType==="solo"){
+  if(_fTyped&&_publicDayType==="solo"&&!_fDay.soloAnyone){
     // Csak a gyerek: a típus adott (az időpont hossza ehhez tartozik)
     _pendingPhotoType="Egyéni kép";
     html+='<label style="margin-top:14px">Fotózás típusa</label><div class="phototype-options"><div class="phototype-opt selected"><span>👤 Egyéni kép (csak a gyermek)</span></div></div>';
-  }else if(_fTyped){
+  }else if(_fTyped&&!_fDay.soloAnyone){
     html+='<label style="margin-top:14px">Milyen képet szeretne? *</label><div class="phototype-options">';
     html+=_pt("testver","Testvérrel","👫 Testvérrel")+_pt("csalad","Szülővel / családdal","👨‍👩‍👧 Szülővel / családdal")+_pt("mindketto","Egyéni és családi is","✨ Egyéni és családi is");
     html+='</div>';
