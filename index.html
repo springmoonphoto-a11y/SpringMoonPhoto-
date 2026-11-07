@@ -1434,7 +1434,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <button id="atab-prices" class="admin-tab" onclick="setAdminTab('prices')">💰 Árak</button>
       <button id="atab-settings" class="admin-tab" onclick="setAdminTab('settings')">⚙️ Beállítások</button>
       <button id="atab-clients" class="admin-tab" onclick="setAdminTab('clients')">👥 Ügyfelek</button>
-      <button id="atab-calendar" class="admin-tab" onclick="setAdminTab('calendar')">📅 Naptár</button>
+      <button id="atab-calendar" class="admin-tab" onclick="setAdminTab('calendar')">📅 Naptár <span id="atab-calendar-badge"></span></button>
       <button id="atab-reviews" class="admin-tab" onclick="setAdminTab('reviews')">⭐ Vélemények</button>
       <button id="atab-messages" class="admin-tab" onclick="setAdminTab('messages')">💬 Üzenetek <span id="atab-messages-badge"></span></button>
     </div>
@@ -2418,6 +2418,21 @@ async function testEmail(){
   }catch(e){msg.innerHTML='<div class="error-msg">Hiba: '+(e.text||e.message||"Ismeretlen hiba")+'</div>';}
 }
 
+async function sendNewBookingEmail(b){
+  if(!window.emailjs||!b||!b.photographerId)return;
+  try{
+    const doc=await db.collection("photographers").doc(b.photographerId).get();if(!doc.exists)return;
+    const data=doc.data();const cfg=data.emailjsConfig;if(!cfg||!cfg.publicKey||!cfg.serviceId||!cfg.templateNewOrder)return;
+    emailjs.init({publicKey:cfg.publicKey});
+    const when=formatBookingDate(b.date)+" "+_bookingTimeText(b);
+    const lines=["📅 ÚJ IDŐPONTFOGLALÁS","","Dátum: "+formatBookingDate(b.date),"Időpont: "+_bookingTimeText(b)+(Number(b.duration)>0?" ("+b.duration+" perc)":"")];
+    if(b.type)lines.push("Típus: "+b.type);
+    if(Number(b.price)>0)lines.push("Ár: "+fmt(Number(b.price)));
+    if(b.notes)lines.push("Megjegyzés: "+b.notes);
+    lines.push("","Visszaigazolás: Admin → Naptár → a nap → ✓ OK + értesítés");
+    await emailjs.send(cfg.serviceId,cfg.templateNewOrder,{to_email:data.contactEmail||data.email,to_name:"Fotós",child_name:"📅 Időpontfoglalás: "+(b.name||"")+" – "+when,parent_name:b.name||"-",parent_email:b.email||"-",parent_phone:b.phone||"-",order_total:Number(b.price)>0?fmt(Number(b.price)):"-",order_date:when,order_items:lines.join("\n"),photographer_name:data.name||""});
+  }catch(e){}
+}
 async function sendNewOrderEmail(order){
   if(!window.PHOTOGRAPHER_CONTACT||!window.emailjs)return;if(!order.photographerId)return;
   try{
@@ -3141,11 +3156,14 @@ function _watchBookings(){
       const old={};(bookings||[]).forEach(b=>{old[b.id]=b});
       const wasFirst=first;
       const newlyCancelled=first?[]:fresh.filter(b=>b.status==="cancelled"&&old[b.id]&&old[b.id].status!=="cancelled"&&b.cancelledBy==="parent");
+      const newlyBooked=first?[]:fresh.filter(b=>!old[b.id]&&!b.addedByAdmin&&b.status!=="cancelled");
       first=false;
       bookings=fresh;
       const cal=document.getElementById("admin-calendar");
       if(cal&&!cal.classList.contains("hidden")&&!document.getElementById("abk-name"))renderCalendar(true);
       if(newlyCancelled.length&&typeof showToast==="function")showToast("❌ "+newlyCancelled.map(b=>b.name+" ("+b.date+" "+b.time+")").join(", ")+" lemondta az időpontot");
+      if(newlyBooked.length&&typeof showToast==="function")showToast("📅 Új foglalás: "+newlyBooked.map(b=>b.name+" ("+formatBookingDate(b.date)+" "+b.time+")").join(", "));
+      updateCalendarBadge();
       // a szülői oldal tartalék-listáját is frissítjük (kis késleltetéssel, ha több változás jön egyszerre)
       const sig=JSON.stringify(_activeTakenSlots().sort());
       if(!wasFirst&&sig!==_bkLastSig){clearTimeout(_bkSyncTimer);_bkSyncTimer=setTimeout(()=>{try{syncPublicTakenSlots()}catch(e){}},1500)}
@@ -3428,6 +3446,14 @@ function _setAdminChatLastSeen(gid){
 }
 
 // Hány galériában van olvasatlan szülői üzenet (a fül-badge-hez)
+// Naptár fül: hány új (még nem visszaigazolt) foglalás vár, a mai naptól előre
+function updateCalendarBadge(){
+  const badge=document.getElementById("atab-calendar-badge");if(!badge)return;
+  const today=dateToISO(new Date());
+  const n=(bookings||[]).filter(b=>b.status==="pending"&&(b.date||"")>=today).length;
+  if(n>0){badge.textContent=n;badge.style.cssText="background:#c0392b;color:#fff;border-radius:99px;padding:1px 7px;font-size:.72rem;margin-left:4px;font-weight:700"}
+  else{badge.textContent="";badge.style.cssText=""}
+}
 function updateMessagesBadge(){
   const badge=document.getElementById("atab-messages-badge");if(!badge)return;
   // Csoportosítás galériánként
@@ -5492,6 +5518,7 @@ async function loadBookings(){
     const snap=await db.collection("bookings").where("photographerId","==",currentUser.uid).get();
     bookings=snap.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){bookings=[]}
+  try{updateCalendarBadge()}catch(e){}
 }
 
 // === Foglalások automatikus átemelése ügyfelek közé (duplikátum-védelemmel) ===
@@ -5724,7 +5751,7 @@ async function confirmBooking(id){
   const token=b.cancelToken||_newCancelToken();
   try{
     await db.collection("bookings").doc(id).update({status:"confirmed",cancelToken:token,confirmedAt:Date.now()});
-    b.status="confirmed";b.cancelToken=token;
+    b.status="confirmed";b.cancelToken=token;try{updateCalendarBadge()}catch(e){}
     await syncPublicTakenSlots();
     renderCalendar(true);
   }catch(e){alert("Hiba: "+e.message);return}
@@ -7085,6 +7112,8 @@ async function submitBooking(){
     const data={photographerId:_publicPhotographerId,date:_selectedBookingDate,time:_pendingBookingTime,duration:_sLen,name,email,phone,type:_pendingPhotoType,photoType:_pendingPhotoType,notes,status:"pending",cancelToken:_newCancelToken(),createdAt:Date.now()};
     if(_pendingBookingPrice>0)data.price=_pendingBookingPrice;
     await db.collection("bookings").add(data);
+    // értesítés a fotósnak emailben (ha az EmailJS be van állítva) – a szülőt nem várakoztatjuk vele
+    try{sendNewBookingEmail(data)}catch(e){}
     // Cache frissítés a publikus oldalon
     window._publicBookings=window._publicBookings||[];window._publicBookings.push(data);
     showBookingConfirmation(name);
