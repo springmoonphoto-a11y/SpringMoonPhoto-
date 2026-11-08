@@ -342,6 +342,11 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .slot-btn.booked{background:#fde0e0;border-color:#e8a0a0;color:#8a3030;cursor:not-allowed}
 .slot-btn.booked:hover{transform:none}
 .slot-btn.slot-admin-free{border-style:dashed}
+.booking-mini-actions .b-deposit{background:#fff8e6;color:#8a5e0c;border:1.5px solid #e0c27a;font-weight:600}
+.booking-mini-actions .b-deposit.done{background:#e8f5ec;color:#2e7d4f;border-color:#a5d6b4}
+.booking-mini-actions .b-deposit-undo{color:#888;border-color:#ccc}
+.booking-deposit-ok{font-size:.72rem;background:#e8f5ec;color:#2e7d4f;border-radius:99px;padding:1px 8px;font-weight:600}
+.booking-deposit-wait{font-size:.72rem;background:#fff3d6;color:#8a5e0c;border-radius:99px;padding:1px 8px;font-weight:600}
 .public-day-price{font-size:1rem;color:var(--brown);margin:0 0 10px;padding:8px 12px;background:var(--cream);border-radius:10px;display:inline-block}
 .admin-bk-box{border:1.5px solid var(--gold);border-radius:12px;padding:14px;background:var(--cream)}
 .admin-bk-box input,.admin-bk-box select{width:100%;box-sizing:border-box}
@@ -5852,6 +5857,51 @@ function _bookingDepositPct(b){
   const av=(typeof getAvailability==="function"?getAvailability():null)||{};const d=av[b&&b.date];return d&&Number(d.depositPercent)>0?Number(d.depositPercent):0;
 }
 function _bookingDeposit(b){const p=_bookingPriceOf(b),pct=_bookingDepositPct(b);return p>0&&pct>0?{price:p,pct,amount:Math.round(p*pct/100)}:null}
+// === ELŐLEG MEGÉRKEZETT → tudnivalók küldése ===
+const BOOKING_INFO_SAMPLE="📍 Helyszín: Villusion Stúdió, 3300 Eger, Cifrakapu u. 160., első emelet\n🚗 Parkolás: a háztömb előtt\n\nKérlek, 5–10 perccel korábban érkezzetek, hogy legyen idő átöltözni, megigazítani a hajat – így a teljes fotózási idő a képeké lesz.\n\n👗 Öltözködési javaslat\nA stúdió karácsonyi díszlete meleg, barnás-arany tónusú, fehér kandallóval, piros díszekkel és gyertyafénnyel. Ehhez ezek a színek illenek a legszebben:\n• krém, törtfehér, világos bézs, karamell\n• karácsonyi színek: bordó, mélypiros, sötét fenyőzöld\n• ünnepi hangulathoz: pezsgő- vagy aranyszínű részletek\n\nInkább kerüljétek:\n• a sötétbarnát, a szürkét és a feketét (beleolvadnak a sötét falba és a kanapéba)\n• a neonszíneket, a nagy feliratokat és logókat\n• az erősen mintás, csíkos ruhákat\n\nHa családdal jöttök, nem kell egyformába öltözni, elég, ha a színek összepasszolnak (pl. krém + bordó, vagy bézs + fenyőzöld). A kötött pulóver, a bársony, a csipke, egy masni vagy egy karácsonyi sapka nagyon jól mutat ebben a környezetben.";
+function insertBookingInfoSample(){const el=document.getElementById("bk-info");if(!el)return;if(el.value.trim()&&!confirm("Felülírod a mostani szöveget a mintával?"))return;el.value=BOOKING_INFO_SAMPLE;el.focus()}
+function _bookingDayInfo(b){const av=(typeof getAvailability==="function"?getAvailability():null)||{};const d=av[b&&b.date];return d&&d.infoText?String(d.infoText).trim():""}
+function _bookingInfoText(b,kind){
+  const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
+  const phone=(window.MY_PROFILE&&window.MY_PROFILE.phone)||"";
+  const dep=_bookingDeposit(b);const info=_bookingDayInfo(b);
+  if(kind==="sms"){
+    let t="Kedves "+(b.name||"")+"! Köszönöm, az előleg megérkezett, az időpontod végleges: "+formatBookingDate(b.date)+" "+_bookingTimeText(b)+".";
+    if(info)t+=" "+info.replace(/\n+/g," ").replace(/\s{2,}/g," ");
+    if(dep&&dep.amount<dep.price)t+=" Fennmaradó összeg: "+fmt(dep.price-dep.amount)+".";
+    return t+(phone?" Kérdés esetén: "+phone+".":"")+" Várlak szeretettel! - "+brand;
+  }
+  let t="Kedves "+(b.name||"")+"!\n\nKöszönöm az előleget, megérkezett, az időpontod végleges! 🎄\n\n";
+  t+="📅 Időpont: "+formatBookingDate(b.date)+", "+_bookingTimeText(b)+"\n"+(b.type?"📸 Típus: "+b.type+"\n":"");
+  if(dep)t+="💳 Előleg ("+fmt(dep.amount)+"): megérkezett ✓"+(dep.amount<dep.price?"\n💰 Fennmaradó összeg: "+fmt(dep.price-dep.amount):"")+"\n";
+  if(info)t+="\n"+info+"\n";
+  t+="\n"+(phone?"Ha kérdésed van, írj vagy hívj nyugodtan: "+phone+"\n\n":"");
+  return t+"Szeretettel várlak!\n"+brand;
+}
+function _openBookingInfoMessage(b){
+  if(b.email){_activeContactData={type:"email",to:b.email,subject:"Fotózás – fontos tudnivalók · "+formatBookingDate(b.date)+" "+b.time,body:_bookingInfoText(b,"email"),name:b.name||""};showContactModal()}
+  else if(b.phone){_activeContactData={type:"sms",to:b.phone,body:_bookingInfoText(b,"sms"),name:b.name||""};showContactModal()}
+  else alert("Ennél a foglalásnál nincs email cím vagy telefonszám.");
+}
+async function markDepositPaid(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  if(!b.depositPaid){
+    try{
+      const up={depositPaid:true,depositPaidAt:Date.now()};
+      if(b.status==="pending"){up.status="confirmed";up.confirmedAt=Date.now();if(!b.cancelToken)up.cancelToken=_newCancelToken()}
+      await db.collection("bookings").doc(id).update(up);Object.assign(b,up);
+      try{updateCalendarBadge()}catch(e){}
+      renderCalendar(true);
+    }catch(e){alert("Hiba: "+e.message);return}
+  }
+  if(!_bookingDayInfo(b)&&!confirm("Ehhez a naphoz még nincs megírva a tudnivalók szövege (Naptár → nap → „📋 Tudnivalók az előleg után”).\n\nÍgy is megnyissam az üzenetet (csak a köszönő szöveggel)?"))return;
+  _openBookingInfoMessage(b);
+}
+async function undoDepositPaid(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  if(!confirm("Visszavonod, hogy az előleg megérkezett ("+(b.name||"")+")?"))return;
+  try{await db.collection("bookings").doc(id).update({depositPaid:false});b.depositPaid=false;renderCalendar(true)}catch(e){alert("Hiba: "+e.message)}
+}
 function _priceTxt(n){return n>0?fmt(n):""}
 function _dayTyped(day){return !!(day&&day.typedDuration&&Number(day.durSolo)>0&&Number(day.durFamily)>0)}
 function _minToHm(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
@@ -6265,6 +6315,9 @@ function renderAdminDayDetail(){
   // Leírás szekció
   html+='<label style="font-size:.74rem;color:var(--muted);display:block;margin-top:14px;margin-bottom:4px">📝 Rövid leírás (opcionális — pl. "Levendulamezős családi fotózás")</label>';
   html+='<textarea id="bk-description" class="day-description-input" placeholder="Mit lehet ezen a napon foglalni?">'+((dayConf.description||"").replace(/</g,"&lt;"))+'</textarea>';
+  html+='<label style="font-size:.74rem;color:var(--muted);display:block;margin-top:14px;margin-bottom:4px">📋 Tudnivalók az előleg után (helyszín, parkolás, öltözködés…) – a „💳 Előleg megérkezett” gombbal küldöd el</label>';
+  html+='<textarea id="bk-info" class="day-description-input" style="min-height:150px" placeholder="pl. 📍 Helyszín: … 🚗 Parkolás: … 👗 Öltözködési javaslat: …">'+((dayConf.infoText||"").replace(/</g,"&lt;"))+'</textarea>';
+  html+='<button type="button" class="btn btn-outline btn-sm" style="width:auto;margin-top:6px" onclick="insertBookingInfoSample()">📝 Minta beillesztése</button>';
   // Saját foglalási link ehhez a naphoz
   html+='<div style="margin-top:14px;padding:12px;border:1.5px dashed var(--gold);border-radius:10px">';
   html+='<div style="font-weight:600;font-size:.88rem;color:var(--brown);margin-bottom:4px">🔗 Saját foglalási link ehhez a naphoz</div>';
@@ -6297,7 +6350,7 @@ function renderAdminDayDetail(){
       if(b.phone)metaParts.push('<a href="tel:'+b.phone+'" class="booking-link-inline">📞 '+b.phone+'</a>');
       if(b.email)metaParts.push('<a href="mailto:'+b.email+'" class="booking-link-inline">✉️ '+b.email+'</a>');
       if(b.notes)metaParts.push('💬 '+b.notes);
-      html+='<div class="booking-card"><div class="booking-card-info"><div class="booking-card-time">'+_bookingRange(b,dayConf)+(Number(b.duration)>0?' ('+b.duration+' perc)':'')+(b.type?' · '+b.type:'')+(Number(b.price)>0?' · 💰 '+fmt(Number(b.price)):'')+' <span class="booking-status-'+statusClass+'">'+statusLabel+'</span>'+(b.addedByAdmin?' <span style="font-size:.72rem;color:var(--muted)">✍️ te írtad be</span>':'')+'</div><div class="booking-card-name">'+_pcEsc(b.name||"")+'</div><div class="booking-card-meta">'+metaParts.join(" · ")+'</div>';
+      html+='<div class="booking-card"><div class="booking-card-info"><div class="booking-card-time">'+_bookingRange(b,dayConf)+(Number(b.duration)>0?' ('+b.duration+' perc)':'')+(b.type?' · '+b.type:'')+(Number(b.price)>0?' · 💰 '+fmt(Number(b.price)):'')+' <span class="booking-status-'+statusClass+'">'+statusLabel+'</span>'+(b.depositPaid?' <span class="booking-deposit-ok">💳 előleg rendben</span>':(_bookingDeposit(b)&&b.status!=="cancelled"?' <span class="booking-deposit-wait">💳 előlegre vár</span>':''))+''+(b.addedByAdmin?' <span style="font-size:.72rem;color:var(--muted)">✍️ te írtad be</span>':'')+'</div><div class="booking-card-name">'+_pcEsc(b.name||"")+'</div><div class="booking-card-meta">'+metaParts.join(" · ")+'</div>';
       // Kapcsolat-felvétel gombok
       html+='<div class="booking-contact-actions">';
       if(b.email)html+='<button onclick="emailBooking(\''+b.id+'\')">✉️ Email</button>';
@@ -6306,6 +6359,10 @@ function renderAdminDayDetail(){
       html+='</div></div>';
       html+='<div class="booking-mini-actions">';
       if(b.status!=="confirmed"&&b.status!=="cancelled")html+='<button class="b-confirm" title="Megerősítés, és megnyílik a visszaigazoló email / SMS" onclick="confirmBooking(\''+b.id+'\')">✓ OK + értesítés</button>';
+      if(b.status!=="cancelled"){
+        if(b.depositPaid)html+='<button class="b-deposit done" title="Tudnivalók újraküldése" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg ✓ – tudnivalók</button><button class="b-deposit-undo" title="Visszavonás" onclick="undoDepositPaid(\''+b.id+'\')">↺</button>';
+        else html+='<button class="b-deposit" title="Megjelöli, hogy az előleg megérkezett, és megnyitja a tudnivalókat tartalmazó levelet" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg megérkezett</button>';
+      }
       html+='<button onclick="deleteBooking(\''+b.id+'\')" style="color:#666;border-color:#ccc">🗑️</button>';
       html+='</div></div>';
     });
@@ -6448,6 +6505,7 @@ async function saveDayAvailability(){
   }
   const coverImage=coverUrlEl?coverUrlEl.value:(existing.coverImage||"");
   const description=descEl?descEl.value:(existing.description||"");
+  const infoEl=document.getElementById("bk-info");const infoText=infoEl?infoEl.value:(existing.infoText||"");
   if(!start||!end){alert("⚠️ Kezdés és Befejezés idő kötelező");return}
   // Szünet: mindkét mező kell, és a vége legyen később, mint a kezdete
   const bsEl=document.getElementById("bk-break-start"),beEl=document.getElementById("bk-break-end");
@@ -6465,7 +6523,7 @@ async function saveDayAvailability(){
   const _p1=_pv("bk-price"),_pS=_pv("bk-price-solo"),_pF=_pv("bk-price-family");
   const _dpRaw=_pv("bk-deposit");const depositPercent=_dpRaw===null?(Number(existing.depositPercent)||0):Math.min(100,_dpRaw);
   const _saEl=document.getElementById("bk-solo-any");const soloAnyone=_saEl?_saEl.checked:!!existing.soloAnyone;
-  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,linkOnly,soloAnyone,depositPercent,price:_p1===null?(Number(existing.price)||0):_p1,priceSolo:_pS===null?(Number(existing.priceSolo)||0):_pS,priceFamily:_pF===null?(Number(existing.priceFamily)||0):_pF,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
+  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,linkOnly,soloAnyone,depositPercent,infoText,price:_p1===null?(Number(existing.price)||0):_p1,priceSolo:_pS===null?(Number(existing.priceSolo)||0):_pS,priceFamily:_pF===null?(Number(existing.priceFamily)||0):_pF,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
   // Ha változik az időpont hossza, a napra már leadott (időtartam nélküli) foglalások megtartják az EREDETI hosszukat
   const _oldDur=Number(existing.duration)||0;
   if(_oldDur>0&&_oldDur!==duration){
