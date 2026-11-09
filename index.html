@@ -6025,7 +6025,9 @@ function renderCalendar(forAdmin){
       }
     }
     let clickAction;
-    if(isPast){clickAction=''}
+    // Adminban a múltbeli napok is megnyithatók (pl. a régi foglalások listája / PDF-je miatt)
+    if(isPast&&!forAdmin){clickAction=''}
+    else if(isPast&&forAdmin){clickAction=dayBookings.length?'onclick="selectBookingDate(\''+iso+'\',true)" style="cursor:pointer"':''}
     else if(forAdmin){
       clickAction=_multiDayMode?'onclick="toggleMultiDay(\''+iso+'\')"':'onclick="selectBookingDate(\''+iso+'\',true)"';
     }else{
