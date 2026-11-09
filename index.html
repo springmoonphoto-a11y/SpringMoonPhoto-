@@ -7173,6 +7173,7 @@ async function submitBooking(){
   const err=document.getElementById("bk-form-error");
   if(!name||!email||!phone){err.textContent="A név, email és telefonszám kötelező.";err.classList.remove("hidden");return}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent="Érvénytelen email cím.";err.classList.remove("hidden");return}
+  if(phone.replace(/\D/g,"").length<9){err.textContent="Kérjük, adja meg a teljes telefonszámot (pl. 06 30 123 4567).";err.classList.remove("hidden");return}
   if(!_pendingPhotoType){err.textContent="Kérjük válassza ki, milyen képet szeretne (egyéni / családi).";err.classList.remove("hidden");document.querySelector(".phototype-options").scrollIntoView({behavior:"smooth",block:"center"});return}
   err.classList.add("hidden");
   const btn=document.getElementById("bk-submit-btn");btn.disabled=true;btn.textContent="Mentés...";
