@@ -2877,9 +2877,27 @@ async function compressImage(file,maxSizeMB){
   URL.revokeObjectURL(img.src);throw new Error("A kép túl nagy a tömörítés után is.");
 }
 
-async function uploadPhoto(file,i,total,progressId,statusId){
-  document.getElementById(statusId).textContent="Tömörítés: "+(i+1)+"/"+total+" kép...";
-  const optimizedFile=await compressImage(file,9.5);
+// TÁRHELY-KÍMÉLÉS: a válogatásra feltöltött képek (nem a kész, letölthető képek!) kicsinyítve mennek fel.
+// A szülő úgyis csak előnézetet lát, a kész képeket külön (eredeti méretben) töltöd fel a „Letölthető” fülre.
+const PROOF_MAX_PX=2000,PROOF_QUALITY=0.85;
+async function compressForProof(file){
+  try{
+    const img=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=URL.createObjectURL(file)});
+    let w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+    if(!w||!h){URL.revokeObjectURL(img.src);return await compressImage(file,9.5)}
+    const sc=Math.min(1,PROOF_MAX_PX/Math.max(w,h));w=Math.round(w*sc);h=Math.round(h*sc);
+    const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);ctx.imageSmoothingQuality="high";ctx.drawImage(img,0,0,w,h);
+    URL.revokeObjectURL(img.src);
+    const blob=await new Promise(r=>canvas.toBlob(r,"image/jpeg",PROOF_QUALITY));
+    if(!blob||(blob.size>=file.size&&/jpe?g$/i.test(file.type||"")))return file;
+    const nm=(file.name||"kep").replace(/\.[^.]+$/,"")+".jpg";
+    try{return new File([blob],nm,{type:"image/jpeg"})}catch(e){return blob}
+  }catch(e){return await compressImage(file,9.5)}
+}
+async function uploadPhoto(file,i,total,progressId,statusId,proof){
+  document.getElementById(statusId).textContent=(proof?"Kicsinyítés válogatáshoz: ":"Tömörítés: ")+(i+1)+"/"+total+" kép...";
+  const optimizedFile=proof?await compressForProof(file):await compressImage(file,9.5);
   document.getElementById(statusId).textContent="Feltöltés: "+(i+1)+"/"+total+" kép...";
   const fd=new FormData();fd.append("file",optimizedFile);fd.append("upload_preset",UPLOAD_PRESET);
   const res=await fetch("https://api.cloudinary.com/v1_1/"+CLOUD_NAME+"/image/upload",{method:"POST",body:fd});
@@ -2906,7 +2924,7 @@ async function _processNewFiles(files){
   const skipped=files.length-newFiles.length;
   if(newFiles.length===0){alert("Mind a(z) "+skipped+" kép már ki van választva.");return}
   show("upload-progress-new");document.getElementById("progress-fill-new").style.width="0%";document.getElementById("upload-status-new").textContent="Előkészítés...";
-  try{for(let i=0;i<newFiles.length;i++){const url=await uploadPhoto(newFiles[i],i,newFiles.length,"progress-fill-new","upload-status-new");uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1),origName:newFiles[i].name})}document.getElementById("upload-status-new").textContent="✓ "+newFiles.length+" kép feltöltve!"+(skipped>0?" ("+skipped+" már ki volt választva)":"");renderPreviewsNew()}
+  try{for(let i=0;i<newFiles.length;i++){const url=await uploadPhoto(newFiles[i],i,newFiles.length,"progress-fill-new","upload-status-new",true);uploadedPhotosNew.push({id:"p"+Date.now()+i,url,name:"Portré "+(uploadedPhotosNew.length+1),origName:newFiles[i].name})}document.getElementById("upload-status-new").textContent="✓ "+newFiles.length+" kép feltöltve (válogatáshoz kicsinyítve)!"+(skipped>0?" ("+skipped+" már ki volt választva)":"");renderPreviewsNew()}
   catch(e){document.getElementById("upload-status-new").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
 }
 function renderPreviewsNew(){document.getElementById("photo-previews-new").innerHTML=uploadedPhotosNew.map((p,i)=>'<div class="photo-preview-item"><img src="'+lowQ(p.url)+'" alt=""><button class="remove-photo" onclick="uploadedPhotosNew.splice('+i+',1);uploadedPhotosNew.forEach((x,j)=>x.name=\'Portré \'+(j+1));renderPreviewsNew()">×</button></div>').join("")}
@@ -2962,10 +2980,10 @@ async function _processDetailFiles(files){
   const prefix=_detailPhotoTab==="download"?"Kép ":"Portré ";
   try{
     for(let i=0;i<newFiles.length;i++){
-      const url=await uploadPhoto(newFiles[i],i,newFiles.length,"progress-fill-detail","upload-status-detail");
+      const url=await uploadPhoto(newFiles[i],i,newFiles.length,"progress-fill-detail","upload-status-detail",_detailPhotoTab!=="download");
       uploadedPhotosDetail.push({id:"p"+Date.now()+i,url,name:prefix+(existingCount+uploadedPhotosDetail.length+1),origName:newFiles[i].name});
     }
-    document.getElementById("upload-status-detail").textContent="✓ "+newFiles.length+" új kép feltöltve!"+(skipped>0?" ("+skipped+" már megvolt, kihagyva)":"");
+    document.getElementById("upload-status-detail").textContent="✓ "+newFiles.length+" új kép feltöltve"+(_detailPhotoTab!=="download"?" (válogatáshoz kicsinyítve)":" (eredeti minőségben)")+"!"+(skipped>0?" ("+skipped+" már megvolt, kihagyva)":"");
     renderPreviewsDetail();show("save-photos-btn");
   }catch(e){document.getElementById("upload-status-detail").textContent="⚠️ Hiba: "+(e.message||"Próbáld újra!")}
 }
