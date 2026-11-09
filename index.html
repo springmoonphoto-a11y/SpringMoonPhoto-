@@ -345,6 +345,13 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .booking-mini-actions .b-deposit{background:#fff8e6;color:#8a5e0c;border:1.5px solid #e0c27a;font-weight:600}
 .booking-mini-actions .b-deposit.done{background:#e8f5ec;color:#2e7d4f;border-color:#a5d6b4}
 .booking-mini-actions .b-deposit-undo{color:#888;border-color:#ccc}
+.booking-mini-actions .b-move{background:#eef3fb;color:#2c5d9b;border:1.5px solid #b7cbe8}
+.bk-move-box{flex-basis:100%;width:100%;order:9}
+.booking-card:has(.bk-move-box:not(:empty)){flex-wrap:wrap}
+.bk-move-box:empty{display:none}
+.bk-move-form{margin-top:8px;padding:10px;border:1.5px dashed #b7cbe8;border-radius:10px;background:#f7faff;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bk-move-form input[type=time]{width:auto;min-width:120px}
+.bk-move-form .btn{width:auto}
 .booking-deposit-ok{font-size:.72rem;background:#e8f5ec;color:#2e7d4f;border-radius:99px;padding:1px 8px;font-weight:600}
 .booking-deposit-wait{font-size:.72rem;background:#fff3d6;color:#8a5e0c;border-radius:99px;padding:1px 8px;font-weight:600}
 .public-day-price{font-size:1rem;color:var(--brown);margin:0 0 10px;padding:8px 12px;background:var(--cream);border-radius:10px;display:inline-block}
@@ -5897,6 +5904,53 @@ async function markDepositPaid(id){
   if(!_bookingDayInfo(b)&&!confirm("Ehhez a naphoz még nincs megírva a tudnivalók szövege (Naptár → nap → „📋 Tudnivalók az előleg után”).\n\nÍgy is megnyissam az üzenetet (csak a köszönő szöveggel)?"))return;
   _openBookingInfoMessage(b);
 }
+// === Foglalás áthelyezése (ha valaki előbb / később jön) ===
+function openMoveBooking(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  document.querySelectorAll(".bk-move-box").forEach(el=>{if(el.id!=="bk-move-"+id)el.innerHTML=""});
+  const box=document.getElementById("bk-move-"+id);if(!box)return;
+  if(box.innerHTML){box.innerHTML="";return}
+  box.innerHTML='<div class="bk-move-form"><div style="flex-basis:100%;font-size:.8rem;color:var(--muted)">Új időpont – <strong>'+_pcEsc(b.name||"")+'</strong> (most: '+b.time+')</div><input type="time" id="bk-move-time-'+id+'" value="'+(b.time||"")+'" step="300"><button class="btn btn-sm" onclick="saveMoveBooking(\''+id+'\')">💾 Mentés</button><button class="btn btn-outline btn-sm" onclick="openMoveBooking(\''+id+'\')">Mégsem</button><div style="flex-basis:100%;font-size:.72rem;color:var(--muted);line-height:1.4">Ha az új időpontban már van valaki, felajánlom, hogy cseréljetek helyet.</div></div>';
+  const inp=document.getElementById("bk-move-time-"+id);if(inp)inp.focus();
+}
+async function saveMoveBooking(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const inp=document.getElementById("bk-move-time-"+id);const nt=inp&&inp.value;
+  if(!nt||_hmToMin(nt)===null){alert("Adj meg egy időpontot.");return}
+  const old=b.time;if(nt===old){openMoveBooking(id);return}
+  const len=Number(b.duration)||0;const ns=_hmToMin(nt),ne=ns+Math.max(len,1);
+  const others=bookings.filter(x=>x.id!==id&&x.date===b.date&&x.status!=="cancelled");
+  const clash=others.filter(x=>{const xs=_hmToMin(x.time);if(xs===null)return false;const xe=xs+Math.max(Number(x.duration)||0,1);return ns<xe&&xs<ne});
+  let swap=null;
+  if(clash.length){
+    const exact=clash.find(x=>x.time===nt);
+    if(exact&&clash.length===1&&confirm(nt+"-kor már "+(exact.name||"valaki")+" van.\n\nCseréljenek helyet?\n• "+(b.name||"")+" → "+nt+"\n• "+(exact.name||"")+" → "+old)){swap=exact}
+    else if(!confirm("Ez az időpont ütközik: "+clash.map(x=>x.time+" "+(x.name||"")).join(", ")+".\n\nÍgy is áthelyezzem (mindketten ott maradnak)?"))return;
+  }
+  try{
+    const up={time:nt,movedAt:Date.now()};if(!b.originalTime)up.originalTime=old;
+    if(swap){
+      const up2={time:old,movedAt:Date.now()};if(!swap.originalTime)up2.originalTime=swap.time;
+      const batch=db.batch();batch.update(db.collection("bookings").doc(id),up);batch.update(db.collection("bookings").doc(swap.id),up2);await batch.commit();
+      Object.assign(swap,up2);
+    }else{await db.collection("bookings").doc(id).update(up)}
+    Object.assign(b,up);
+    try{await syncPublicTakenSlots()}catch(e){}
+    renderCalendar(true);
+    if(typeof showToast==="function")try{showToast("🕒 Áthelyezve: "+(b.name||"")+" → "+nt+(swap?" · "+(swap.name||"")+" → "+old:""))}catch(e){}
+    // Értesítés csak jövőbeli időpontnál
+    const today=new Date();const tIso=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
+    if(b.date>=tIso&&(b.email||b.phone)&&confirm("Szólsz "+(b.name||"a szülőnek")+" az új időpontról ("+nt+")?"))_openMovedMessage(b,old);
+  }catch(e){alert("Hiba: "+e.message)}
+}
+function _openMovedMessage(b,old){
+  const when=formatBookingDate(b.date);
+  const sms="Kedves "+(b.name||"")+"! A fotózás időpontja módosult: "+when+", "+b.time+" (korábban "+old+"). Ha nem jó, kérlek jelezd! Üdv: Bukta Anita, SpringMoonPhoto";
+  const mail="Kedves "+(b.name||"")+"!\n\nSzeretném jelezni, hogy a fotózás időpontja módosult:\n\n📅 "+when+"\n🕒 Új időpont: "+b.time+" (korábban: "+old+")\n\nHa az új időpont nem megfelelő, kérlek, jelezd válaszban vagy telefonon.\n\nKöszönöm!\nBukta Anita\nSpringMoonPhoto";
+  if(b.email)_activeContactData={type:"email",to:b.email,subject:"Fotózás – módosult időpont · "+when+" "+b.time,body:mail,name:b.name||""};
+  else _activeContactData={type:"sms",to:b.phone,body:sms,name:b.name||""};
+  showContactModal();
+}
 async function undoDepositPaid(id){
   const b=bookings.find(x=>x.id===id);if(!b)return;
   if(!confirm("Visszavonod, hogy az előleg megérkezett ("+(b.name||"")+")?"))return;
@@ -6365,8 +6419,9 @@ function renderAdminDayDetail(){
         if(b.depositPaid)html+='<button class="b-deposit done" title="Tudnivalók újraküldése" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg ✓ – tudnivalók</button><button class="b-deposit-undo" title="Visszavonás" onclick="undoDepositPaid(\''+b.id+'\')">↺</button>';
         else html+='<button class="b-deposit" title="Megjelöli, hogy az előleg megérkezett, és megnyitja a tudnivalókat tartalmazó levelet" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg megérkezett</button>';
       }
+      if(b.status!=="cancelled")html+='<button class="b-move" title="Ha előbb vagy később jön: más időpontra teszed" onclick="openMoveBooking(\''+b.id+'\')">🕒 Áthelyez</button>';
       html+='<button onclick="deleteBooking(\''+b.id+'\')" style="color:#666;border-color:#ccc">🗑️</button>';
-      html+='</div></div>';
+      html+='</div><div class="bk-move-box" id="bk-move-'+b.id+'"></div></div>';
     });
     html+='</div>';
   }
