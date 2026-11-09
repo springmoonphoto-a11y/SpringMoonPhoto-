@@ -8179,7 +8179,7 @@ function renderAdminGalleryList(){
       }else{
         const safeKey=key.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
         const open=_isClassOpen(key);
-        html+='<div class="gallery-group-heading ggh-toggle'+(open?"":" ggh-closed")+'" title="'+(open?"Kattints a becsukáshoz":"Kattints a kinyitáshoz")+'" onclick="toggleGalleryClass(\''+safeKey+'\')"><span><span class="ggh-arrow">'+(open?"▾":"▸")+'</span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+(function(){const all=_projGalleries().filter(x=>x.bulkClass===key&&!x.isGroup);const n=all.filter(x=>ordCnt[x.id]>0).length;return '<span class="ggh-count ggh-ordered" title="Ennyien rendeltek az osztályból">🛒 '+n+'/'+all.length+' rendelt</span>'})()+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
+        html+='<div class="gallery-group-heading ggh-toggle'+(open?"":" ggh-closed")+'" title="'+(open?"Kattints a becsukáshoz":"Kattints a kinyitáshoz")+'" onclick="toggleGalleryClass(\''+safeKey+'\')"><span><span class="ggh-arrow">'+(open?"▾":"▸")+'</span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+(function(){const all=_projGalleries().filter(x=>x.bulkClass===key&&!x.isGroup);const n=all.filter(x=>ordCnt[x.id]>0).length;return '<span class="ggh-count ggh-ordered" title="Ennyien rendeltek az osztályból">🛒 '+n+'/'+all.length+' rendelt</span>'})()+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn ggh-rename-btn" title="Csoport átnevezése" onclick="event.stopPropagation();renameGalleryClass(\''+safeKey+'\')">✏️ Átnevezés</button><button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
         if(open)html+=items.map(cardHtml).join("");
       }
     });
@@ -9317,6 +9317,27 @@ async function createBulkGalleries(){
     renderAdminGalleries();
   }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt: '+e.message+'</div>'}
   finally{btn.disabled=false;btn.textContent="⚡ Galériák létrehozása egyben"}
+}
+// Csoport (osztály) átnevezése: minden galéria bulkClass-a és a galéria teljes neve is frissül
+async function renameGalleryClass(safeKey){
+  const keys=Array.from(new Set(galleries.map(g=>g.bulkClass).filter(Boolean)));
+  const old=safeKey;
+  const list=galleries.filter(g=>g.bulkClass===old&&(!currentUser||g.photographerId===currentUser.uid||!g.photographerId));
+  if(!list.length){alert("Nem találom a csoport galériáit.");return}
+  let nv=prompt("Csoport új neve ("+list.length+" galéria):",old);
+  if(nv===null)return;nv=nv.replace(/\s+/g," ").trim();
+  if(!nv){alert("A név nem lehet üres.");return}
+  if(nv===old)return;
+  if(keys.includes(nv)&&!confirm("Már van „"+nv+"” nevű csoport. Összevonjam vele?"))return;
+  try{
+    const ups=list.map(g=>{const u={bulkClass:nv};const tail=" – "+old;if(g.name&&g.name.includes(tail))u.name=g.name.replace(tail," – "+nv).replace(/ (\d{4}) \1$/," $1");return [g,u]});
+    for(let i=0;i<ups.length;i+=400){const batch=db.batch();ups.slice(i,i+400).forEach(([g,u])=>batch.update(db.collection("galleries").doc(g.id),u));await batch.commit()}
+    ups.forEach(([g,u])=>Object.assign(g,u));
+    try{const set=_loadOpenClasses();if(set.has(old)){set.delete(old);set.add(nv);_saveOpenClasses()}}catch(e){}
+    if(_galleryClassFilter===old)_galleryClassFilter=nv;
+    renderAdminGalleries();
+    if(typeof showToast==="function")showToast("✓ Átnevezve: "+nv);
+  }catch(e){alert("Hiba: "+e.message)}
 }
 function copyBulkCodes(){
   const list=window._lastBulkCreated||[];
