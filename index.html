@@ -347,6 +347,20 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .booking-mini-actions .b-deposit-undo{color:#888;border-color:#ccc}
 .booking-mini-actions .b-move{background:#eef3fb;color:#2c5d9b;border:1.5px solid #b7cbe8}
 .bk-move-box{flex-basis:100%;width:100%;order:9}
+.bkg-panel{margin:6px 0 14px;padding:12px;border:1.5px dashed var(--gold);border-radius:10px;background:#fffdf7}
+.bkg-title{font-weight:600;color:var(--brown);margin-bottom:4px}
+.bkg-panel select{width:100%;padding:9px;border:1.5px solid var(--warm);border-radius:10px;background:#fff}
+.bkg-hint{font-size:.76rem;color:var(--muted);line-height:1.5;margin-bottom:8px}
+.bkg-lbl{display:block;font-size:.74rem;color:var(--muted);margin:6px 0 3px}
+.bkg-list{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.bkg-row{padding:8px;border:1px solid var(--warm);border-radius:8px;background:#fff}
+.bkg-row.done{background:#f1f8f3;border-color:#a5d6b4}
+.bkg-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.86rem}
+.bkg-main .bkg-name{flex:1;min-width:140px;margin:0;padding:6px 8px}
+.bkg-time{font-weight:600;color:var(--brown);font-size:.8rem}
+.bkg-code{font-family:monospace;font-weight:700;background:#fff;border:1px solid #a5d6b4;border-radius:6px;padding:1px 6px}
+.bkg-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.bkg-acts .btn{width:auto}
+.bkg-warn{font-size:.74rem;color:#a15c00;margin-top:4px;line-height:1.4}
 .booking-card:has(.bk-move-box:not(:empty)){flex-wrap:wrap}
 .bk-move-box:empty{display:none}
 .bk-move-form{margin-top:8px;padding:10px;border:1.5px dashed #b7cbe8;border-radius:10px;background:#f7faff;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -5904,6 +5918,93 @@ async function markDepositPaid(id){
   if(!_bookingDayInfo(b)&&!confirm("Ehhez a naphoz még nincs megírva a tudnivalók szövege (Naptár → nap → „📋 Tudnivalók az előleg után”).\n\nÍgy is megnyissam az üzenetet (csak a köszönő szöveggel)?"))return;
   _openBookingInfoMessage(b);
 }
+// === Galériák létrehozása a nap foglalásaiból ===
+let _bkGalOpen=null;
+function _bkNm(x){return String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim().toLowerCase()}
+function _bkGalleryOf(b){return b.galleryId?galleries.find(g=>g.id===b.galleryId)||null:null}
+function toggleBookingGalleries(){
+  _bkGalOpen=_bkGalOpen===_selectedBookingDate?null:_selectedBookingDate;
+  const el=document.getElementById("bk-gal-panel");if(!el)return;
+  if(!_bkGalOpen){el.innerHTML="";return}
+  renderBookingGalleries();setTimeout(()=>{try{el.scrollIntoView({behavior:"smooth",block:"start"})}catch(e){}},50);
+}
+function renderBookingGalleries(){
+  const el=document.getElementById("bk-gal-panel");if(!el||!_selectedBookingDate)return;
+  const day=getAvailability()[_selectedBookingDate]||{};
+  const list=getBookingsForDate(_selectedBookingDate,false).filter(b=>b.status!=="cancelled").sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+  const prevCls=(document.getElementById("bkg-class")||{}).value;
+  const cls=prevCls!=null?prevCls:(day.description||"");
+  const prevProj=(document.getElementById("bkg-proj")||{}).value;
+  const projSel=prevProj!=null?prevProj:(_newGalleryProjectId()||"");
+  let h='<div class="bkg-panel"><div class="bkg-title">🖼️ Galériák létrehozása a foglalásokból</div>';
+  h+='<div class="bkg-hint">Minden bejelölt foglaláshoz készül egy galéria saját belépési kóddal. A szülő email címe és telefonszáma is elmentődik hozzá, de belépni továbbra is <strong>kód + név</strong> elég. A nevet itt átírhatod (pl. a gyermek nevére).</div>';
+  h+='<label class="bkg-lbl">Csoport / osztály neve (nem kötelező)</label><input type="text" id="bkg-class" placeholder="pl. Forrás Ovi – Napsugár csoport" value="'+_pcEsc(cls)+'">';
+  h+='<label class="bkg-lbl">Fotózás (statisztikához)</label><select id="bkg-proj"><option value="">– nincs –</option>'+PROJECTS.map(p=>'<option value="'+p.id+'"'+(p.id===projSel?" selected":"")+'>'+_pcEsc(p.name)+'</option>').join("")+'</select>';
+  let todo=0;
+  h+='<div class="bkg-list">';
+  list.forEach(b=>{
+    const g=_bkGalleryOf(b);
+    if(g){
+      h+='<div class="bkg-row done"><div class="bkg-main"><span class="bkg-time">'+_pcEsc(b.time)+'</span> <strong>'+_pcEsc(g.child||g.name)+'</strong> <span class="bkg-code">'+_pcEsc(g.code)+'</span></div><div class="bkg-acts"><button class="btn btn-outline btn-sm" onclick="openGalleryCard(\''+g.id+'\')">🎫 Kártya</button>'+((b.email||b.phone)?'<button class="btn btn-outline btn-sm" onclick="sendBookingGalleryCode(\''+b.id+'\')">✉️ Kód küldése</button>':'')+'</div></div>';
+      return;
+    }
+    const same=galleries.filter(x=>!x.isGroup&&_bkNm(x.child)===_bkNm(b.name));
+    todo++;
+    h+='<div class="bkg-row"><label class="bkg-main"><input type="checkbox" class="bkg-cb" data-id="'+b.id+'"'+(same.length?"":" checked")+' style="width:auto"> <span class="bkg-time">'+_pcEsc(b.time)+'</span> <input type="text" class="bkg-name" data-id="'+b.id+'" value="'+_pcEsc(b.name||"")+'"></label>';
+    if(same.length)h+='<div class="bkg-warn">⚠️ Már van ilyen nevű galéria: '+same.slice(0,3).map(x=>_pcEsc(x.code)+(x.bulkClass?" ("+_pcEsc(x.bulkClass)+")":"")).join(", ")+' – ezért nincs bejelölve. <a href="#" onclick="event.preventDefault();linkBookingGallery(\''+b.id+'\',\''+same[0].id+'\')">🔗 Ehhez kötöm</a></div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  if(todo)h+='<button class="btn" id="bkg-go" style="margin-top:10px" onclick="createGalleriesFromBookings()">⚡ Bejelöltek létrehozása</button>';
+  else h+='<div class="bkg-hint" style="margin-top:8px">✓ Minden foglaláshoz van már galéria. A „🎫 Kártya” vagy a „✉️ Kód küldése” gombbal elküldheted a kódot.</div>';
+  h+='<div id="bkg-msg"></div></div>';
+  el.innerHTML=h;
+}
+async function createGalleriesFromBookings(){
+  const rows=Array.from(document.querySelectorAll("#bk-gal-panel .bkg-cb")).filter(c=>c.checked).map(c=>{const id=c.dataset.id;const inp=document.querySelector('#bk-gal-panel .bkg-name[data-id="'+id+'"]');return {b:bookings.find(x=>x.id===id),name:(inp&&inp.value||"").trim()}}).filter(r=>r.b);
+  const msg=document.getElementById("bkg-msg");
+  if(!rows.length){msg.innerHTML='<div class="error-msg">Jelölj be legalább egy foglalást.</div>';return}
+  if(rows.some(r=>!r.name)){msg.innerHTML='<div class="error-msg">Minden bejelölt sorhoz kell név.</div>';return}
+  const cls=(document.getElementById("bkg-class").value||"").trim();
+  const proj=document.getElementById("bkg-proj").value||null;
+  if(!confirm(rows.length+" galéria jön létre, mindegyik saját kóddal. Folytatod?"))return;
+  const btn=document.getElementById("bkg-go");if(btn){btn.disabled=true}
+  const usedCodes=new Set(galleries.map(g=>g.code));const inheritPriceList=_classPriceListId(cls);
+  const year=Number(String(_selectedBookingDate).slice(0,4))||new Date().getFullYear();
+  let n=0;
+  try{
+    for(const r of rows){
+      let code=generateCode(r.name);let guard=0;while(usedCodes.has(code)&&guard<50){code=generateCode(r.name);guard++}usedCodes.add(code);
+      const gd={name:r.name+(cls?" – "+cls:"")+" "+year,code,child:r.name,parentEmail:"",contactEmail:(r.b.email||"").toLowerCase(),contactPhone:r.b.phone||"",bookingId:r.b.id,isGroup:false,createdAt:Date.now(),photos:[],projectId:proj,
+        photographerId:currentUser.uid,photographerName:currentUser.name||null,photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,
+        enabledProducts:{print:true,digital:true,gift:true},watermarkConfig:{enabled:true,text:"SpringMoonPhoto\nMINTA"},
+        expiresAt:null,discounts:[],promoText:"",galleryMessage:"",bulkClass:cls,themeColor:window.MY_PROFILE?.themeColor||"#C9A84C"};
+      if(inheritPriceList)gd.priceListId=inheritPriceList;
+      const ref=await db.collection("galleries").add(gd);
+      const gid=ref&&ref.id;
+      if(gid){await db.collection("bookings").doc(r.b.id).update({galleryId:gid});r.b.galleryId=gid;galleries.unshift({id:gid,...gd})}
+      n++;if(btn)btn.textContent="Létrehozás… ("+n+"/"+rows.length+")";
+    }
+    try{await loadPhotographerData()}catch(e){}
+    try{renderAdminGalleries()}catch(e){}
+    renderBookingGalleries();
+    const m=document.getElementById("bkg-msg");if(m)m.innerHTML='<div class="success-msg">✓ '+n+' galéria létrehozva! Most feltöltheted a képeket (Galériák fül), és a „✉️ Kód küldése” gombbal elküldheted a kódokat.</div>';
+  }catch(e){const m=document.getElementById("bkg-msg");if(m)m.innerHTML='<div class="error-msg">Hiba ('+n+' elkészült): '+e.message+'</div>';if(btn)btn.disabled=false}
+}
+async function linkBookingGallery(bid,gid){
+  const b=bookings.find(x=>x.id===bid);const g=galleries.find(x=>x.id===gid);if(!b||!g)return;
+  if(!confirm((b.name||"")+" foglalását a meglévő galériához kötöm ("+g.code+")?"))return;
+  try{await db.collection("bookings").doc(bid).update({galleryId:gid});b.galleryId=gid;renderBookingGalleries()}catch(e){alert("Hiba: "+e.message)}
+}
+function sendBookingGalleryCode(bid){
+  const b=bookings.find(x=>x.id===bid);const g=b&&_bkGalleryOf(b);if(!g)return;
+  const site="https://"+GALLERY_SITE;
+  const sms="Kedves "+(b.name||"")+"! Elkészültek a fotók. Megtekintés és rendelés: "+site+" · Kód: "+g.code+" · Név: "+(g.child||"")+" Üdv: Bukta Anita, SpringMoonPhoto";
+  const mail="Kedves "+(b.name||"")+"!\n\nElkészültek a fotók, a galériában meg tudod nézni és meg tudod rendelni őket.\n\n🌐 "+site+"\n🔑 Belépési kód: "+g.code+"\n👤 Név: "+(g.child||"")+"\n\nKöszönöm!\nBukta Anita\nSpringMoonPhoto";
+  if(b.email)_activeContactData={type:"email",to:b.email,subject:"Elkészültek a fotók – belépési kód: "+g.code,body:mail,name:b.name||""};
+  else _activeContactData={type:"sms",to:b.phone,body:sms,name:b.name||""};
+  showContactModal();
+}
 // === Foglalás áthelyezése (ha valaki előbb / később jön) ===
 function openMoveBooking(id){
   const b=bookings.find(x=>x.id===id);if(!b)return;
@@ -6398,7 +6499,7 @@ function renderAdminDayDetail(){
   html+='<div id="admin-bk-form" style="margin-top:14px">'+_adminBkAddBtn()+'</div>';
   html+='</div>';
   if(dayBookings.length>0){
-    html+='<div style="margin-top:18px"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px"><div style="font-weight:500;color:var(--brown)">📋 Foglalások ('+dayBookings.length+'):</div>'+(dayBookings.some(b=>b.status!=="cancelled")?'<button class="btn btn-outline btn-sm" style="width:auto" onclick="downloadDayBookingsPdf()">📄 Lista PDF-ben (nyomtatáshoz)</button>':'')+'</div>';
+    html+='<div style="margin-top:18px"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px"><div style="font-weight:500;color:var(--brown)">📋 Foglalások ('+dayBookings.length+'):</div>'+(dayBookings.some(b=>b.status!=="cancelled")?'<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" style="width:auto" onclick="downloadDayBookingsPdf()">📄 Lista PDF-ben (nyomtatáshoz)</button><button class="btn btn-outline btn-sm" style="width:auto" onclick="toggleBookingGalleries()">🖼️ Galériák a foglalásokból</button></span>':'')+'</div><div id="bk-gal-panel"></div>';
     dayBookings.sort((a,b)=>a.time.localeCompare(b.time)).forEach(b=>{
       const statusClass=b.status==="confirmed"?"confirmed":(b.status==="cancelled"?"cancelled":"pending");
       const statusLabel=b.status==="confirmed"?"Megerősítve":(b.status==="cancelled"?(b.cancelledBy==="parent"?"Lemondta a szülő"+(b.cancelledAt?" ("+new Date(b.cancelledAt).toLocaleDateString("hu-HU",{month:"short",day:"numeric"})+")":""):"Lemondva"):"Új");
@@ -6426,6 +6527,7 @@ function renderAdminDayDetail(){
     html+='</div>';
   }
   detail.innerHTML=html;
+  if(_bkGalOpen===_selectedBookingDate)try{renderBookingGalleries()}catch(e){}
   // Select időtartam dropdown beállítása
   setTimeout(()=>{const sel=document.getElementById("bk-duration");if(sel){sel.value=String(dayConf.duration||30);sel.disabled=_dayTyped(dayConf)}},10);
   _bkSoloAnyLabels(!!dayConf.soloAnyone);
