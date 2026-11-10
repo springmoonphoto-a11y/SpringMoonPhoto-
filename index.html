@@ -9071,7 +9071,9 @@ function openGalleryCard(galleryId){
   document.getElementById("gallery-card-preview").innerHTML='<div class="cc-slip"><div class="cc-slip-brand">SpringMoon<span>Gallery</span></div><div class="cc-slip-name">'+_pcEsc(c.name)+'</div><div class="cc-slip-code">'+_pcEsc(c.code)+'</div><div class="cc-slip-site">'+c.site+'</div><div class="cc-slip-hint">'+_pcEsc(c.hint)+'</div></div>';
   let canShare=false;
   try{canShare=!!(navigator.share&&navigator.canShare&&typeof File==="function"&&navigator.canShare({files:[new File([new Blob(["x"],{type:"image/png"})],"k.png",{type:"image/png"})]}))}catch(e){}
-  let h='<button class="btn btn-gold" onclick="copyGalleryCardImage()">🖼️ Kártya másolása képként</button>';
+  const _em=_galleryContactEmail(g);
+  let h='<button class="btn btn-gold" onclick="emailGalleryCard()">📧 Küldés emailben'+(_em?' <span style="font-weight:400;font-size:.78em;opacity:.85">('+_pcEsc(_em)+')</span>':'')+'</button>';
+  h+='<button class="btn btn-outline" onclick="copyGalleryCardImage()">🖼️ Kártya másolása képként</button>';
   h+='<button class="btn btn-outline" onclick="copyGalleryCardText()">📋 Másolás szövegként (kattintható linkkel)</button>';
   if(canShare)h+='<button class="btn btn-outline" onclick="shareGalleryCardImage()">📤 Megosztás (telefonon: Messenger stb.)</button>';
   h+='<button class="btn btn-outline btn-sm" onclick="downloadGalleryCardImage()">⬇️ Kép letöltése</button>';
@@ -9259,6 +9261,58 @@ async function shareGalleryCardImage(){
     if(e&&e.name==="AbortError")return;// a megosztást a felhasználó zárta be
     try{await downloadGalleryCardImage(true)}catch(e2){_galleryCardMsg("Nem sikerült a megosztás – használd a szöveges másolást.")}
   }
+}
+// Belépőkártya küldése emailben: gépen a kártya képe a vágólapra kerül és megnyílik a Gmail (springmoonphoto fiók),
+// telefonon a megosztás menü nyílik a képpel (ott a Gmailt kell választani)
+function _galleryCardEmailBody(g){
+  const c=_galleryCardInfo(g);
+  return "Kedves Szülő!\n\nKüldöm a belépőkártyát a galériához, ahol megnézheted és megrendelheted a képeket.\n\n"+_galleryCardText(g)+"\n\nHa bármi kérdésed van, írj nyugodtan!\n\nÜdvözlettel:\nBukta Anita\nSpringMoonPhoto";
+}
+function _galleryCardGmailUrl(to,subject,body){
+  const me="springmoonphoto@gmail.com";
+  return "https://mail.google.com/mail/u/"+encodeURIComponent(me)+"/?authuser="+encodeURIComponent(me)+"&view=cm&fs=1&to="+encodeURIComponent(to||"")+"&su="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);
+}
+async function emailGalleryCard(){
+  const g=_galleryCardGallery();if(!g)return;
+  let to=_galleryContactEmail(g);
+  if(!to){
+    const v=prompt("Ehhez a galériához nincs email cím. Kinek küldjem? (email cím)","");
+    if(v===null)return;to=v.trim();
+    if(to&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)){alert("Ez nem tűnik email címnek.");return}
+    if(to&&!g.isGroup){try{await db.collection("galleries").doc(g.id).update({contactEmail:to.toLowerCase()});g.contactEmail=to.toLowerCase()}catch(e){}}
+  }
+  const c=_galleryCardInfo(g);
+  const subject="Belépőkártya – SpringMoonGallery · "+c.name;
+  const body=_galleryCardEmailBody(g);
+  const mobile=(()=>{try{return matchMedia("(pointer:coarse)").matches}catch(e){return false}})();
+  let canShare=false;
+  try{canShare=!!(navigator.share&&navigator.canShare&&navigator.canShare({files:[new File([new Blob(["x"],{type:"image/png"})],"k.png",{type:"image/png"})]}))}catch(e){}
+  if(mobile&&canShare){
+    // Telefon: a címzett email a vágólapra, a kártya képe + szöveg a megosztásba
+    try{if(to&&navigator.clipboard&&navigator.clipboard.writeText)await navigator.clipboard.writeText(to)}catch(e){}
+    try{
+      const blob=await _canvasBlob(await _galleryCardCanvas(g));
+      const file=new File([blob],_galleryCardFileName(g),{type:"image/png"});
+      _galleryCardMsg("Válaszd a Gmailt"+(to?" – a címzett ("+to+") a vágólapon van, a Címzett mezőbe illeszd be.":"."));
+      await navigator.share({files:[file],title:subject,text:body});
+      return;
+    }catch(e){if(e&&e.name==="AbortError")return}
+  }
+  // Gép (vagy ha a megosztás nem megy): kép a vágólapra, Gmail megnyitása kitöltve
+  let copied=false;
+  try{
+    if(navigator.clipboard&&navigator.clipboard.write&&typeof ClipboardItem!=="undefined"){
+      const blobP=_galleryCardCanvas(g).then(_canvasBlob);
+      await navigator.clipboard.write([new ClipboardItem({"image/png":blobP})]);copied=true;
+    }
+  }catch(e){}
+  if(!copied){try{await downloadGalleryCardImage(true)}catch(e){}}
+  const url=_galleryCardGmailUrl(to,subject,body);
+  const w=window.open(url,"_blank","noopener");
+  const el=document.getElementById("gallery-card-msg");
+  const tip=copied?"✓ A kártya képe a vágólapon van. A Gmailben kattints a levél szövegébe, és nyomd meg a <strong>Ctrl+V</strong>-t – a kártya képként bekerül a levélbe.":"A kártya képét letöltöttem – a Gmailben a 📎 gombbal csatold a levélhez.";
+  if(el)el.innerHTML='<div style="background:#f1f8f3;border:1px solid #a5d6b4;border-radius:8px;padding:8px 10px;line-height:1.5;text-align:left">'+tip+(w?'':'<br><a href="'+_pcEsc(url)+'" target="_blank" rel="noopener">👉 Gmail megnyitása</a>')+'</div>';
+  if(typeof showToast==="function")try{showToast(copied?"✓ Kártya a vágólapon – Gmailben Ctrl+V":"Kártya letöltve – csatold a levélhez")}catch(e){}
 }
 function copyDetailCode(){navigator.clipboard?.writeText(currentDetailGallery.code);alert("Kód másolva: "+currentDetailGallery.code)}
 function copyCode(code){navigator.clipboard?.writeText(code);alert("Kód másolva: "+code)}
