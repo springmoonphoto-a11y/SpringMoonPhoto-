@@ -5904,13 +5904,14 @@ function _bookingConfirmText(b,kind){
   const link=bookingCancelLink(b);
   if(kind==="sms"){
     const dep=_bookingDeposit(b);const pr=_bookingPriceOf(b);
-    let t="Kedves "+(b.name||"")+"! Visszaigazolom a fotózás időpontját: "+formatBookingDate(b.date)+" "+_bookingTimeText(b)+"."+(pr>0?" Ár: "+fmt(pr)+".":"");
+    const loc=_bookingLocation(b);
+    let t="Kedves "+(b.name||"")+"! Visszaigazolom a fotózás időpontját: "+formatBookingDate(b.date)+" "+_bookingTimeText(b)+"."+(loc?" Helyszín: "+loc+".":"")+(pr>0?" Ár: "+fmt(pr)+".":"");
     if(dep)t+=" A foglalás "+dep.pct+"% előleggel válik véglegessé: "+fmt(dep.amount)+". Számlaszám: "+PAY_INFO.account+" ("+PAY_INFO.name+", "+PAY_INFO.bank+"), közlemény: "+(b.name||"")+".";
     if(link)t+=" Ha mégsem jó, legkésőbb "+BOOKING_CANCEL_HOURS+" órával előtte itt lemondhatod: "+link;
     return t+" - "+brand;
   }
   let t="Kedves "+(b.name||"")+"!\n\nKöszönöm a foglalást, visszaigazolom az időpontot:\n\n";
-  t+="📅 Dátum: "+formatBookingDate(b.date)+"\n🕐 Időpont: "+_bookingTimeText(b)+"\n"+(b.type?"📸 Típus: "+b.type+"\n":"")+(_bookingPriceOf(b)>0?"💰 Ár: "+fmt(_bookingPriceOf(b))+"\n":"");
+  t+="📅 Dátum: "+formatBookingDate(b.date)+"\n🕐 Időpont: "+_bookingTimeText(b)+"\n"+(_bookingLocation(b)?"📍 Helyszín: "+_bookingLocation(b)+"\n":"")+(b.type?"📸 Típus: "+b.type+"\n":"")+(_bookingPriceOf(b)>0?"💰 Ár: "+fmt(_bookingPriceOf(b))+"\n":"");
   const dep=_bookingDeposit(b);
   if(dep){
     t+="\n💳 A foglalás "+dep.pct+"% előleggel válik véglegessé.\n";
@@ -6024,6 +6025,7 @@ function _bookingDeposit(b){const p=_bookingPriceOf(b),pct=_bookingDepositPct(b)
 // === ELŐLEG MEGÉRKEZETT → tudnivalók küldése ===
 const BOOKING_INFO_SAMPLE="📍 Helyszín: Villusion Stúdió, 3300 Eger, Cifrakapu u. 160., első emelet\n🚗 Parkolás: a háztömb előtt\n\nKérlek, 5–10 perccel korábban érkezzetek, hogy legyen idő átöltözni, megigazítani a hajat – így a teljes fotózási idő a képeké lesz.\n\n👗 Öltözködési javaslat\nA stúdió karácsonyi díszlete meleg, barnás-arany tónusú, fehér kandallóval, piros díszekkel és gyertyafénnyel. Ehhez ezek a színek illenek a legszebben:\n• krém, törtfehér, világos bézs, karamell\n• karácsonyi színek: bordó, mélypiros, sötét fenyőzöld\n• ünnepi hangulathoz: pezsgő- vagy aranyszínű részletek\n\nInkább kerüljétek:\n• a sötétbarnát, a szürkét és a feketét (beleolvadnak a sötét falba és a kanapéba)\n• a neonszíneket, a nagy feliratokat és logókat\n• az erősen mintás, csíkos ruhákat\n\nHa családdal jöttök, nem kell egyformába öltözni, elég, ha a színek összepasszolnak (pl. krém + bordó, vagy bézs + fenyőzöld). A kötött pulóver, a bársony, a csipke, egy masni vagy egy karácsonyi sapka nagyon jól mutat ebben a környezetben.";
 function insertBookingInfoSample(){const el=document.getElementById("bk-info");if(!el)return;if(el.value.trim()&&!confirm("Felülírod a mostani szöveget a mintával?"))return;el.value=BOOKING_INFO_SAMPLE;el.focus()}
+function _bookingLocation(b){const av=(typeof getAvailability==="function"?getAvailability():null)||{};const d=av[b&&b.date];return d&&d.location?String(d.location).trim():""}
 function _bookingDayInfo(b){const av=(typeof getAvailability==="function"?getAvailability():null)||{};const d=av[b&&b.date];return d&&d.infoText?String(d.infoText).trim():""}
 function _bookingInfoText(b,kind){
   const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
@@ -6037,6 +6039,7 @@ function _bookingInfoText(b,kind){
   }
   let t="Kedves "+(b.name||"")+"!\n\nKöszönöm az előleget, megérkezett, az időpontod végleges! 🎄\n\n";
   t+="📅 Időpont: "+formatBookingDate(b.date)+", "+_bookingTimeText(b)+"\n"+(b.type?"📸 Típus: "+b.type+"\n":"");
+  {const loc=_bookingLocation(b),inf=_bookingDayInfo(b);if(loc&&!/helysz[ií]n/i.test(inf))t+="📍 Helyszín: "+loc+"\n";}
   if(dep)t+="💳 Előleg ("+fmt(dep.amount)+"): megérkezett ✓"+(dep.amount<dep.price?"\n💰 Fennmaradó összeg: "+fmt(dep.price-dep.amount):"")+"\n";
   if(info)t+="\n"+info+"\n";
   t+="\n"+(phone?"Ha kérdésed van, írj vagy hívj nyugodtan: "+phone+"\n\n":"");
@@ -6675,6 +6678,8 @@ function renderAdminDayDetail(){
   // Leírás szekció
   html+='<label style="font-size:.74rem;color:var(--muted);display:block;margin-top:14px;margin-bottom:4px">📝 Rövid leírás (opcionális — pl. "Levendulamezős családi fotózás")</label>';
   html+='<textarea id="bk-description" class="day-description-input" placeholder="Mit lehet ezen a napon foglalni?">'+((dayConf.description||"").replace(/</g,"&lt;"))+'</textarea>';
+  html+='<label style="font-size:.74rem;color:var(--muted);display:block;margin-top:14px;margin-bottom:4px">📍 Helyszín (bekerül a visszaigazoló emailbe/SMS-be és a foglalási oldalra)</label>';
+  html+='<input type="text" id="bk-location" placeholder="pl. Forrás Ovi – könyvtár" value="'+_pcEsc(dayConf.location||"")+'">';
   html+='<label style="font-size:.74rem;color:var(--muted);display:block;margin-top:14px;margin-bottom:4px">📋 Tudnivalók az előleg után (helyszín, parkolás, öltözködés…) – a „💳 Előleg megérkezett” gombbal küldöd el</label>';
   html+='<textarea id="bk-info" class="day-description-input" style="min-height:150px" placeholder="pl. 📍 Helyszín: … 🚗 Parkolás: … 👗 Öltözködési javaslat: …">'+((dayConf.infoText||"").replace(/</g,"&lt;"))+'</textarea>';
   html+='<button type="button" class="btn btn-outline btn-sm" style="width:auto;margin-top:6px" onclick="insertBookingInfoSample()">📝 Minta beillesztése</button>';
@@ -6868,6 +6873,7 @@ async function saveDayAvailability(){
   const coverImage=coverUrlEl?coverUrlEl.value:(existing.coverImage||"");
   const description=descEl?descEl.value:(existing.description||"");
   const infoEl=document.getElementById("bk-info");const infoText=infoEl?infoEl.value:(existing.infoText||"");
+  const locEl=document.getElementById("bk-location");const location=locEl?locEl.value.trim():(existing.location||"");
   if(!start||!end){alert("⚠️ Kezdés és Befejezés idő kötelező");return}
   // Szünet: mindkét mező kell, és a vége legyen később, mint a kezdete
   const bsEl=document.getElementById("bk-break-start"),beEl=document.getElementById("bk-break-end");
@@ -6885,7 +6891,7 @@ async function saveDayAvailability(){
   const _p1=_pv("bk-price"),_pS=_pv("bk-price-solo"),_pF=_pv("bk-price-family");
   const _dpRaw=_pv("bk-deposit");const depositPercent=_dpRaw===null?(Number(existing.depositPercent)||0):Math.min(100,_dpRaw);
   const _saEl=document.getElementById("bk-solo-any");const soloAnyone=_saEl?_saEl.checked:!!existing.soloAnyone;
-  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,linkOnly,soloAnyone,depositPercent,infoText,price:_p1===null?(Number(existing.price)||0):_p1,priceSolo:_pS===null?(Number(existing.priceSolo)||0):_pS,priceFamily:_pF===null?(Number(existing.priceFamily)||0):_pF,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
+  const dayData={...existing,enabled,start,end,duration,coverImage,description,breakStart,breakEnd,linkOnly,soloAnyone,depositPercent,infoText,location,price:_p1===null?(Number(existing.price)||0):_p1,priceSolo:_pS===null?(Number(existing.priceSolo)||0):_pS,priceFamily:_pF===null?(Number(existing.priceFamily)||0):_pF,typedDuration:!!typedDuration,durSolo:typedDuration?durSolo:(Number(existing.durSolo)||0),durFamily:typedDuration?durFamily:(Number(existing.durFamily)||0)};
   // Ha változik az időpont hossza, a napra már leadott (időtartam nélküli) foglalások megtartják az EREDETI hosszukat
   const _oldDur=Number(existing.duration)||0;
   if(_oldDur>0&&_oldDur!==duration){
@@ -7443,6 +7449,7 @@ function renderPublicDayDetail(){
     html+='<div class="public-day-cover"><img src="'+safeUrl+'" alt="Borítókép"></div>';
   }
   // Leírás
+  if(dayConf.location)html+='<div class="public-day-description" style="font-weight:600">📍 Helyszín: '+_pcEsc(dayConf.location)+'</div>';
   if(dayConf.description){
     const safeDesc=dayConf.description.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     html+='<div class="public-day-description">'+safeDesc+'</div>';
