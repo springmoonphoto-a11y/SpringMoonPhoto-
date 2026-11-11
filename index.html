@@ -9310,8 +9310,8 @@ async function emailGalleryCard(){
   const url=_galleryCardGmailUrl(to,subject,body);
   const w=window.open(url,"_blank","noopener");
   const el=document.getElementById("gallery-card-msg");
-  const tip=copied?"✓ A kártya képe a vágólapon van. A Gmailben kattints a levél szövegébe, és nyomd meg a <strong>Ctrl+V</strong>-t – a kártya képként bekerül a levélbe.":"A kártya képét letöltöttem – a Gmailben a 📎 gombbal csatold a levélhez.";
-  if(el)el.innerHTML='<div style="background:#f1f8f3;border:1px solid #a5d6b4;border-radius:8px;padding:8px 10px;line-height:1.5;text-align:left">'+tip+(w?'':'<br><a href="'+_pcEsc(url)+'" target="_blank" rel="noopener">👉 Gmail megnyitása</a>')+'</div>';
+  const tip=copied?"<strong>📌 Még egy lépés a Gmailben:</strong><br>1. Kattints a levélben a <em>„Kedves Szülő!”</em> sor <strong>elé</strong><br>2. Nyomd meg: <strong>Ctrl+V</strong> → a kártya képe bekerül a levélbe<br>3. Küldés<br><span style='font-size:.85em;color:#777'>A Gmail magától nem tud képet tenni a levélbe, ezért kell beilleszteni. Ha közben mást másoltál, nyomd meg lent a gombot, és illeszd be újra.</span>":"A kártya képét letöltöttem – a Gmailben a 📎 gombbal csatold a levélhez.";
+  if(el)el.innerHTML='<div style="background:#fff8e6;border:1.5px solid var(--gold);border-radius:8px;padding:10px 12px;line-height:1.6;text-align:left">'+tip+(copied?'<br><button class="btn btn-outline btn-sm" style="width:auto;margin-top:6px" onclick="copyGalleryCardImage()">🖼️ Kártya újra a vágólapra</button>':'')+(w?'':'<br><a href="'+_pcEsc(url)+'" target="_blank" rel="noopener">👉 Gmail megnyitása</a>')+'</div>';
   if(typeof showToast==="function")try{showToast(copied?"✓ Kártya a vágólapon – Gmailben Ctrl+V":"Kártya letöltve – csatold a levélhez")}catch(e){}
 }
 function copyDetailCode(){navigator.clipboard?.writeText(currentDetailGallery.code);alert("Kód másolva: "+currentDetailGallery.code)}
