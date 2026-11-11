@@ -360,6 +360,12 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .bkg-time{font-weight:600;color:var(--brown);font-size:.8rem}
 .bkg-code{font-family:monospace;font-weight:700;background:#fff;border:1px solid #a5d6b4;border-radius:6px;padding:1px 6px}
 .bkg-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.bkg-acts .btn{width:auto}
+.dup-warn{margin:4px 0 10px;padding:8px 10px;border-radius:8px;background:#fff8e6;border:1px solid #f0d58a;color:#7a5a00;font-size:.78rem;line-height:1.45;text-align:left}
+.dup-warn.strong{background:#fdecea;border-color:#f3b6ae;color:#a12a1a}
+.dup-warn ul{margin:4px 0 0 18px;padding:0}.dup-warn li{margin:1px 0}
+.dup-head{font-size:.8rem;font-weight:600;color:#a15c00;margin:2px 0 4px}
+.dup-line .dup-name{font-size:.8rem;font-weight:600;margin-top:4px}
+.dup-line .dup-warn{margin-top:2px}
 .bkg-warn{font-size:.74rem;color:#a15c00;margin-top:4px;line-height:1.4}
 .booking-card:has(.bk-move-box:not(:empty)){flex-wrap:wrap}
 .bk-move-box:empty{display:none}
@@ -1504,7 +1510,8 @@ body.dark-mode .upload-area:hover{background:#1a1408}
       <div class="new-form" style="border:1.5px solid var(--gold)">
         <h3>⚡ Tömeges galéria-létrehozás (iskolai fotózáshoz)</h3>
         <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Írd be a neveket, soronként egyet (pl. egy egész osztályt). Minden névhez külön galéria és külön belépési kód készül – email nélkül, a szülő a névvel és a kóddal lép majd be. A képeket utána a galériákhoz külön töltöd fel.</p>
-        <textarea id="bulk-names" rows="6" placeholder="Kiss Márk&#10;Nagy Anna&#10;Kovács Bence&#10;..." style="width:100%;font-family:'DM Sans',sans-serif;font-size:.92rem;padding:11px;border:1.5px solid var(--warm);border-radius:10px;margin-bottom:8px"></textarea>
+        <textarea id="bulk-names" oninput="checkBulkDup()" rows="6" placeholder="Kiss Márk&#10;Nagy Anna&#10;Kovács Bence&#10;..." style="width:100%;font-family:'DM Sans',sans-serif;font-size:.92rem;padding:11px;border:1.5px solid var(--warm);border-radius:10px;margin-bottom:8px"></textarea>
+        <div id="bulk-dup"></div>
         <label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:4px">Osztály / csoport neve (opcionális, a galéria nevéhez):</label>
         <input type="text" id="bulk-classname" placeholder="pl. 1.a osztály" style="width:100%;margin-bottom:10px">
         <div id="bulk-msg" style="margin-bottom:8px"></div>
@@ -1520,8 +1527,8 @@ body.dark-mode .upload-area:hover{background:#1a1408}
           <div style="flex:1"><div style="font-weight:500;color:var(--dark);font-size:.92rem">&#128101; Csoportos galéria</div><div style="font-size:.75rem;color:var(--muted);margin-top:2px">Pl. ovis csoport - bárki bejelentkezhet a kóddal</div></div>
         </label>
         <div id="individual-gallery-fields">
-          <label>Megrendelő teljes neve *</label><input id="new-child" type="text" placeholder="pl. Kiss Péter vagy Barber Shop" oninput="updateCode()">
-          <label>Szülő email címe <span style="color:var(--muted);font-weight:400">(nem kötelező)</span></label><input id="new-email" type="email" placeholder="szulo@email.com – üresen hagyható"><div style="font-size:.74rem;color:var(--muted);margin:-6px 0 12px">Ha üresen hagyod, a szülő csak a névvel és a kóddal lép be (pl. iskolai fotózásnál).</div>
+          <label>Megrendelő teljes neve *</label><input id="new-child" type="text" placeholder="pl. Kiss Péter vagy Barber Shop" oninput="updateCode();checkNewGalleryDup()"><div id="new-child-dup"></div>
+          <label>Szülő email címe <span style="color:var(--muted);font-weight:400">(nem kötelező)</span></label><input id="new-email" type="email" placeholder="szulo@email.com – üresen hagyható" oninput="checkNewGalleryDup()"><div style="font-size:.74rem;color:var(--muted);margin:-6px 0 12px">Ha üresen hagyod, a szülő csak a névvel és a kóddal lép be (pl. iskolai fotózásnál).</div>
         </div>
         <div id="group-gallery-fields" class="hidden">
           <label>Csoport neve *</label><input id="new-group-name" type="text" placeholder="pl. Napsugár csoport 2025" oninput="updateGroupCode()">
@@ -5936,6 +5943,64 @@ async function markDepositPaid(id){
   if(!_bookingDayInfo(b)&&!confirm("Ehhez a naphoz még nincs megírva a tudnivalók szövege (Naptár → nap → „📋 Tudnivalók az előleg után”).\n\nÍgy is megnyissam az üzenetet (csak a köszönő szöveggel)?"))return;
   _openBookingInfoMessage(b);
 }
+// === Lehetséges dupla galéria felismerése név (és email) alapján ===
+// erős: azonos teljes név vagy azonos email · gyenge: azonos vezetéknév (a „-né” végződést és a leánykori nevet is figyeli)
+function _dupNorm(x){return String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9@. ]+/g," ").replace(/\s+/g," ").trim()}
+function _dupSurnames(name){
+  const t=_dupNorm(name).split(" ").filter(Boolean);if(!t.length)return [];
+  const out=new Set();
+  let first=t[0];
+  if(first.length>4&&/ne$/.test(first)){out.add(first.slice(0,-2));if(t.length>=3&&t[1].length>2)out.add(t[1])}// Kovácsné Demeter Mariann → kovacs, demeter
+  else if(first.length>1)out.add(first);
+  return Array.from(out);
+}
+function findDuplicateGalleries(name,email,excludeId){
+  const nn=_dupNorm(name);const em=_dupNorm(email);
+  if(nn.length<3&&!em)return [];
+  const sur=_dupSurnames(name);
+  const res=[];
+  (galleries||[]).forEach(g=>{
+    if(!g||g.isGroup||g.id===excludeId)return;
+    if(currentUser&&g.photographerId&&g.photographerId!==currentUser.uid)return;
+    const gn=_dupNorm(g.child||g.name);
+    const gEmails=[g.parentEmail,g.contactEmail].map(_dupNorm).filter(Boolean);
+    try{const ce=_dupNorm(_galleryContactEmail(g));if(ce&&!gEmails.includes(ce))gEmails.push(ce)}catch(e){}
+    let level=0,why="";
+    if(nn&&gn===nn){level=2;why="azonos név"}
+    else if(em&&gEmails.includes(em)){level=2;why="azonos email"}
+    else if(sur.length){const gs=_dupSurnames(g.child||g.name);const hit=sur.find(x=>gs.includes(x));if(hit){level=1;why="azonos vezetéknév"}}
+    if(level)res.push({g,level,why});
+  });
+  res.sort((a,b)=>b.level-a.level||(b.g.createdAt||0)-(a.g.createdAt||0));
+  return res;
+}
+function _dupWarnHtml(list,max){
+  if(!list.length)return "";
+  max=max||4;
+  const strong=list.some(x=>x.level===2);
+  const items=list.slice(0,max).map(x=>'<li><strong>'+_pcEsc(x.g.child||x.g.name||"")+'</strong> · <span style="font-family:monospace">'+_pcEsc(x.g.code||"")+'</span>'+(x.g.bulkClass?' · '+_pcEsc(x.g.bulkClass):'')+' <em style="opacity:.8">('+x.why+')</em></li>').join("");
+  return '<div class="dup-warn'+(strong?' strong':'')+'">'+(strong?'⚠️ <strong>Valószínűleg már van galériája!</strong>':'💡 Lehetséges dupla – nézd meg, nem ugyanaz a család-e:')+'<ul>'+items+'</ul>'+(list.length>max?'<div style="opacity:.8">…és még '+(list.length-max)+'</div>':'')+'</div>';
+}
+function checkNewGalleryDup(){
+  const el=document.getElementById("new-child-dup");if(!el)return;
+  const n=(document.getElementById("new-child")||{}).value||"";const e=(document.getElementById("new-email")||{}).value||"";
+  el.innerHTML=(n.trim().length>=3||/@/.test(e))?_dupWarnHtml(findDuplicateGalleries(n,e)):"";
+}
+let _bulkDupT=null;
+function checkBulkDup(){
+  clearTimeout(_bulkDupT);_bulkDupT=setTimeout(()=>{
+    const el=document.getElementById("bulk-dup");if(!el)return;
+    const names=((document.getElementById("bulk-names")||{}).value||"").split("\n").map(x=>x.trim()).filter(x=>x.length>=3);
+    let h="";
+    names.forEach(n=>{const d=findDuplicateGalleries(n,"");if(d.length)h+='<div class="dup-line"><div class="dup-name">'+_pcEsc(n)+'</div>'+_dupWarnHtml(d,3)+'</div>'});
+    el.innerHTML=h?'<div class="dup-head">Figyelem – lehetséges duplák:</div>'+h:"";
+  },350);
+}
+function _bkgRowDup(id){
+  const b=bookings.find(x=>x.id===id);const inp=document.querySelector('#bk-gal-panel .bkg-name[data-id="'+id+'"]');const box=document.getElementById("bkg-dup-"+id);
+  if(!b||!inp||!box)return;
+  box.innerHTML=_dupWarnHtml(findDuplicateGalleries(inp.value,b.email||""),3);
+}
 // === Galériák létrehozása a nap foglalásaiból ===
 let _bkGalOpen=null;
 function _bkNm(x){return String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim().toLowerCase()}
@@ -5966,10 +6031,12 @@ function renderBookingGalleries(){
       h+='<div class="bkg-row done"><div class="bkg-main"><span class="bkg-time">'+_pcEsc(b.time)+'</span> <strong>'+_pcEsc(g.child||g.name)+'</strong> <span class="bkg-code">'+_pcEsc(g.code)+'</span></div><div class="bkg-acts"><button class="btn btn-outline btn-sm" onclick="openGalleryCard(\''+g.id+'\')">🎫 Kártya</button>'+((b.email||b.phone)?'<button class="btn btn-outline btn-sm" onclick="sendBookingGalleryCode(\''+b.id+'\')">✉️ Kód küldése</button>':'')+'</div></div>';
       return;
     }
-    const same=galleries.filter(x=>!x.isGroup&&_bkNm(x.child)===_bkNm(b.name));
+    const dups=findDuplicateGalleries(b.name,b.email||"");
+    const strong=dups.filter(x=>x.level===2);
     todo++;
-    h+='<div class="bkg-row"><label class="bkg-main"><input type="checkbox" class="bkg-cb" data-id="'+b.id+'"'+(same.length?"":" checked")+' style="width:auto"> <span class="bkg-time">'+_pcEsc(b.time)+'</span> <input type="text" class="bkg-name" data-id="'+b.id+'" value="'+_pcEsc(b.name||"")+'"></label>';
-    if(same.length)h+='<div class="bkg-warn">⚠️ Már van ilyen nevű galéria: '+same.slice(0,3).map(x=>_pcEsc(x.code)+(x.bulkClass?" ("+_pcEsc(x.bulkClass)+")":"")).join(", ")+' – ezért nincs bejelölve. <a href="#" onclick="event.preventDefault();linkBookingGallery(\''+b.id+'\',\''+same[0].id+'\')">🔗 Ehhez kötöm</a></div>';
+    h+='<div class="bkg-row"><label class="bkg-main"><input type="checkbox" class="bkg-cb" data-id="'+b.id+'"'+(strong.length?"":" checked")+' style="width:auto"> <span class="bkg-time">'+_pcEsc(b.time)+'</span> <input type="text" class="bkg-name" data-id="'+b.id+'" value="'+_pcEsc(b.name||"")+'" oninput="_bkgRowDup(\''+b.id+'\')"></label>';
+    h+='<div id="bkg-dup-'+b.id+'">'+_dupWarnHtml(dups,3)+'</div>';
+    if(strong.length)h+='<div class="bkg-warn">Ezért nincs bejelölve. <a href="#" onclick="event.preventDefault();linkBookingGallery(\''+b.id+'\',\''+strong[0].g.id+'\')">🔗 Hozzákötöm a meglévőhöz ('+_pcEsc(strong[0].g.code)+')</a></div>';
     h+='</div>';
   });
   h+='</div>';
@@ -9384,7 +9451,7 @@ async function createBulkGalleries(){
     html+='<button class="btn btn-outline btn-sm" style="margin-top:8px;width:100%" onclick="copyBulkCodes()">📋 Összes név+kód másolása</button>';
     document.getElementById("bulk-result").innerHTML=html;
     window._lastBulkCreated=created;
-    document.getElementById("bulk-names").value="";document.getElementById("bulk-classname").value="";
+    document.getElementById("bulk-names").value="";document.getElementById("bulk-classname").value="";{const d=document.getElementById("bulk-dup");if(d)d.innerHTML=""}
     msg.innerHTML="";
     renderAdminGalleries();
   }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt: '+e.message+'</div>'}
@@ -9436,7 +9503,7 @@ async function createGallery(){
   const btn=document.getElementById("create-btn");btn.disabled=true;btn.textContent="Mentés...";
   try{
     await db.collection("galleries").add(galleryData);await loadPhotographerData();
-    document.getElementById("new-child").value="";document.getElementById("new-email").value="";document.getElementById("new-group-name").value="";
+    document.getElementById("new-child").value="";document.getElementById("new-email").value="";{const d=document.getElementById("new-child-dup");if(d)d.innerHTML=""}document.getElementById("new-group-name").value="";
     document.getElementById("new-is-group").checked=false;document.getElementById("new-enable-print").checked=true;document.getElementById("new-enable-digital").checked=true;document.getElementById("new-enable-gift").checked=true;
     document.getElementById("new-watermark-enabled").checked=true;document.getElementById("new-watermark-text").value="SpringMoonPhoto\\nMINTA";
     document.getElementById("new-expires-at").value="";document.getElementById("new-promo-text").value="";document.getElementById("new-gallery-message").value="";
