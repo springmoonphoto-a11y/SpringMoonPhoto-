@@ -424,6 +424,13 @@ body.dark-mode .public-day-description{background:rgba(255,255,255,.05);color:#e
 .pm-help{font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:12px}
 .pm-section{margin-bottom:16px}
 .pm-title{font-weight:700;color:var(--brown);font-size:.86rem;margin-bottom:6px}
+.yc-box{background:#fffdf7;border:1.5px dashed var(--gold);border-radius:10px;padding:10px 12px}
+.yc-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.88rem}
+.yc-sub{font-size:.76rem;color:var(--muted)}
+.yc-row{text-transform:none;letter-spacing:normal;font-weight:400;color:var(--dark);display:flex;gap:10px;align-items:flex-start;padding:8px;border:1px solid var(--warm);border-radius:8px;background:#fff;margin-top:6px;font-size:.86rem;cursor:pointer}
+.yc-banner{border:1.5px solid var(--gold);margin-bottom:14px}
+.pm-year{width:auto!important;min-width:76px;padding:6px!important}
+.pm-carried{font-size:.72rem;color:#2c5d9b;background:#eef3fb;border-radius:6px;padding:2px 6px;white-space:nowrap}
 .pm-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--warm);flex-wrap:wrap}
 .pm-row input[type=text]{flex:1;min-width:160px;padding:8px 10px;border:1.5px solid var(--warm);border-radius:8px;margin:0}
 .pm-row select{padding:7px 8px;border:1.5px solid var(--warm);border-radius:8px;max-width:100%;margin:0}
@@ -1891,6 +1898,7 @@ let COMBO_DISCOUNT=0;// kombó kedvezmény (Ft), ha ugyanabból a képből papí
 let PRICE_LISTS=[];// külön elnevezett árlisták: [{id,name,printSizes,digitalPrice,giftItems,comboDiscount}] – galériához rendelhetők
 let MY_DEFAULT_PRICES=null;// az "Alap árlista" utoljára mentett állapota (admin oldalon)
 let _priceEditId=null;// melyik árlista van az Árak fül szerkesztőjében (null = Alap)
+let YEAR_CLOSINGS={},WORK_YEAR=new Date().getFullYear();// év lezárások: {"2026":{closedAt,carried:[...],summary}} · WORK_YEAR = a nyitott (aktuális) év
 let PROJECTS=[];// fotózások (pl. Elsős fotózás 2026, Karácsonyi fotózás) – mindegyiknek külön statisztika és költségvetés
 let CLASS_GIVEBACK_PERCENTS={};// osztályonként eltérő visszaadandó százalék, pl. {"1.a":10,"1.b":15}
 let GIFT_ITEMS=JSON.parse(JSON.stringify(DEFAULT_GIFT_ITEMS));
@@ -1995,6 +2003,8 @@ async function loadMyPrices(){
       CLASS_GIVEBACK_PERCENTS=data.classGivebackPercents||{};
       CHAT_SEEN=(data.chatSeen&&typeof data.chatSeen==='object')?data.chatSeen:{};
       PROJECTS=Array.isArray(data.projects)?data.projects:[];
+      YEAR_CLOSINGS=(data.yearClosings&&typeof data.yearClosings==="object")?data.yearClosings:{};
+      WORK_YEAR=Number(data.workYear)||(function(){const ys=Object.keys(YEAR_CLOSINGS).map(Number).filter(Boolean);return ys.length?Math.max(...ys)+1:new Date().getFullYear()})();
       PRICE_LISTS=Array.isArray(data.priceLists)?data.priceLists.filter(x=>x&&x.id):[];
       // Üzenetsablonok: csak a fotós felületén jelennek meg; ha még sosem mentett, pár kiinduló sablont kap
       MSG_TEMPLATES=Array.isArray(data.messageTemplates)?data.messageTemplates.filter(x=>x&&x.id&&typeof x.text==="string"):_defaultMsgTemplates();
@@ -4981,7 +4991,8 @@ function updateBulkStatusOptions(){
 function renderStats(){
   const div=document.getElementById("admin-stats");
   const orders=_projOrders(),galleries=_projGalleries();
-  if(orders.length===0&&galleries.length===0&&_projActive()==="all"){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📊</span><div class="empty-state-title">Még nincs adat</div><div class="empty-state-text">A statisztikák akkor jelennek meg, ha lesznek galériák és rendelések.</div></div>';return}
+  const _ycb=_closedYearBannerHtml();
+  if(orders.length===0&&galleries.length===0&&_projActive()==="all"){div.innerHTML=_ycb+'<div class="empty-state"><span class="empty-state-icon">📊</span><div class="empty-state-title">Még nincs adat</div><div class="empty-state-text">A statisztikák akkor jelennek meg, ha lesznek galériák és rendelések.</div></div>';return}
   const totalRevenue=orders.reduce((s,o)=>s+o.total,0);const totalOrders=orders.length;const avgOrder=totalOrders>0?Math.round(totalRevenue/totalOrders):0;
   const paidRev=orders.filter(o=>_orderFlags(o).paid).reduce((s,o)=>s+o.total,0);
   const completedRev=orders.filter(o=>o.status==="completed").reduce((s,o)=>s+o.total,0);
@@ -5023,7 +5034,7 @@ function renderStats(){
   html+='<div class="new-form" style="margin-top:14px"><h3>🎓 Bevétel osztályonként</h3>';
   html+='<p style="font-size:.8rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Az osztálynak létrehozott galériák kifizetett rendeléseiből számolva. Osztályonként külön állíthatod be, mennyit adsz vissza — ezt megjegyzi.</p>';
   html+='<div id="class-revenue-table"></div></div>';
-  div.innerHTML=html+renderStatsExtra(topProducts,topCustomers,statusCounts,consentYes,consentNo,printCount,digitalCount,giftCount,printRev,digitalRev,giftRev,orders,galleries);
+  div.innerHTML=_ycb+html+renderStatsExtra(topProducts,topCustomers,statusCounts,consentYes,consentNo,printCount,digitalCount,giftCount,printRev,digitalRev,giftRev,orders,galleries);
   renderClassRevenueTable();
 }
 let _classRevenueData={classRevenue:{},otherPaidRevenue:0};
@@ -5097,12 +5108,37 @@ async function dismissReminder(galleryId){
 }
 // === FOTÓZÁSOK (projektek): minden galéria egy fotózáshoz tartozik, a rendelések a galérián keresztül ===
 let _projFilter=(function(){try{return localStorage.getItem("adminProject")||"all"}catch(e){return "all"}})();
+// === ÉVEK: év végén lezárod az évet; a nyitott (aktív) fotózások átkerülnek a következő évre ===
+// Egy tétel éve: a lezárások időpontja alapján (ami a 2026-os lezárás előtt jött létre, az ≤2026), ha nincs lezárás, minden a nyitott évhez tartozik.
+let _yearFilter=(function(){try{return localStorage.getItem("adminYear")||"work"}catch(e){return "work"}})();
+function _closedYears(){return Object.keys(YEAR_CLOSINGS||{}).map(Number).filter(Boolean).sort((a,b)=>a-b)}
+function _periodOf(ts){
+  const t=Number(ts)||0;const cy=_closedYears();
+  for(const y of cy){const c=YEAR_CLOSINGS[y];if(c&&t<(Number(c.closedAt)||0))return y}
+  return WORK_YEAR;
+}
+function _projYear(p){return p?(Number(p.year)||_periodOf(p.createdAt)):WORK_YEAR}
+function _galleryYear(g){if(!g)return WORK_YEAR;if(Number(g.year))return Number(g.year);const p=g.projectId?_projById(g.projectId):null;return p?_projYear(p):_periodOf(g.createdAt)}
+function _orderYear(o){const g=o&&o.galleryId?galleries.find(x=>x.id===o.galleryId):null;const per=_periodOf(o&&o.createdAt);if(g)return Math.max(_galleryYear(g),per);const p=o&&o.projectId?_projById(o.projectId):null;return p?Math.max(_projYear(p),per):per}
+function _yearActive(){const y=_yearFilter;if(y==="all")return "all";if(y==="work"||!Number(y))return WORK_YEAR;return Number(y)}
+function _yearOk(y){const a=_yearActive();return a==="all"||a===y}
+function _yearProjects(){return PROJECTS.filter(p=>_yearOk(_projYear(p)))}
+function _knownYears(){const ys=new Set([WORK_YEAR,..._closedYears()]);PROJECTS.forEach(p=>ys.add(_projYear(p)));return Array.from(ys).filter(Boolean).sort((a,b)=>b-a)}
+function setYearFilter(v){
+  const y=v==="all"?"all":(Number(v)===WORK_YEAR?"work":String(v));
+  _yearFilter=y;try{localStorage.setItem("adminYear",y)}catch(e){}
+  if(_projFilter!=="all"&&_projFilter!=="__none__"){const p=_projById(_projFilter);if(!p||!_yearOk(_projYear(p)))_projFilter="all"}
+  _galleryClassFilter="all";if(typeof clearSelection==="function")clearSelection();
+  _refreshProjectViews();
+}
 function _projById(id){return PROJECTS.find(p=>p.id===id)||null}
 function _projOfGallery(g){return g&&g.projectId&&_projById(g.projectId)?g.projectId:"__none__"}
 function _projOfOrder(o){const g=o&&o.galleryId?galleries.find(x=>x.id===o.galleryId):null;if(g)return _projOfGallery(g);return o&&o.projectId&&_projById(o.projectId)?o.projectId:"__none__"}
 function _projActive(){if(_projFilter!=="all"&&_projFilter!=="__none__"&&!_projById(_projFilter))_projFilter="all";return _projFilter}
-function _projOrders(){const f=_projActive();return f==="all"?orders:orders.filter(o=>_projOfOrder(o)===f)}
-function _projGalleries(){const f=_projActive();return f==="all"?galleries:galleries.filter(g=>_projOfGallery(g)===f)}
+function _projOrders(){const f=_projActive();return orders.filter(o=>_yearOk(_orderYear(o))&&(f==="all"||_projOfOrder(o)===f))}
+function _projGalleries(){const f=_projActive();return galleries.filter(g=>_yearOk(_galleryYear(g))&&(f==="all"||_projOfGallery(g)===f))}
+// Nyitott munka egy galériacsoportban: nem teljesített (és nem törölt) vagy ki nem fizetett rendelés
+function _openOrdersOf(gids){const set=new Set(gids);return orders.filter(o=>set.has(o.galleryId)&&o.status!=="cancelled"&&(o.status!=="completed"||!_orderFlags(o).paid))}
 function _projName(id){if(id==="all")return "Összes fotózás";if(id==="__none__")return "Nincs fotózáshoz rendelve";const p=_projById(id);return p?p.name:"?"}
 function _renderHeaderStats(){
   const po=_projOrders(),pg=_projGalleries();
@@ -5111,13 +5147,15 @@ function _renderHeaderStats(){
 }
 function renderProjectBar(){
   const bar=document.getElementById("project-bar");if(!bar)return;
-  const f=_projActive();
-  const none=galleries.filter(g=>_projOfGallery(g)==="__none__").length;
+  const f=_projActive();const ya=_yearActive();
+  const yGal=galleries.filter(g=>_yearOk(_galleryYear(g)));
+  const none=yGal.filter(g=>_projOfGallery(g)==="__none__").length;
+  let yopts=_knownYears().map(y=>'<option value="'+y+'"'+(ya===y?" selected":"")+'>'+(YEAR_CLOSINGS[y]?"🔒 ":"📅 ")+y+(y===WORK_YEAR?" (aktuális)":"")+'</option>').join("")+'<option value="all"'+(ya==="all"?" selected":"")+'>Minden év</option>';
   let opts='<option value="all"'+(f==="all"?" selected":"")+'>📊 Összes fotózás együtt</option>';
-  PROJECTS.forEach(p=>{const n=galleries.filter(g=>g.projectId===p.id).length;opts+='<option value="'+_pcEsc(p.id)+'"'+(f===p.id?" selected":"")+'>📁 '+_pcEsc(p.name)+' ('+n+' galéria)</option>'});
+  _yearProjects().forEach(p=>{const n=galleries.filter(g=>g.projectId===p.id).length;opts+='<option value="'+_pcEsc(p.id)+'"'+(f===p.id?" selected":"")+'>📁 '+_pcEsc(p.name)+' ('+n+' galéria)</option>'});
   if(none||f==="__none__")opts+='<option value="__none__"'+(f==="__none__"?" selected":"")+'>❔ Nincs fotózáshoz rendelve ('+none+')</option>';
-  bar.innerHTML='<label>Fotózás:</label><select onchange="setProjectFilter(this.value)">'+opts+'</select><button class="btn btn-outline btn-sm" style="width:auto" onclick="openProjectManager()">⚙️ Fotózások kezelése</button>'+(f!=="all"?'<span class="project-bar-note">Csak ennek a fotózásnak a galériái, rendelései és statisztikái látszanak.</span>':'');
-  bar.classList.toggle("on",f!=="all");
+  bar.innerHTML='<label>Év:</label><select class="year-sel" onchange="setYearFilter(this.value)">'+yopts+'</select><label>Fotózás:</label><select onchange="setProjectFilter(this.value)">'+opts+'</select><button class="btn btn-outline btn-sm" style="width:auto" onclick="openProjectManager()">⚙️ Fotózások kezelése</button>'+(f!=="all"?'<span class="project-bar-note">Csak ennek a fotózásnak a galériái, rendelései és statisztikái látszanak.</span>':'');
+  bar.classList.toggle("on",f!=="all"||ya!==WORK_YEAR);
 }
 function _refreshProjectViews(){
   renderProjectBar();_renderHeaderStats();
@@ -5147,44 +5185,124 @@ async function _assignGalleriesToProject(ids,projId){
 }
 function openProjectManager(){renderProjectManager();show("project-modal")}
 function closeProjectManager(){hide("project-modal");_refreshProjectViews()}
+function _pmGalleries(){return galleries.filter(g=>_yearOk(_galleryYear(g)))}
 function renderProjectManager(){
   const box=document.getElementById("project-manager-body");if(!box)return;
-  const sel=(cur,onch)=>'<select onchange="'+onch+'">'+'<option value="__none__"'+(cur==="__none__"?" selected":"")+'>– nincs –</option>'+PROJECTS.map(p=>'<option value="'+_pcEsc(p.id)+'"'+(cur===p.id?" selected":"")+'>'+_pcEsc(p.name)+'</option>').join("")+'</select>';
+  const sel=(cur,onch)=>'<select onchange="'+onch+'">'+'<option value="__none__"'+(cur==="__none__"?" selected":"")+'>– nincs –</option>'+PROJECTS.filter(p=>p.id===cur||_yearOk(_projYear(p))).map(p=>'<option value="'+_pcEsc(p.id)+'"'+(cur===p.id?" selected":"")+'>'+_pcEsc(p.name)+'</option>').join("")+'</select>';
   let h='<p class="pm-help">Hozz létre fotózásokat (pl. <em>Elsős fotózás 2026</em>, <em>Karácsonyi fotózás 2026</em>, <em>Egyéb fotózások</em>), és rendeld hozzájuk a galériákat. A rendelések a galériájukkal együtt kerülnek a fotózáshoz. Fent a „Fotózás” választóval nézheted külön-külön.</p>';
   h+='<div class="pm-section"><div class="pm-title">Fotózások</div>';
   if(!PROJECTS.length)h+='<div class="pm-empty">Még nincs fotózás.</div>';
+  h=_yearCloseSectionHtml()+h;
+  const years=_knownYears();
   PROJECTS.forEach((p,i)=>{
+    const py=_projYear(p);if(!_yearOk(py))return;
     const n=galleries.filter(g=>g.projectId===p.id).length;
-    h+='<div class="pm-row"><input type="text" value="'+_pcEsc(p.name)+'" onchange="renameProject('+i+',this.value)"><span class="pm-count">'+n+' galéria</span><button class="btn btn-outline btn-sm" style="width:auto" title="Törlés (a galériák megmaradnak, csak nem tartoznak ide)" onclick="deleteProject('+i+')">🗑️</button></div>';
+    const ysel='<select class="pm-year" title="Melyik évhez tartozik" onchange="setProjectYear('+i+',this.value)">'+Array.from(new Set([...years,py,WORK_YEAR])).sort((a,b)=>b-a).map(y=>'<option value="'+y+'"'+(y===py?" selected":"")+'>'+y+'</option>').join("")+'</select>';
+    h+='<div class="pm-row"><input type="text" value="'+_pcEsc(p.name)+'" onchange="renameProject('+i+',this.value)">'+ysel+(p.carriedFrom?'<span class="pm-carried" title="Az előző évből áthozva">↪ '+p.carriedFrom+'</span>':'')+'<span class="pm-count">'+n+' galéria</span><button class="btn btn-outline btn-sm" style="width:auto" title="Törlés (a galériák megmaradnak, csak nem tartoznak ide)" onclick="deleteProject('+i+')">🗑️</button></div>';
   });
   h+='<div class="pm-row pm-add"><input type="text" id="pm-new-name" placeholder="Új fotózás neve, pl. Karácsonyi fotózás 2026" onkeydown="if(event.key===\'Enter\')addProject()"><button class="btn btn-sm" style="width:auto" onclick="addProject()">➕ Létrehozás</button></div></div>';
   if(PROJECTS.length){
     // Osztályok egyben
-    const classes=[...new Set(galleries.map(g=>g.bulkClass).filter(c=>c&&c.trim()))].sort((a,b)=>a.localeCompare(b,"hu"));
+    const classes=[...new Set(_pmGalleries().map(g=>g.bulkClass).filter(c=>c&&c.trim()))].sort((a,b)=>a.localeCompare(b,"hu"));
     if(classes.length){
       h+='<div class="pm-section"><div class="pm-title">Osztályok (az osztály összes galériája egyszerre)</div>';
       classes.forEach((c,ci)=>{
-        const gs=galleries.filter(g=>g.bulkClass===c);const ps=[...new Set(gs.map(_projOfGallery))];
+        const gs=_pmGalleries().filter(g=>g.bulkClass===c);const ps=[...new Set(gs.map(_projOfGallery))];
         const cur=ps.length===1?ps[0]:"";
         h+='<div class="pm-row"><span class="pm-label">🎓 '+_pcEsc(c)+' <span class="pm-count">('+gs.length+')</span>'+(ps.length>1?' <span class="pm-mixed">vegyes</span>':'')+'</span>'+sel(cur,"assignClassToProject("+ci+",this.value)")+'</div>';
       });
       h+='</div>';
     }
     // Különálló galériák
-    const singles=galleries.filter(g=>!(g.bulkClass&&g.bulkClass.trim())).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    const singles=_pmGalleries().filter(g=>!(g.bulkClass&&g.bulkClass.trim())).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     if(singles.length){
       h+='<div class="pm-section"><div class="pm-title">Különálló galériák</div>';
       singles.forEach(g=>{h+='<div class="pm-row"><span class="pm-label">'+(g.isGroup?"👥 ":"🧒 ")+_pcEsc((g.isGroup?g.name:g.child)||g.name||g.code||"-")+'</span>'+sel(_projOfGallery(g),"assignGalleryToProject(\'"+g.id+"\',this.value)")+'</div>'});
       h+='</div>';
     }
-    const none=galleries.filter(g=>_projOfGallery(g)==="__none__");
+    const none=_pmGalleries().filter(g=>_projOfGallery(g)==="__none__");
     if(none.length)h+='<div class="pm-section"><div class="pm-title">Gyors beállítás</div><div class="pm-row"><span class="pm-label">Mind a '+none.length+' még be nem sorolt galéria ide:</span>'+'<select onchange="assignAllUnassigned(this.value)"><option value="" selected>– válassz –</option>'+PROJECTS.map(p=>'<option value="'+_pcEsc(p.id)+'">'+_pcEsc(p.name)+'</option>').join("")+'</select>'+'</div></div>';
   }
   box.innerHTML=h;
 }
+// --- Év lezárása
+let _yearCloseOpen=false;
+function _yearCloseSectionHtml(){
+  const y=WORK_YEAR;let h='<div class="pm-section yc-box">';
+  const last=_closedYears().slice(-1)[0];
+  if(_yearCloseOpen){
+    const ps=PROJECTS.filter(p=>_projYear(p)===y);
+    const looseOpen=galleries.filter(g=>_galleryYear(g)===y&&_projOfGallery(g)==="__none__"&&_openOrdersOf([g.id]).length);
+    h+='<div class="pm-title">🔒 '+y+' lezárása</div><p class="pm-help" style="margin-top:0">A lezárt év statisztikája megmarad (fent az <strong>Év</strong> választóval bármikor visszanézheted), de a galériák és rendelések nem keverednek az új évvel. A bejelölt fotózások <strong>átkerülnek '+(y+1)+'-re</strong>. Alapból azok vannak bejelölve, ahol még van nem teljesített vagy ki nem fizetett rendelés.</p>';
+    if(!ps.length)h+='<div class="pm-empty">Ebben az évben nincs fotózás.</div>';
+    ps.forEach(p=>{
+      const gids=galleries.filter(g=>g.projectId===p.id).map(g=>g.id);const op=_openOrdersOf(gids);
+      h+='<label class="yc-row"><input type="checkbox" class="yc-cb" data-id="'+_pcEsc(p.id)+'"'+(op.length?" checked":"")+' style="width:auto"><span><strong>'+_pcEsc(p.name)+'</strong><br><span class="yc-sub">'+gids.length+' galéria · '+(op.length?'<span style="color:#b07a10">⏳ '+op.length+' nyitott rendelés → átvisszük</span>':'✓ minden rendelés kész és fizetve → lezárul')+'</span></span></label>';
+    });
+    if(looseOpen.length)h+='<label class="yc-row"><input type="checkbox" id="yc-loose" checked style="width:auto"><span><strong>Fotózáshoz nem rendelt galériák nyitott rendeléssel</strong><br><span class="yc-sub">'+looseOpen.length+' galéria → átvisszük '+(y+1)+'-re</span></span></label>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-sm" style="width:auto" onclick="doCloseYear()">🔒 '+y+' lezárása, '+(y+1)+' megnyitása</button><button class="btn btn-outline btn-sm" style="width:auto" onclick="toggleYearClose()">Mégsem</button></div>';
+  }else{
+    h+='<div class="yc-head"><span>📅 Aktuális év: <strong>'+y+'</strong>'+(last?' <span class="yc-sub">· előző lezárva: '+last+'</span>':'')+'</span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" style="width:auto" onclick="toggleYearClose()">🔒 Év lezárása</button>'+(last?'<button class="btn btn-outline btn-sm" style="width:auto" title="Ha véletlenül zártad le" onclick="undoCloseYear()">↩ '+last+' visszanyitása</button>':'')+'</span></div>';
+  }
+  return h+'</div>';
+}
+function toggleYearClose(){_yearCloseOpen=!_yearCloseOpen;renderProjectManager()}
+function _yearSummary(y){
+  const os=orders.filter(o=>_orderYear(o)===y&&o.status!=="cancelled");const gs=galleries.filter(g=>_galleryYear(g)===y);
+  const sum=a=>a.reduce((t,o)=>t+(typeof o.total==="number"?o.total:0),0);
+  const per=PROJECTS.filter(p=>_projYear(p)===y).map(p=>{const po=os.filter(o=>_projOfOrder(o)===p.id);return {id:p.id,name:p.name,orders:po.length,revenue:sum(po),paid:sum(po.filter(o=>_orderFlags(o).paid)),expenses:(p.expenses||[]).reduce((t,e)=>t+(Number(e.amount)||0),0)}});
+  return {galleries:gs.length,orders:os.length,revenue:sum(os),paid:sum(os.filter(o=>_orderFlags(o).paid)),projects:per};
+}
+async function doCloseYear(){
+  const y=WORK_YEAR,ny=y+1;
+  const carry=Array.from(document.querySelectorAll("#project-manager-body .yc-cb")).filter(c=>c.checked).map(c=>c.dataset.id);
+  const lc=document.getElementById("yc-loose");
+  const looseIds=(lc&&lc.checked)?galleries.filter(g=>_galleryYear(g)===y&&_projOfGallery(g)==="__none__"&&_openOrdersOf([g.id]).length).map(g=>g.id):[];
+  if(!confirm(y+" lezárása:\n\n• "+carry.length+" fotózás átkerül "+ny+"-re"+(looseIds.length?"\n• "+looseIds.length+" különálló galéria is átkerül":"")+"\n• a többi "+y+"-ben marad, lezárva\n\nA statisztika megmarad, és vissza is nyithatod. Mehet?"))return;
+  const summary=_yearSummary(y);
+  const oldP=JSON.parse(JSON.stringify(PROJECTS)),oldC=JSON.parse(JSON.stringify(YEAR_CLOSINGS)),oldW=WORK_YEAR;
+  try{
+    // minden fotózás évét rögzítjük, hogy a lezárás után se „vándoroljon”
+    PROJECTS.forEach(p=>{if(!Number(p.year))p.year=_projYear(p);if(p.year===y){if(carry.includes(p.id)){p.year=ny;p.carriedFrom=y}else p.closed=true}});
+    YEAR_CLOSINGS[y]={closedAt:Date.now(),carried:carry,carriedGalleries:looseIds,summary};
+    WORK_YEAR=ny;
+    await db.collection("photographers").doc(currentUser.uid).update({projects:PROJECTS,yearClosings:YEAR_CLOSINGS,workYear:WORK_YEAR});
+    if(looseIds.length){for(let i=0;i<looseIds.length;i+=400){const b=db.batch();looseIds.slice(i,i+400).forEach(id=>b.update(db.collection("galleries").doc(id),{year:ny}));await b.commit()}looseIds.forEach(id=>{const g=galleries.find(x=>x.id===id);if(g)g.year=ny})}
+    _yearCloseOpen=false;setYearFilter("work");renderProjectManager();
+    if(typeof showToast==="function")showToast("🔒 "+y+" lezárva · "+ny+" megnyitva");
+  }catch(e){PROJECTS=oldP;YEAR_CLOSINGS=oldC;WORK_YEAR=oldW;alert("Hiba, nem zártam le: "+e.message)}
+}
+async function undoCloseYear(){
+  const y=_closedYears().slice(-1)[0];if(!y)return;const c=YEAR_CLOSINGS[y]||{};
+  if(!confirm(y+" visszanyitása?\n\nAz áthozott fotózások visszakerülnek "+y+"-be, és újra "+y+" lesz az aktuális év."))return;
+  const oldP=JSON.parse(JSON.stringify(PROJECTS)),oldC=JSON.parse(JSON.stringify(YEAR_CLOSINGS)),oldW=WORK_YEAR;
+  try{
+    PROJECTS.forEach(p=>{if(p.carriedFrom===y&&Number(p.year)===y+1){p.year=y;delete p.carriedFrom}if(Number(p.year)===y)delete p.closed});
+    delete YEAR_CLOSINGS[y];WORK_YEAR=y;
+    await db.collection("photographers").doc(currentUser.uid).update({projects:PROJECTS,yearClosings:YEAR_CLOSINGS,workYear:WORK_YEAR});
+    const lg=Array.isArray(c.carriedGalleries)?c.carriedGalleries:[];
+    if(lg.length){for(let i=0;i<lg.length;i+=400){const b=db.batch();lg.slice(i,i+400).forEach(id=>b.update(db.collection("galleries").doc(id),{year:null}));await b.commit()}lg.forEach(id=>{const g=galleries.find(x=>x.id===id);if(g)g.year=null})}
+    setYearFilter("work");renderProjectManager();
+    if(typeof showToast==="function")showToast("↩ "+y+" újra nyitva");
+  }catch(e){PROJECTS=oldP;YEAR_CLOSINGS=oldC;WORK_YEAR=oldW;alert("Hiba: "+e.message)}
+}
+async function setProjectYear(i,v){
+  const p=PROJECTS[i];const y=Number(v);if(!p||!y)return;const old=p.year;p.year=y;
+  try{await _saveProjects();renderProjectManager();renderProjectBar()}catch(e){p.year=old;alert("Nem sikerült menteni: "+e.message)}
+}
+// Lezárt év összesítője a statisztika tetején
+function _closedYearBannerHtml(){
+  const ya=_yearActive();if(ya==="all"||!YEAR_CLOSINGS[ya])return "";
+  const c=YEAR_CLOSINGS[ya],sm=c.summary||{};
+  let h='<div class="new-form yc-banner"><h3>🔒 '+ya+' – lezárt év</h3><div class="yc-sub" style="margin-bottom:8px">Lezárva: '+new Date(c.closedAt||0).toLocaleDateString("hu-HU")+' A lezáráskor ez volt az állás:</div>';
+  h+='<div class="bud-row"><span>🖼️ Galériák</span><strong>'+(sm.galleries||0)+'</strong></div><div class="bud-row"><span>🛒 Rendelések</span><strong>'+(sm.orders||0)+'</strong></div><div class="bud-row"><span>💰 Összes rendelés értéke</span><strong>'+fmt(sm.revenue||0)+'</strong></div><div class="bud-row"><span>✅ Ebből befizetve</span><strong>'+fmt(sm.paid||0)+'</strong></div>';
+  (sm.projects||[]).forEach(p=>{h+='<div class="bud-row" style="font-size:.82rem"><span>📁 '+_pcEsc(p.name)+(Array.isArray(c.carried)&&c.carried.includes(p.id)?' <em class="yc-sub">(áthozva '+(ya+1)+'-re)</em>':'')+'</span><span>'+p.orders+' rendelés · '+fmt(p.revenue)+(p.expenses?' · kiadás '+fmt(p.expenses):'')+'</span></div>'});
+  return h+'</div>';
+}
 async function addProject(){
   const inp=document.getElementById("pm-new-name");const name=(inp&&inp.value||"").trim();if(!name){if(inp)inp.focus();return}
-  PROJECTS.push({id:_newProjId(),name,createdAt:Date.now(),expenses:[]});
+  const ya=_yearActive();
+  PROJECTS.push({id:_newProjId(),name,createdAt:Date.now(),expenses:[],year:ya==="all"?WORK_YEAR:ya});
   try{await _saveProjects();renderProjectManager();renderProjectBar();if(typeof showToast==="function")showToast("✓ "+name+" létrehozva")}
   catch(e){PROJECTS.pop();alert("Nem sikerült menteni: "+e.message)}
 }
@@ -5205,9 +5323,9 @@ async function deleteProject(i){
   }catch(e){alert("Hiba: "+e.message)}
 }
 async function assignClassToProject(ci,projId){
-  const classes=[...new Set(galleries.map(g=>g.bulkClass).filter(c=>c&&c.trim()))].sort((a,b)=>a.localeCompare(b,"hu"));
+  const classes=[...new Set(_pmGalleries().map(g=>g.bulkClass).filter(c=>c&&c.trim()))].sort((a,b)=>a.localeCompare(b,"hu"));
   const c=classes[ci];if(!c)return;
-  try{await _assignGalleriesToProject(galleries.filter(g=>g.bulkClass===c).map(g=>g.id),projId);renderProjectManager();renderProjectBar();if(typeof showToast==="function")showToast("✓ "+c+" → "+_projName(projId))}
+  try{await _assignGalleriesToProject(_pmGalleries().filter(g=>g.bulkClass===c).map(g=>g.id),projId);renderProjectManager();renderProjectBar();if(typeof showToast==="function")showToast("✓ "+c+" → "+_projName(projId))}
   catch(e){alert("Hiba: "+e.message)}
 }
 async function assignGalleryToProject(gid,projId){
@@ -5216,7 +5334,7 @@ async function assignGalleryToProject(gid,projId){
 }
 async function assignAllUnassigned(projId){
   if(!projId)return;
-  const ids=galleries.filter(g=>_projOfGallery(g)==="__none__").map(g=>g.id);
+  const ids=_pmGalleries().filter(g=>_projOfGallery(g)==="__none__").map(g=>g.id);
   if(!confirm(ids.length+" galéria kerül ide: „"+_projName(projId)+"”. Mehet?")){renderProjectManager();return}
   try{await _assignGalleriesToProject(ids,projId);renderProjectManager();renderProjectBar();if(typeof showToast==="function")showToast("✓ "+ids.length+" galéria besorolva")}
   catch(e){alert("Hiba: "+e.message)}
@@ -5244,7 +5362,7 @@ function _projectBudgetHtml(orders,classRevenue){
   if(f==="all"){
     // Összesítő: fotózásonként
     if(!PROJECTS.length)return '<div class="new-form" style="margin-bottom:14px"><h3>📁 Fotózások</h3><p style="font-size:.84rem;color:var(--muted);line-height:1.5">Ha külön szeretnéd látni pl. az elsős és a karácsonyi fotózás bevételét és kiadásait, hozz létre fotózásokat fent a <strong>⚙️ Fotózások kezelése</strong> gombbal.</p></div>';
-    const rows=PROJECTS.map(p=>({id:p.id,name:p.name,os:orders.filter(o=>_projOfOrder(o)===p.id),exp:(p.expenses||[]).reduce((t,e)=>t+(Number(e.amount)||0),0)}));
+    const rows=_yearProjects().map(p=>({id:p.id,name:p.name,os:orders.filter(o=>_projOfOrder(o)===p.id),exp:(p.expenses||[]).reduce((t,e)=>t+(Number(e.amount)||0),0)}));
     const nn=orders.filter(o=>_projOfOrder(o)==="__none__");if(nn.length)rows.push({id:"__none__",name:"Nincs fotózáshoz rendelve",os:nn,exp:0});
     let h='<div class="new-form" style="margin-bottom:14px"><h3>📁 Fotózásonként</h3><div style="display:flex;flex-direction:column;gap:8px">';
     rows.forEach(r=>{const paid=r.os.filter(o=>_orderFlags(o).paid).reduce((t,o)=>t+o.total,0),tot=r.os.reduce((t,o)=>t+o.total,0);
@@ -6022,7 +6140,7 @@ function renderBookingGalleries(){
   let h='<div class="bkg-panel"><div class="bkg-title">🖼️ Galériák létrehozása a foglalásokból</div>';
   h+='<div class="bkg-hint">Minden bejelölt foglaláshoz készül egy galéria saját belépési kóddal. A szülő email címe és telefonszáma is elmentődik hozzá, de belépni továbbra is <strong>kód + név</strong> elég. A nevet itt átírhatod (pl. a gyermek nevére).</div>';
   h+='<label class="bkg-lbl">Csoport / osztály neve (nem kötelező)</label><input type="text" id="bkg-class" placeholder="pl. Forrás Ovi – Napsugár csoport" value="'+_pcEsc(cls)+'">';
-  h+='<label class="bkg-lbl">Fotózás (statisztikához)</label><select id="bkg-proj"><option value="">– nincs –</option>'+PROJECTS.map(p=>'<option value="'+p.id+'"'+(p.id===projSel?" selected":"")+'>'+_pcEsc(p.name)+'</option>').join("")+'</select>';
+  h+='<label class="bkg-lbl">Fotózás (statisztikához)</label><select id="bkg-proj"><option value="">– nincs –</option>'+PROJECTS.filter(p=>_projYear(p)===WORK_YEAR||p.id===projSel).map(p=>'<option value="'+p.id+'"'+(p.id===projSel?" selected":"")+'>'+_pcEsc(p.name)+'</option>').join("")+'</select>';
   let todo=0;
   h+='<div class="bkg-list">';
   list.forEach(b=>{
