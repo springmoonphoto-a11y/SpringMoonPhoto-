@@ -360,6 +360,9 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .bkg-time{font-weight:600;color:var(--brown);font-size:.8rem}
 .bkg-code{font-family:monospace;font-weight:700;background:#fff;border:1px solid #a5d6b4;border-radius:6px;padding:1px 6px}
 .bkg-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.bkg-acts .btn{width:auto}
+.order-sizes{display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 4px}
+.order-size-chip{font-size:.78rem;padding:2px 8px;border-radius:12px;background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.45);color:var(--brown);white-space:nowrap}
+body.dark-mode .order-size-chip{color:#f5e1a0}
 .pl-pick{margin:12px 0;padding:10px 12px;border:2px solid #e0a43a;border-radius:10px;background:#fff8e6;text-align:left}
 .pl-pick label{display:block;font-size:.82rem;font-weight:700;color:#8a5a00;margin-bottom:6px;text-transform:none;letter-spacing:normal}
 .pl-pick select{width:100%;padding:9px;border-radius:8px;border:1.5px solid #e0a43a;background:#fff;color:#222;font-size:.92rem}
@@ -7976,7 +7979,12 @@ function _orderTypeBadges(o){
   if(c.digital>0)parts.push("💾 "+c.digital+" digitális");
   if(c.gift>0)parts.push("🎁 "+c.gift+" ajándék");
   if(!parts.length)return "";
-  return '<div class="order-card-meta" style="font-weight:600">'+parts.join(" · ")+'</div>';
+  let h='<div class="order-card-meta" style="font-weight:600">'+parts.join(" · ")+'</div>';
+  if(c.print>0){
+    const z=_orderSizes(o);const ks=Object.keys(z).sort((a,b)=>{const n=x=>{const m=String(x).match(/(\d+)\s*[x×]\s*(\d+)/);return m?Number(m[1])*Number(m[2]):(/a4/i.test(x)?600:/a3/i.test(x)?1200:9999)};return n(a)-n(b)||a.localeCompare(b,"hu")});
+    if(ks.length)h+='<div class="order-sizes">'+ks.map(k=>'<span class="order-size-chip">🖨️ '+_pcEsc(k)+': <strong>'+z[k]+' db</strong></span>').join("")+'</div>';
+  }
+  return h;
 }
 function _orderPassesFilter(o){
   const f=_orderFlags(o);
