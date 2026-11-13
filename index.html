@@ -345,6 +345,8 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .booking-mini-actions .b-deposit{background:#fff8e6;color:#8a5e0c;border:1.5px solid #e0c27a;font-weight:600}
 .booking-mini-actions .b-deposit.done{background:#e8f5ec;color:#2e7d4f;border-color:#a5d6b4}
 .booking-mini-actions .b-deposit-undo{color:#888;border-color:#ccc}
+.booking-mini-actions .b-full{background:#f3faf5;color:#23704a;border:1.5px solid #9dd3b3}
+.booking-mini-actions .b-full.done{background:#23704a;color:#fff;border-color:#23704a}
 .booking-mini-actions .b-move{background:#eef3fb;color:#2c5d9b;border:1.5px solid #b7cbe8}
 .bk-move-box{flex-basis:100%;width:100%;order:9}
 .bkg-panel{margin:6px 0 14px;padding:12px;border:1.5px dashed var(--gold);border-radius:10px;background:#fffdf7}
@@ -6843,8 +6845,8 @@ function renderAdminDayDetail(){
       if(b.status!=="cancelled"){
         if(b.depositPaid)html+='<button class="b-deposit done" title="Tudnivalók újraküldése" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg ✓ – tudnivalók</button><button class="b-deposit-undo" title="Visszavonás" onclick="undoDepositPaid(\''+b.id+'\')">↺</button>';
         else html+='<button class="b-deposit" title="Megjelöli, hogy az előleg megérkezett, és megnyitja a tudnivalókat tartalmazó levelet" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg megérkezett</button>';
-        if(b.fullPaid)html+='<button class="b-deposit done" title="A teljes összeg megérkezett – visszavonás" onclick="undoFullPaid(\''+b.id+'\')">💰 Teljes összeg ✓</button>';
-        else html+='<button class="b-deposit" title="Megjelöli, hogy a teljes összeget kifizette" onclick="markFullPaid(\''+b.id+'\')">💰 Teljes összeg megjött</button>';
+        if(b.fullPaid)html+='<button class="b-full done" title="A teljes összeg megérkezett – visszavonás" onclick="undoFullPaid(\''+b.id+'\')">💰 Teljes összeg ✓</button>';
+        else html+='<button class="b-full" title="Megjelöli, hogy a teljes összeget kifizette" onclick="markFullPaid(\''+b.id+'\')">💰 Teljes összeg megjött</button>';
       }
       if(b.status!=="cancelled")html+='<button class="b-move" title="Ha előbb vagy később jön: más időpontra teszed" onclick="openMoveBooking(\''+b.id+'\')">🕒 Áthelyez</button>';
       html+='<button onclick="deleteBooking(\''+b.id+'\')" style="color:#666;border-color:#ccc">🗑️</button>';
