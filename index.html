@@ -360,6 +360,22 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .bkg-time{font-weight:600;color:var(--brown);font-size:.8rem}
 .bkg-code{font-family:monospace;font-weight:700;background:#fff;border:1px solid #a5d6b4;border-radius:6px;padding:1px 6px}
 .bkg-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.bkg-acts .btn{width:auto}
+.bkpay{margin-bottom:14px}
+.bkpay-date{width:100%;padding:9px;border-radius:8px;margin:2px 0 8px}
+.bkpay-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.bkpay-chips .pf-btn{font:inherit;font-size:.78rem;padding:5px 10px;border-radius:16px;border:1.5px solid var(--warm);background:transparent;color:var(--dark);cursor:pointer}
+.bkpay-chips .pf-btn.active{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:600}
+.bkpay-sum{font-size:.84rem;margin:2px 0 8px;color:var(--muted)}
+.bkpay-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--warm)}
+.bkpay-main{font-size:.86rem;line-height:1.6}
+.bkpay-time{font-size:.78rem;color:var(--muted)}
+.bkpay-price{font-size:.8rem;color:var(--gold)}
+.bkpay-acts{display:flex;gap:6px;flex-wrap:wrap}.bkpay-acts .btn{width:auto}
+.bkpay-badge{font-size:.74rem;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap}
+.bkpay-badge.full{background:#e3f4ea;color:#23704a;border:1px solid #9dd3b3}
+.bkpay-badge.dep{background:#eaf1fb;color:#2c5d9b;border:1px solid #b7cbe8}
+.bkpay-badge.none{background:#fff2df;color:#a15c00;border:1px solid #f0c98a}
+.bkpay-rest{font-size:.74rem;color:var(--muted)}
 .order-sizes{display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 4px}
 .order-size-chip{font-size:.78rem;padding:2px 8px;border-radius:12px;background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.45);color:var(--brown);white-space:nowrap}
 body.dark-mode .order-size-chip{color:#f5e1a0}
@@ -5032,7 +5048,7 @@ function renderStats(){
   const div=document.getElementById("admin-stats");
   const orders=_projOrders(),galleries=_projGalleries();
   const _ycb=_closedYearBannerHtml();
-  if(orders.length===0&&galleries.length===0&&_projActive()==="all"){div.innerHTML=_ycb+'<div class="empty-state"><span class="empty-state-icon">📊</span><div class="empty-state-title">Még nincs adat</div><div class="empty-state-text">A statisztikák akkor jelennek meg, ha lesznek galériák és rendelések.</div></div>';return}
+  if(orders.length===0&&galleries.length===0&&_projActive()==="all"){div.innerHTML=_ycb+'<div id="bkpay-box">'+_bkPayHtml()+'</div>'+'<div class="empty-state"><span class="empty-state-icon">📊</span><div class="empty-state-title">Még nincs adat</div><div class="empty-state-text">A statisztikák akkor jelennek meg, ha lesznek galériák és rendelések.</div></div>';return}
   const totalRevenue=orders.reduce((s,o)=>s+o.total,0);const totalOrders=orders.length;const avgOrder=totalOrders>0?Math.round(totalRevenue/totalOrders):0;
   const paidRev=orders.filter(o=>_orderFlags(o).paid).reduce((s,o)=>s+o.total,0);
   const completedRev=orders.filter(o=>o.status==="completed").reduce((s,o)=>s+o.total,0);
@@ -5074,7 +5090,7 @@ function renderStats(){
   html+='<div class="new-form" style="margin-top:14px"><h3>🎓 Bevétel osztályonként</h3>';
   html+='<p style="font-size:.8rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Az osztálynak létrehozott galériák kifizetett rendeléseiből számolva. Osztályonként külön állíthatod be, mennyit adsz vissza — ezt megjegyzi.</p>';
   html+='<div id="class-revenue-table"></div></div>';
-  div.innerHTML=_ycb+html+renderStatsExtra(topProducts,topCustomers,statusCounts,consentYes,consentNo,printCount,digitalCount,giftCount,printRev,digitalRev,giftRev,orders,galleries);
+  div.innerHTML=_ycb+'<div id="bkpay-box">'+_bkPayHtml()+'</div>'+html+renderStatsExtra(topProducts,topCustomers,statusCounts,consentYes,consentNo,printCount,digitalCount,giftCount,printRev,digitalRev,giftRev,orders,galleries);
   renderClassRevenueTable();
 }
 let _classRevenueData={classRevenue:{},otherPaidRevenue:0};
@@ -5114,6 +5130,62 @@ async function saveClassGivebackPercent(className,value){
   }catch(e){alert("Nem sikerült menteni: "+e.message)}
 }
 
+// === Statisztika: ki fizetett előleget / teljes összeget egy adott nap foglalásaira ===
+let _bkPayDate=null,_bkPayFilter="all";
+function _isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function _bkPayState(b){return b.fullPaid?"full":(b.depositPaid?"deposit":"none")}
+function _bkPayDates(){
+  const ds=Array.from(new Set((bookings||[]).filter(b=>b.status!=="cancelled"&&b.date).map(b=>b.date))).sort();
+  return ds;
+}
+function _bkPayDefaultDate(ds){
+  const today=_isoLocal(new Date());const tm=new Date();tm.setDate(tm.getDate()+1);const tom=_isoLocal(tm);
+  if(ds.includes(tom))return tom;
+  return ds.find(d=>d>=today)||ds[ds.length-1]||null;
+}
+function setBkPayDate(v){_bkPayDate=v;_renderBkPayBox()}
+function setBkPayFilter(v){_bkPayFilter=v;_renderBkPayBox()}
+function _bkPayHtml(){
+  const ds=_bkPayDates();
+  if(!ds.length)return '<div class="new-form bkpay"><h3>📅 Foglalások – ki fizetett?</h3><p style="color:var(--muted);font-style:italic">Még nincs foglalás.</p></div>';
+  if(!_bkPayDate||!ds.includes(_bkPayDate))_bkPayDate=_bkPayDefaultDate(ds);
+  const today=_isoLocal(new Date());const tm=new Date();tm.setDate(tm.getDate()+1);const tom=_isoLocal(tm);
+  const list=(bookings||[]).filter(b=>b.date===_bkPayDate&&b.status!=="cancelled").sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+  const cnt={full:0,deposit:0,none:0};let got=0,due=0;
+  list.forEach(b=>{const st=_bkPayState(b);cnt[st]++;const p=_bookingPriceOf(b);const d=_bookingDeposit(b);
+    if(st==="full")got+=p;else if(st==="deposit"){const a=d?d.amount:0;got+=a;due+=Math.max(0,p-a)}else due+=p});
+  const opts=ds.map(d=>'<option value="'+d+'"'+(d===_bkPayDate?" selected":"")+'>'+formatBookingDate(d)+(d===tom?" (holnap)":d===today?" (ma)":d<today?" (elmúlt)":"")+'</option>').join("");
+  const chip=(k,l,n)=>'<button class="pf-btn'+(_bkPayFilter===k?" active":"")+'" onclick="setBkPayFilter(\''+k+'\')">'+l+' ('+n+')</button>';
+  let h='<div class="new-form bkpay"><h3>📅 Foglalások – ki fizetett?</h3>';
+  h+='<select class="bkpay-date" onchange="setBkPayDate(this.value)">'+opts+'</select>';
+  h+='<div class="bkpay-chips">'+chip("all","Mind",list.length)+chip("paid","✅ Fizetett (előleg vagy teljes)",cnt.full+cnt.deposit)+chip("full","💰 Teljes összeg",cnt.full)+chip("deposit","💳 Csak előleg",cnt.deposit)+chip("none","⏳ Még nem fizetett",cnt.none)+'</div>';
+  h+='<div class="bkpay-sum">Befolyt: <strong>'+fmt(got)+'</strong>'+(due>0?' · Még hátravan: <strong>'+fmt(due)+'</strong>':'')+'</div>';
+  const shown=list.filter(b=>{const st=_bkPayState(b);return _bkPayFilter==="all"||(_bkPayFilter==="paid"?st!=="none":st===_bkPayFilter)});
+  if(!shown.length)h+='<p style="color:var(--muted);font-style:italic;margin:8px 0 0">Nincs ilyen foglalás ezen a napon.</p>';
+  shown.forEach(b=>{
+    const st=_bkPayState(b);const p=_bookingPriceOf(b);const d=_bookingDeposit(b);
+    const badge=st==="full"?'<span class="bkpay-badge full">💰 Teljes összeg</span>':st==="deposit"?'<span class="bkpay-badge dep">💳 Előleg'+(d?' ('+fmt(d.amount)+')':'')+'</span>':'<span class="bkpay-badge none">⏳ Nem fizetett</span>';
+    h+='<div class="bkpay-row"><div class="bkpay-main"><span class="bkpay-time">'+_pcEsc(_bookingRange(b))+'</span> <strong>'+_pcEsc(b.name||"")+'</strong>'+(p>0?' <span class="bkpay-price">'+fmt(p)+'</span>':'')+'<br>'+badge+(st==="deposit"&&p>0&&d?' <span class="bkpay-rest">hátravan: '+fmt(Math.max(0,p-d.amount))+'</span>':'')+'</div><div class="bkpay-acts">';
+    if(st!=="full")h+='<button class="btn btn-outline btn-sm" onclick="markFullPaid(\''+b.id+'\')">💰 Teljes megjött</button>';
+    else h+='<button class="btn btn-outline btn-sm" title="Visszavonás" onclick="undoFullPaid(\''+b.id+'\')">↺</button>';
+    if(st==="none")h+='<button class="btn btn-outline btn-sm" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg megjött</button>';
+    h+='</div></div>';
+  });
+  return h+'</div>';
+}
+function _renderBkPayBox(){const el=document.getElementById("bkpay-box");if(el)el.innerHTML=_bkPayHtml()}
+async function markFullPaid(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  try{const up={fullPaid:true,fullPaidAt:Date.now()};if(b.status==="pending"){up.status="confirmed";up.confirmedAt=Date.now();if(!b.cancelToken)up.cancelToken=_newCancelToken()}
+    await db.collection("bookings").doc(id).update(up);Object.assign(b,up);
+    _renderBkPayBox();try{if(_selectedBookingDate)renderCalendar(true)}catch(e){}try{updateCalendarBadge()}catch(e){}
+  }catch(e){alert("Hiba: "+e.message)}
+}
+async function undoFullPaid(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  if(!confirm("Visszavonod, hogy a teljes összeg megérkezett ("+(b.name||"")+")?"))return;
+  try{await db.collection("bookings").doc(id).update({fullPaid:false});b.fullPaid=false;_renderBkPayBox();try{if(_selectedBookingDate)renderCalendar(true)}catch(e){}}catch(e){alert("Hiba: "+e.message)}
+}
 function renderStatsExtra(topProducts,topCustomers,statusCounts,consentYes,consentNo,printCount,digitalCount,giftCount,printRev,digitalRev,giftRev,orders,galleries){
   const totalProducts=printCount+digitalCount+giftCount;let html='';
   html+='<div class="new-form" style="margin-top:14px"><h3>📦 Termékek típus szerint</h3>';
@@ -6771,6 +6843,8 @@ function renderAdminDayDetail(){
       if(b.status!=="cancelled"){
         if(b.depositPaid)html+='<button class="b-deposit done" title="Tudnivalók újraküldése" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg ✓ – tudnivalók</button><button class="b-deposit-undo" title="Visszavonás" onclick="undoDepositPaid(\''+b.id+'\')">↺</button>';
         else html+='<button class="b-deposit" title="Megjelöli, hogy az előleg megérkezett, és megnyitja a tudnivalókat tartalmazó levelet" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg megérkezett</button>';
+        if(b.fullPaid)html+='<button class="b-deposit done" title="A teljes összeg megérkezett – visszavonás" onclick="undoFullPaid(\''+b.id+'\')">💰 Teljes összeg ✓</button>';
+        else html+='<button class="b-deposit" title="Megjelöli, hogy a teljes összeget kifizette" onclick="markFullPaid(\''+b.id+'\')">💰 Teljes összeg megjött</button>';
       }
       if(b.status!=="cancelled")html+='<button class="b-move" title="Ha előbb vagy később jön: más időpontra teszed" onclick="openMoveBooking(\''+b.id+'\')">🕒 Áthelyez</button>';
       html+='<button onclick="deleteBooking(\''+b.id+'\')" style="color:#666;border-color:#ccc">🗑️</button>';
