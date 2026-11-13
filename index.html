@@ -8397,7 +8397,7 @@ function renderAdminGalleryList(){
       }else{
         const safeKey=key.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
         const open=_isClassOpen(key);
-        html+='<div class="gallery-group-heading ggh-toggle'+(open?"":" ggh-closed")+'" title="'+(open?"Kattints a becsukáshoz":"Kattints a kinyitáshoz")+'" onclick="toggleGalleryClass(\''+safeKey+'\')"><span><span class="ggh-arrow">'+(open?"▾":"▸")+'</span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+(function(){const all=_projGalleries().filter(x=>x.bulkClass===key&&!x.isGroup);const n=all.filter(x=>ordCnt[x.id]>0).length;return '<span class="ggh-count ggh-ordered" title="Ennyien rendeltek az osztályból">🛒 '+n+'/'+all.length+' rendelt</span>'})()+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn ggh-rename-btn" title="Csoport átnevezése" onclick="event.stopPropagation();renameGalleryClass(\''+safeKey+'\')">✏️ Átnevezés</button><button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
+        html+='<div class="gallery-group-heading ggh-toggle'+(open?"":" ggh-closed")+'" title="'+(open?"Kattints a becsukáshoz":"Kattints a kinyitáshoz")+'" onclick="toggleGalleryClass(\''+safeKey+'\')"><span><span class="ggh-arrow">'+(open?"▾":"▸")+'</span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+(function(){const all=_projGalleries().filter(x=>x.bulkClass===key&&!x.isGroup);const n=all.filter(x=>ordCnt[x.id]>0).length;return '<span class="ggh-count ggh-ordered" title="Ennyien rendeltek az osztályból">🛒 '+n+'/'+all.length+' rendelt</span>'})()+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn ggh-add-btn" title="Új galéria ebbe a csoportba" onclick="event.stopPropagation();addGalleryToClass(\''+safeKey+'\')">➕ Új galéria ide</button><button class="btn btn-outline btn-sm ggh-pdf-btn ggh-rename-btn" title="Csoport átnevezése" onclick="event.stopPropagation();renameGalleryClass(\''+safeKey+'\')">✏️ Átnevezés</button><button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
         if(open)html+=items.map(cardHtml).join("");
       }
     });
@@ -9558,8 +9558,8 @@ async function createBulkGalleries(){
       while(usedCodes.has(code)&&guard<50){code=generateCode(child);guard++}
       usedCodes.add(code);
       const galleryData={
-        name:child+(className?" – "+className:"")+" 2025",
-        code,child,parentEmail:"",isGroup:false,createdAt:Date.now(),photos:[],projectId:_newGalleryProjectId(),
+        name:child+(className?" – "+className:"")+" "+new Date().getFullYear(),
+        code,child,parentEmail:"",isGroup:false,createdAt:Date.now(),photos:[],projectId:_classProjectId(className)||_newGalleryProjectId(),
         photographerId:currentUser?currentUser.uid:null,
         photographerName:currentUser?currentUser.name:null,
         photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,
@@ -9589,6 +9589,19 @@ async function createBulkGalleries(){
     renderAdminGalleries();
   }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt: '+e.message+'</div>'}
   finally{btn.disabled=false;btn.textContent="⚡ Galériák létrehozása egyben"}
+}
+// Új galéria egy meglévő csoportba: megnyitja a tömeges létrehozást a csoport nevével kitöltve
+function addGalleryToClass(key){
+  const slot=document.getElementById("new-gallery-slot");
+  if(slot&&slot.classList.contains("hidden"))toggleNewGalleryForm();
+  const cn=document.getElementById("bulk-classname");if(cn)cn.value=key;
+  const ta=document.getElementById("bulk-names");
+  if(ta){ta.value="";try{checkBulkDup()}catch(e){}setTimeout(()=>{try{ta.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}ta.focus()},120)}
+  if(typeof showToast==="function")try{showToast("Írd be a nevet (soronként egyet) → „Létrehozás”")}catch(e){}
+}
+function _classProjectId(className){
+  if(!className)return null;const ps=new Set(galleries.filter(g=>g.bulkClass===className&&g.projectId).map(g=>g.projectId));
+  return ps.size===1?[...ps][0]:null;
 }
 // Csoport (osztály) átnevezése: minden galéria bulkClass-a és a galéria teljes neve is frissül
 async function renameGalleryClass(safeKey){
