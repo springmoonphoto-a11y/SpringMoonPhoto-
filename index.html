@@ -7206,12 +7206,7 @@ function notifyDownloadReady(){
   // Email nélküli (pl. iskolai) galériánál a belépéshez a név is kell – pontosan úgy, ahogy a galériában szerepel
   body+="Belépés:\n1. Nyisd meg: "+url+"\n2. Add meg a kódot: "+code+(!g.isGroup&&!g.parentEmail&&childName?"\n3. Írd be a nevet: "+childName:"")+"\n\n";
   body+="Belépés után a „📥 Letölthető\" fülön találod a megrendelt képeidet, amelyeket vízjel nélkül, eredeti minőségben letölthetsz – egyesével vagy egyben is.\n\n";
-  let _xp=DIGITAL_PRICE;try{_xp=_savedPricesFor(g.priceListId).digitalPrice}catch(e){}
-  body+="💡 Ha a megrendelteken felül további képeket is szeretnél, "+fmt(_xp)+"/db áron tudod megvásárolni őket. Ha ezt szeretnéd, válaszd ki, mely képeket kérnéd, és utald át a kiválasztott képek összegét az alábbi számlaszámra, a névre és a galéria kódjára hivatkozva:\n\n";
-  body+="Kedvezményezett neve: Bukta Anita\n";
-  body+="Számlaszám: 11773391-00491127-00000000\n";
-  body+="Közlemény: "+(childName||"a galéria neve")+"\n\n";
-  body+="Az utalás beérkezése után a kiválasztott extra képeket is feltöltöm a letölthetők közé.\n\n";
+  body+="💡 Ha a megrendelteken felül további képeket is szeretnél, ugyanúgy rendelheted meg őket, mint eddig: az „🖼️ Összes kép\" fülön tedd kosárba a kiválasztott képeket, és add le a rendelést.\n\n";
   body+="Ha bármi kérdésed lenne, írj nyugodtan!\n\nSzeretettel,\n"+brand;
 
   const subject=childName+" képei letölthetők · "+brand;
