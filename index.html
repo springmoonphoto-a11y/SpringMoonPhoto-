@@ -345,6 +345,7 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .booking-mini-actions .b-deposit{background:#fff8e6;color:#8a5e0c;border:1.5px solid #e0c27a;font-weight:600}
 .booking-mini-actions .b-deposit.done{background:#e8f5ec;color:#2e7d4f;border-color:#a5d6b4}
 .booking-mini-actions .b-deposit-undo{color:#888;border-color:#ccc}
+.booking-mini-actions .b-price{background:transparent;color:var(--brown);border:1.5px solid var(--warm)}
 .booking-mini-actions .b-full{background:#f3faf5;color:#23704a;border:1.5px solid #9dd3b3}
 .booking-mini-actions .b-full.done{background:#23704a;color:#fff;border-color:#23704a}
 .booking-mini-actions .b-move{background:#eef3fb;color:#2c5d9b;border:1.5px solid #b7cbe8}
@@ -377,6 +378,8 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .bkpay-badge.full{background:#e3f4ea;color:#23704a;border:1px solid #9dd3b3}
 .bkpay-badge.dep{background:#eaf1fb;color:#2c5d9b;border:1px solid #b7cbe8}
 .bkpay-badge.none{background:#fff2df;color:#a15c00;border:1px solid #f0c98a}
+.bk-paym{width:auto!important;padding:6px 8px!important;font-size:.8rem;border-radius:8px}
+.bkpay-meth{font-size:.74rem;padding:2px 8px;border-radius:10px;background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.45);white-space:nowrap}
 .bkpay-rest{font-size:.74rem;color:var(--muted)}
 .order-sizes{display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 4px}
 .order-size-chip{font-size:.78rem;padding:2px 8px;border-radius:12px;background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.45);color:var(--brown);white-space:nowrap}
@@ -5135,7 +5138,28 @@ async function saveClassGivebackPercent(className,value){
 // === Statisztika: ki fizetett előleget / teljes összeget egy adott nap foglalásaira ===
 let _bkPayDate=null,_bkPayFilter="all";
 function _isoLocal(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
-function _bkPayState(b){return b.fullPaid?"full":(b.depositPaid?"deposit":"none")}
+function _bkPayState(b){if(b&&typeof b.priceOverride==="number"&&b.priceOverride===0)return "full";return b.fullPaid?"full":(b.depositPaid?"deposit":"none")}
+// Fizetés módja: kp (készpénz) vagy utalás
+function _bkPayMethodSel(b){
+  const v=b.payMethod||"";
+  return '<select class="bk-paym" title="Fizetés módja" onchange="setBookingPayMethod(\''+b.id+'\',this.value)"><option value=""'+(v?"":" selected")+'>– Fizetés módja –</option><option value="kp"'+(v==="kp"?" selected":"")+'>💵 Készpénz</option><option value="utalas"'+(v==="utalas"?" selected":"")+'>🏦 Utalás</option></select>';
+}
+async function setBookingPayMethod(id,v){
+  const b=bookings.find(x=>x.id===id);if(!b)return;const old=b.payMethod||"";
+  try{await db.collection("bookings").doc(id).update({payMethod:v||null});b.payMethod=v||null;_renderBkPayBox()}catch(e){b.payMethod=old;alert("Hiba: "+e.message)}
+}
+async function editBookingPrice(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const cur=_bookingPriceOf(b);const has=typeof b.priceOverride==="number";
+  const v=prompt("Egyedi ár – "+(b.name||"")+"\n\nÍrd be az összeget forintban (nyereményjátéknál: 0).\nHa üresen hagyod, visszaáll a nap alap árára.",has?String(b.priceOverride):String(cur));
+  if(v===null)return;
+  const t=v.replace(/[^0-9]/g,"");
+  const up=t===""?{priceOverride:null}:{priceOverride:Number(t)};
+  try{await db.collection("bookings").doc(id).update(up);b.priceOverride=up.priceOverride;
+    _renderBkPayBox();try{if(_selectedBookingDate)renderCalendar(true)}catch(e){}
+    if(typeof showToast==="function")try{showToast(t===""?"↺ Alap ár visszaállítva":(Number(t)===0?"🎁 Ingyenes (0 Ft)":"✏️ Új ár: "+fmt(Number(t))))}catch(e){}
+  }catch(e){alert("Hiba: "+e.message)}
+}
 function _bkPayDates(){
   const ds=Array.from(new Set((bookings||[]).filter(b=>b.status!=="cancelled"&&b.date).map(b=>b.date))).sort();
   return ds;
@@ -5154,23 +5178,29 @@ function _bkPayHtml(){
   const today=_isoLocal(new Date());const tm=new Date();tm.setDate(tm.getDate()+1);const tom=_isoLocal(tm);
   const list=(bookings||[]).filter(b=>b.date===_bkPayDate&&b.status!=="cancelled").sort((a,b)=>String(a.time).localeCompare(String(b.time)));
   const cnt={full:0,deposit:0,none:0};let got=0,due=0;
-  list.forEach(b=>{const st=_bkPayState(b);cnt[st]++;const p=_bookingPriceOf(b);const d=_bookingDeposit(b);
-    if(st==="full")got+=p;else if(st==="deposit"){const a=d?d.amount:0;got+=a;due+=Math.max(0,p-a)}else due+=p});
+  const byM={kp:0,utalas:0,"":0};
+  list.forEach(b=>{const st=_bkPayState(b);cnt[st]++;const p=_bookingPriceOf(b);const d=_bookingDeposit(b);let g=0;
+    if(st==="full")g=p;else if(st==="deposit"){g=d?d.amount:0;due+=Math.max(0,p-g)}else due+=p;
+    got+=g;byM[b.payMethod==="kp"||b.payMethod==="utalas"?b.payMethod:""]+=g});
   const opts=ds.map(d=>'<option value="'+d+'"'+(d===_bkPayDate?" selected":"")+'>'+formatBookingDate(d)+(d===tom?" (holnap)":d===today?" (ma)":d<today?" (elmúlt)":"")+'</option>').join("");
   const chip=(k,l,n)=>'<button class="pf-btn'+(_bkPayFilter===k?" active":"")+'" onclick="setBkPayFilter(\''+k+'\')">'+l+' ('+n+')</button>';
   let h='<div class="new-form bkpay"><h3>📅 Foglalások – ki fizetett?</h3>';
   h+='<select class="bkpay-date" onchange="setBkPayDate(this.value)">'+opts+'</select>';
   h+='<div class="bkpay-chips">'+chip("all","Mind",list.length)+chip("paid","✅ Fizetett (előleg vagy teljes)",cnt.full+cnt.deposit)+chip("full","💰 Teljes összeg",cnt.full)+chip("deposit","💳 Csak előleg",cnt.deposit)+chip("none","⏳ Még nem fizetett",cnt.none)+'</div>';
-  h+='<div class="bkpay-sum">Befolyt: <strong>'+fmt(got)+'</strong>'+(due>0?' · Még hátravan: <strong>'+fmt(due)+'</strong>':'')+'</div>';
+  h+='<div class="bkpay-sum">Befolyt: <strong>'+fmt(got)+'</strong>'+(due>0?' · Még hátravan: <strong>'+fmt(due)+'</strong>':'')+((byM.kp||byM.utalas)?'<br>💵 Készpénz: <strong>'+fmt(byM.kp)+'</strong> · 🏦 Utalás: <strong>'+fmt(byM.utalas)+'</strong>'+(byM[""]?' · nincs megadva: '+fmt(byM[""]):''):'')+'</div>';
   const shown=list.filter(b=>{const st=_bkPayState(b);return _bkPayFilter==="all"||(_bkPayFilter==="paid"?st!=="none":st===_bkPayFilter)});
   if(!shown.length)h+='<p style="color:var(--muted);font-style:italic;margin:8px 0 0">Nincs ilyen foglalás ezen a napon.</p>';
   shown.forEach(b=>{
     const st=_bkPayState(b);const p=_bookingPriceOf(b);const d=_bookingDeposit(b);
-    const badge=st==="full"?'<span class="bkpay-badge full">💰 Teljes összeg</span>':st==="deposit"?'<span class="bkpay-badge dep">💳 Előleg'+(d?' ('+fmt(d.amount)+')':'')+'</span>':'<span class="bkpay-badge none">⏳ Nem fizetett</span>';
-    h+='<div class="bkpay-row"><div class="bkpay-main"><span class="bkpay-time">'+_pcEsc(_bookingRange(b))+'</span> <strong>'+_pcEsc(b.name||"")+'</strong>'+(p>0?' <span class="bkpay-price">'+fmt(p)+'</span>':'')+'<br>'+badge+(st==="deposit"&&p>0&&d?' <span class="bkpay-rest">hátravan: '+fmt(Math.max(0,p-d.amount))+'</span>':'')+'</div><div class="bkpay-acts">';
-    if(st!=="full")h+='<button class="btn btn-outline btn-sm" onclick="markFullPaid(\''+b.id+'\')">💰 Teljes megjött</button>';
+    const free=typeof b.priceOverride==="number"&&b.priceOverride===0;
+    const badge=free?'<span class="bkpay-badge full">🎁 Ingyenes (nyeremény / ajándék)</span>':st==="full"?'<span class="bkpay-badge full">💰 Teljes összeg</span>':st==="deposit"?'<span class="bkpay-badge dep">💳 Előleg'+(d?' ('+fmt(d.amount)+')':'')+'</span>':'<span class="bkpay-badge none">⏳ Nem fizetett</span>';
+    h+='<div class="bkpay-row"><div class="bkpay-main"><span class="bkpay-time">'+_pcEsc(_bookingRange(b))+'</span> <strong>'+_pcEsc(b.name||"")+'</strong>'+((p>0||free)?' <span class="bkpay-price">'+fmt(p)+(typeof b.priceOverride==="number"?' ✏️':'')+'</span>':'')+'<br>'+badge+(b.payMethod&&!free?' <span class="bkpay-meth">'+(b.payMethod==="kp"?"💵 KP":"🏦 Utalás")+'</span>':'')+(st==="deposit"&&p>0&&d?' <span class="bkpay-rest">hátravan: '+fmt(Math.max(0,p-d.amount))+'</span>':'')+'</div><div class="bkpay-acts">';
+    if(!free)h+=_bkPayMethodSel(b);
+    h+='<button class="btn btn-outline btn-sm" title="Egyedi ár (pl. 0 Ft nyereményjátéknál)" onclick="editBookingPrice(\''+b.id+'\')">✏️ Ár</button>';
+    if(free){}
+    else if(st!=="full")h+='<button class="btn btn-outline btn-sm" onclick="markFullPaid(\''+b.id+'\')">💰 Teljes megjött</button>';
     else h+='<button class="btn btn-outline btn-sm" title="Visszavonás" onclick="undoFullPaid(\''+b.id+'\')">↺</button>';
-    if(st==="none")h+='<button class="btn btn-outline btn-sm" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg megjött</button>';
+    if(st==="none"&&!free)h+='<button class="btn btn-outline btn-sm" onclick="markDepositPaid(\''+b.id+'\')">💳 Előleg megjött</button>';
     h+='</div></div>';
   });
   return h+'</div>';
@@ -6126,6 +6156,7 @@ function _bkSoloAnyLabels(on){
 function _dayPrice(day,kind){if(!day)return 0;if(_dayTyped(day))return Number(kind==="family"?day.priceFamily:day.priceSolo)||0;return Number(day.price)||0}
 // Előleg: a foglalás ára × a nap előleg-százaléka. Régi foglalásnál (ár nélkül) a nap árából, az időpont hossza alapján.
 function _bookingPriceOf(b){
+  if(b&&typeof b.priceOverride==="number"&&b.priceOverride>=0)return b.priceOverride;// egyedi ár (pl. 0 Ft – nyereményjáték)
   if(Number(b&&b.price)>0)return Number(b.price);
   const av=(typeof getAvailability==="function"?getAvailability():null)||{};const d=av[b&&b.date];if(!d)return 0;
   if(_dayTyped(d))return Number(b.duration)===Number(d.durFamily)?(Number(d.priceFamily)||0):(Number(d.priceSolo)||0);
@@ -6833,7 +6864,7 @@ function renderAdminDayDetail(){
       if(b.phone)metaParts.push('<a href="tel:'+b.phone+'" class="booking-link-inline">📞 '+b.phone+'</a>');
       if(b.email)metaParts.push('<a href="mailto:'+b.email+'" class="booking-link-inline">✉️ '+b.email+'</a>');
       if(b.notes)metaParts.push('💬 '+b.notes);
-      html+='<div class="booking-card"><div class="booking-card-info"><div class="booking-card-time">'+_bookingRange(b,dayConf)+(Number(b.duration)>0?' ('+b.duration+' perc)':'')+(b.type?' · '+b.type:'')+(Number(b.price)>0?' · 💰 '+fmt(Number(b.price)):'')+' <span class="booking-status-'+statusClass+'">'+statusLabel+'</span>'+(b.depositPaid?' <span class="booking-deposit-ok">💳 előleg rendben</span>':(_bookingDeposit(b)&&b.status!=="cancelled"?' <span class="booking-deposit-wait">💳 előlegre vár</span>':''))+''+(b.addedByAdmin?' <span style="font-size:.72rem;color:var(--muted)">✍️ te írtad be</span>':'')+'</div><div class="booking-card-name">'+_pcEsc(b.name||"")+'</div><div class="booking-card-meta">'+metaParts.join(" · ")+'</div>';
+      html+='<div class="booking-card"><div class="booking-card-info"><div class="booking-card-time">'+_bookingRange(b,dayConf)+(Number(b.duration)>0?' ('+b.duration+' perc)':'')+(b.type?' · '+b.type:'')+(typeof b.priceOverride==="number"?' · '+(b.priceOverride===0?'🎁 0 Ft':'💰 '+fmt(b.priceOverride))+' ✏️':(Number(b.price)>0?' · 💰 '+fmt(Number(b.price)):''))+(b.payMethod?' · '+(b.payMethod==="kp"?"💵 KP":"🏦 Utalás"):'')+' <span class="booking-status-'+statusClass+'">'+statusLabel+'</span>'+(b.depositPaid?' <span class="booking-deposit-ok">💳 előleg rendben</span>':(_bookingDeposit(b)&&b.status!=="cancelled"?' <span class="booking-deposit-wait">💳 előlegre vár</span>':''))+''+(b.addedByAdmin?' <span style="font-size:.72rem;color:var(--muted)">✍️ te írtad be</span>':'')+'</div><div class="booking-card-name">'+_pcEsc(b.name||"")+'</div><div class="booking-card-meta">'+metaParts.join(" · ")+'</div>';
       // Kapcsolat-felvétel gombok
       html+='<div class="booking-contact-actions">';
       if(b.email)html+='<button onclick="emailBooking(\''+b.id+'\')">✉️ Email</button>';
@@ -6848,6 +6879,7 @@ function renderAdminDayDetail(){
         if(b.fullPaid)html+='<button class="b-full done" title="A teljes összeg megérkezett – visszavonás" onclick="undoFullPaid(\''+b.id+'\')">💰 Teljes összeg ✓</button>';
         else html+='<button class="b-full" title="Megjelöli, hogy a teljes összeget kifizette" onclick="markFullPaid(\''+b.id+'\')">💰 Teljes összeg megjött</button>';
       }
+      if(b.status!=="cancelled")html+='<button class="b-price" title="Egyedi ár (pl. 0 Ft nyereményjátéknál)" onclick="editBookingPrice(\''+b.id+'\')">✏️ Ár</button>';
       if(b.status!=="cancelled")html+='<button class="b-move" title="Ha előbb vagy később jön: más időpontra teszed" onclick="openMoveBooking(\''+b.id+'\')">🕒 Áthelyez</button>';
       html+='<button onclick="deleteBooking(\''+b.id+'\')" style="color:#666;border-color:#ccc">🗑️</button>';
       html+='</div><div class="bk-move-box" id="bk-move-'+b.id+'"></div></div>';
