@@ -360,6 +360,14 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .bkg-time{font-weight:600;color:var(--brown);font-size:.8rem}
 .bkg-code{font-family:monospace;font-weight:700;background:#fff;border:1px solid #a5d6b4;border-radius:6px;padding:1px 6px}
 .bkg-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.bkg-acts .btn{width:auto}
+.pl-pick{margin:12px 0;padding:10px 12px;border:2px solid #e0a43a;border-radius:10px;background:#fff8e6;text-align:left}
+.pl-pick label{display:block;font-size:.82rem;font-weight:700;color:#8a5a00;margin-bottom:6px;text-transform:none;letter-spacing:normal}
+.pl-pick select{width:100%;padding:9px;border-radius:8px;border:1.5px solid #e0a43a;background:#fff;color:#222;font-size:.92rem}
+.pl-pick-sum{font-size:.78rem;color:#7a5a00;margin-top:6px;line-height:1.5}
+.pl-pick.ok{border-color:#7cc49a;background:#f1f8f3}.pl-pick.ok label,.pl-pick.ok .pl-pick-sum{color:#2d6a45}.pl-pick.ok select{border-color:#7cc49a}
+.pl-pick.err{border-color:#d9534f;background:#fdecea;animation:plshake .3s}
+@keyframes plshake{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+body.dark-mode .pl-pick{background:rgba(224,164,58,.12)}body.dark-mode .pl-pick.ok{background:rgba(124,196,154,.12)}body.dark-mode .pl-pick label,body.dark-mode .pl-pick-sum{color:#f5d58a}body.dark-mode .pl-pick.ok label,body.dark-mode .pl-pick.ok .pl-pick-sum{color:#a5e0bd}
 .dup-warn{margin:4px 0 10px;padding:8px 10px;border-radius:8px;background:#fff8e6;border:1px solid #f0d58a;color:#7a5a00;font-size:.78rem;line-height:1.45;text-align:left}
 .dup-warn.strong{background:#fdecea;border-color:#f3b6ae;color:#a12a1a}
 .dup-warn ul{margin:4px 0 0 18px;padding:0}.dup-warn li{margin:1px 0}
@@ -1520,7 +1528,8 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <textarea id="bulk-names" oninput="checkBulkDup()" rows="6" placeholder="Kiss Márk&#10;Nagy Anna&#10;Kovács Bence&#10;..." style="width:100%;font-family:'DM Sans',sans-serif;font-size:.92rem;padding:11px;border:1.5px solid var(--warm);border-radius:10px;margin-bottom:8px"></textarea>
         <div id="bulk-dup"></div>
         <label style="font-size:.82rem;color:var(--muted);display:block;margin-bottom:4px">Osztály / csoport neve (opcionális, a galéria nevéhez):</label>
-        <input type="text" id="bulk-classname" placeholder="pl. 1.a osztály" style="width:100%;margin-bottom:10px">
+        <input type="text" id="bulk-classname" placeholder="pl. 1.a osztály" style="width:100%;margin-bottom:10px" onchange="_plPickInherit('bulk-pl','bulk-classname')">
+        <div id="bulk-pl-wrap" data-plpick="bulk-pl"></div>
         <div id="bulk-msg" style="margin-bottom:8px"></div>
         <button class="btn btn-gold" type="button" style="width:100%" onclick="createBulkGalleries()">⚡ Galériák létrehozása egyben</button>
         <div id="bulk-result" style="margin-top:12px"></div>
@@ -1595,6 +1604,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
           <div class="progress-bar"><div class="progress-fill" id="progress-fill-new" style="width:0%"></div></div>
         </div>
         <div id="photo-previews-new" class="photo-preview-grid"></div>
+        <div id="new-pl-wrap" data-plpick="new-pl"></div>
         <div id="new-form-error" class="error-msg hidden"></div>
         <div class="form-btns">
           <button class="btn btn-outline btn-sm" onclick="setAdminTab('galleries')">Mégsem</button>
@@ -1990,6 +2000,33 @@ function _plOptions(selId){
   return '<option value=""'+(!_priceListById(selId)?" selected":"")+'>Alap árlista</option>'+PRICE_LISTS.map(pl=>'<option value="'+pl.id+'"'+(pl.id===selId?" selected":"")+'>'+_pcEsc(pl.name||"Névtelen árlista")+'</option>').join("");
 }
 
+// === Árlista kötelező kiválasztása új galériánál (hogy ne a régi árakkal menjen ki) ===
+function _plSummary(id){
+  try{const P=_savedPricesFor(id||null);const parts=["💾 Digitális: "+fmt(P.digitalPrice)];(P.printSizes||[]).slice(0,4).forEach(x=>parts.push("🖨️ "+(x.label||x.id)+": "+fmt(Number(x.price)||0)));if((P.printSizes||[]).length>4)parts.push("…");return parts.join(" · ")}catch(e){return ""}
+}
+function _plPickHtml(id,pre){
+  const has=pre!==undefined&&pre!==null&&pre!=="__pick__";
+  const opts='<option value="__pick__"'+(has?"":" selected")+' disabled>– Válaszd ki, milyen árakkal menjen ki! –</option>'+'<option value=""'+(has&&pre===""?" selected":"")+'>Alap árlista</option>'+PRICE_LISTS.map(pl=>'<option value="'+pl.id+'"'+(has&&pl.id===pre?" selected":"")+'>'+_pcEsc(pl.name||"Névtelen árlista")+'</option>').join("");
+  return '<div class="pl-pick'+(has?" ok":"")+'" id="'+id+'-box"><label for="'+id+'">💰 Árlista – milyen árakkal küldöd ki? *</label><select id="'+id+'" onchange="_plPickChanged(\''+id+'\')">'+opts+'</select><div class="pl-pick-sum" id="'+id+'-sum">'+(has?_pcEsc(_plSummary(pre)):'Válassz, és itt látod az árakat.')+'</div></div>';
+}
+function _plPickChanged(id){
+  const sel=document.getElementById(id);const box=document.getElementById(id+"-box");const sum=document.getElementById(id+"-sum");if(!sel)return;
+  const v=sel.value;const ok=v!=="__pick__";if(box){box.classList.toggle("ok",ok);box.classList.remove("err")}
+  if(sum)sum.textContent=ok?_plSummary(v||null):"Válassz, és itt látod az árakat.";
+}
+function _plPickRender(id,pre){const w=document.querySelector('[data-plpick="'+id+'"]');if(w)w.innerHTML=_plPickHtml(id,pre)}
+// null = nincs kiválasztva (hiba), "" = Alap árlista, egyébként az árlista azonosítója
+function _plPickValue(id){
+  const sel=document.getElementById(id);if(!sel)return "";
+  if(sel.value==="__pick__"||sel.selectedIndex<0){const box=document.getElementById(id+"-box");if(box){box.classList.add("err");try{box.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}}return null}
+  return sel.value;
+}
+function _plPickInherit(id,classInputId){
+  const cn=((document.getElementById(classInputId)||{}).value||"").trim();if(!cn)return;
+  if(!galleries.some(g=>g.bulkClass===cn))return;
+  const inh=_classPriceListId(cn);const sel=document.getElementById(id);
+  if(sel&&sel.value==="__pick__"&&(inh||!galleries.some(g=>g.bulkClass===cn&&g.priceListId)))_plPickRender(id,inh||"");
+}
 async function loadMyPrices(){
   if(!currentUser)return;
   try{
@@ -6144,6 +6181,8 @@ function renderBookingGalleries(){
   h+='<div class="bkg-hint">Minden bejelölt foglaláshoz készül egy galéria saját belépési kóddal. A szülő email címe és telefonszáma is elmentődik hozzá, de belépni továbbra is <strong>kód + név</strong> elég. A nevet itt átírhatod (pl. a gyermek nevére).</div>';
   h+='<label class="bkg-lbl">Csoport / osztály neve (nem kötelező)</label><input type="text" id="bkg-class" placeholder="pl. Forrás Ovi – Napsugár csoport" value="'+_pcEsc(cls)+'">';
   h+='<label class="bkg-lbl">Fotózás (statisztikához)</label><select id="bkg-proj"><option value="">– nincs –</option>'+PROJECTS.filter(p=>_projYear(p)===WORK_YEAR||p.id===projSel).map(p=>'<option value="'+p.id+'"'+(p.id===projSel?" selected":"")+'>'+_pcEsc(p.name)+'</option>').join("")+'</select>';
+  const prevPl=(document.getElementById("bkg-pl")||{}).value;
+  h+=_plPickHtml("bkg-pl",prevPl!=null&&prevPl!=="__pick__"?prevPl:undefined);
   let todo=0;
   h+='<div class="bkg-list">';
   list.forEach(b=>{
@@ -6173,7 +6212,9 @@ async function createGalleriesFromBookings(){
   if(rows.some(r=>!r.name)){msg.innerHTML='<div class="error-msg">Minden bejelölt sorhoz kell név.</div>';return}
   const cls=(document.getElementById("bkg-class").value||"").trim();
   const proj=document.getElementById("bkg-proj").value||null;
-  if(!confirm(rows.length+" galéria jön létre, mindegyik saját kóddal. Folytatod?"))return;
+  const _pl=_plPickValue("bkg-pl");
+  if(_pl===null){msg.innerHTML='<div class="error-msg">Válaszd ki az árlistát (milyen árakkal menjenek ki a galériák).</div>';return}
+  if(!confirm(rows.length+" galéria jön létre, mindegyik saját kóddal.\n\n💰 Árlista: "+priceListName(_pl||null)+"\n"+_plSummary(_pl||null)+"\n\nFolytatod?"))return;
   const btn=document.getElementById("bkg-go");if(btn){btn.disabled=true}
   const usedCodes=new Set(galleries.map(g=>g.code));const inheritPriceList=_classPriceListId(cls);
   const year=Number(String(_selectedBookingDate).slice(0,4))||new Date().getFullYear();
@@ -6185,7 +6226,7 @@ async function createGalleriesFromBookings(){
         photographerId:currentUser.uid,photographerName:currentUser.name||null,photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,
         enabledProducts:{print:true,digital:true,gift:true},watermarkConfig:{enabled:true,text:"SpringMoonPhoto\nMINTA"},
         expiresAt:null,discounts:[],promoText:"",galleryMessage:"",bulkClass:cls,themeColor:window.MY_PROFILE?.themeColor||"#C9A84C"};
-      if(inheritPriceList)gd.priceListId=inheritPriceList;
+      gd.priceListId=_pl||null;
       const ref=await db.collection("galleries").add(gd);
       const gid=ref&&ref.id;
       if(gid){await db.collection("bookings").doc(r.b.id).update({galleryId:gid});r.b.galleryId=gid;galleries.unshift({id:gid,...gd})}
@@ -8277,6 +8318,7 @@ function toggleNewGalleryForm(){
     // Behúzzuk az űrlapot a slotba
     slot.appendChild(formBlock);
     formBlock.classList.remove("hidden");
+    _plPickRender("new-pl");_plPickRender("bulk-pl");
     slot.classList.remove("hidden");
     btn.textContent="✖ Bezárás";
     // Inicializálás (mint a régi + Új fül megnyitásakor)
@@ -9545,7 +9587,9 @@ async function createBulkGalleries(){
   const names=raw.split("\n").map(n=>n.trim()).filter(n=>n.length>0);
   if(names.length===0){msg.innerHTML='<div class="error-msg">Írj be legalább egy nevet!</div>';return}
   if(names.length>120){msg.innerHTML='<div class="error-msg">Túl sok név egyszerre (max. 120). Bontsd kisebb csoportokra.</div>';return}
-  if(!confirm(names.length+" galéria jön létre, mindegyikhez egyedi kóddal. Folytatod?"))return;
+  const _pl=_plPickValue("bulk-pl");
+  if(_pl===null){msg.innerHTML='<div class="error-msg">Válaszd ki az árlistát (milyen árakkal menjenek ki a galériák).</div>';return}
+  if(!confirm(names.length+" galéria jön létre, mindegyikhez egyedi kóddal.\n\n💰 Árlista: "+priceListName(_pl||null)+"\n"+_plSummary(_pl||null)+"\n\nFolytatod?"))return;
   const btn=event.target;btn.disabled=true;btn.textContent="Létrehozás… (0/"+names.length+")";
   const created=[];
   const usedCodes=new Set(galleries.map(g=>g.code));
@@ -9569,7 +9613,7 @@ async function createBulkGalleries(){
         bulkClass:className||"",
         themeColor:window.MY_PROFILE?.themeColor||"#C9A84C"
       };
-      if(inheritPriceList)galleryData.priceListId=inheritPriceList;
+      galleryData.priceListId=_pl||null;
       await db.collection("galleries").add(galleryData);
       created.push({name:child,code});
       btn.textContent="Létrehozás… ("+(i+1)+"/"+names.length+")";
@@ -9595,6 +9639,7 @@ function addGalleryToClass(key){
   const slot=document.getElementById("new-gallery-slot");
   if(slot&&slot.classList.contains("hidden"))toggleNewGalleryForm();
   const cn=document.getElementById("bulk-classname");if(cn)cn.value=key;
+  {const inh=_classPriceListId(key);const mixed=!inh&&galleries.some(g=>g.bulkClass===key&&g.priceListId);_plPickRender("bulk-pl",mixed?undefined:(inh||""))}
   const ta=document.getElementById("bulk-names");
   if(ta){ta.value="";try{checkBulkDup()}catch(e){}setTimeout(()=>{try{ta.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}ta.focus()},120)}
   if(typeof showToast==="function")try{showToast("Írd be a nevet (soronként egyet) → „Létrehozás”")}catch(e){}
@@ -9637,15 +9682,18 @@ async function createGallery(){
   if(isGroup){
     const groupName=document.getElementById("new-group-name").value.trim();
     if(!groupName){errDiv.textContent="A csoport nevének megadása kötelező.";show("new-form-error");return}
+    if(_plPickValue("new-pl")===null){errDiv.textContent="Válaszd ki az árlistát (milyen árakkal menjen ki a galéria).";show("new-form-error");return}
     const finalCode=generatedCode||generateCode(groupName);
     galleryData={name:groupName,code:finalCode,child:groupName,parentEmail:"",isGroup:true,projectId:_newGalleryProjectId(),createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim(),themeColor:getThemeColorFromPicker("new")||"#C9A84C"};
   }else{
     const child=document.getElementById("new-child").value.trim();const email=document.getElementById("new-email").value.trim().toLowerCase();
     if(!child){errDiv.textContent="A megrendelő neve kötelező.";show("new-form-error");return}
+    if(_plPickValue("new-pl")===null){errDiv.textContent="Válaszd ki az árlistát (milyen árakkal menjen ki a galéria).";show("new-form-error");return}
     const existing=email?galleries.find(g=>!g.isGroup&&g.parentEmail&&g.parentEmail.toLowerCase()===email):null;
     const finalCode=existing?existing.code:(generatedCode||generateCode(child));
-    galleryData={name:child+" – Iskolai fotók 2025",code:finalCode,child,parentEmail:email,isGroup:false,projectId:_newGalleryProjectId(),createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim(),themeColor:getThemeColorFromPicker("new")||"#C9A84C"};
+    galleryData={name:child+" – Iskolai fotók "+new Date().getFullYear(),code:finalCode,child,parentEmail:email,isGroup:false,projectId:_newGalleryProjectId(),createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim(),themeColor:getThemeColorFromPicker("new")||"#C9A84C"};
   }
+  {const pl=_plPickValue("new-pl");galleryData.priceListId=pl||null}
   const btn=document.getElementById("create-btn");btn.disabled=true;btn.textContent="Mentés...";
   try{
     await db.collection("galleries").add(galleryData);await loadPhotographerData();
@@ -9658,6 +9706,7 @@ async function createGallery(){
     // Az űrlap becsukása, vissza a galériákhoz (a form a slotban van)
     const slot=document.getElementById("new-gallery-slot");const formBlock=document.getElementById("admin-new");const tbtn=document.getElementById("new-gallery-toggle");
     if(slot){slot.classList.add("hidden")}if(formBlock){formBlock.classList.add("hidden")}if(tbtn){tbtn.textContent="➕ Új galéria létrehozása"}
+    _plPickRender("new-pl");
     renderAdmin();setAdminTab("galleries");
   }catch(e){errDiv.textContent="Hiba történt. Próbáld újra.";show("new-form-error");}
   finally{btn.disabled=false;btn.textContent="✓ Galéria létrehozása"}
