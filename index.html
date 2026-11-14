@@ -6856,7 +6856,7 @@ function renderAdminDayDetail(){
   html+='<div id="admin-bk-form" style="margin-top:14px">'+_adminBkAddBtn()+'</div>';
   html+='</div>';
   if(dayBookings.length>0){
-    html+='<div style="margin-top:18px"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px"><div style="font-weight:500;color:var(--brown)">📋 Foglalások ('+dayBookings.length+'):</div>'+(dayBookings.some(b=>b.status!=="cancelled")?'<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" style="width:auto" onclick="downloadDayBookingsPdf()">📄 Lista PDF-ben (nyomtatáshoz)</button><button class="btn btn-outline btn-sm" style="width:auto" onclick="toggleBookingGalleries()">🖼️ Galériák a foglalásokból</button></span>':'')+'</div><div id="bk-gal-panel"></div>';
+    html+='<div style="margin-top:18px"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px"><div style="font-weight:500;color:var(--brown)">📋 Foglalások ('+dayBookings.length+'):</div>'+(dayBookings.some(b=>b.status!=="cancelled")?'<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-outline btn-sm" style="width:auto" onclick="downloadDayBookingsPdf()">📄 Lista PDF-ben (nyomtatáshoz)</button><button class="btn btn-outline btn-sm" style="width:auto" onclick="toggleBookingGalleries()">🖼️ Galériák a foglalásokból</button>'+(dayBookings.some(b=>b.status!=="cancelled"&&b.phone)?'<button class="btn btn-outline btn-sm" style="width:auto" onclick="toggleBookingReminders()">⏰ Emlékeztető SMS-ek</button>':'')+'</span>':'')+'</div><div id="bk-rem-panel"></div><div id="bk-gal-panel"></div>';
     dayBookings.sort((a,b)=>a.time.localeCompare(b.time)).forEach(b=>{
       const statusClass=b.status==="confirmed"?"confirmed":(b.status==="cancelled"?"cancelled":"pending");
       const statusLabel=b.status==="confirmed"?"Megerősítve":(b.status==="cancelled"?(b.cancelledBy==="parent"?"Lemondta a szülő"+(b.cancelledAt?" ("+new Date(b.cancelledAt).toLocaleDateString("hu-HU",{month:"short",day:"numeric"})+")":""):"Lemondva"):"Új");
@@ -6869,6 +6869,7 @@ function renderAdminDayDetail(){
       html+='<div class="booking-contact-actions">';
       if(b.email)html+='<button onclick="emailBooking(\''+b.id+'\')">✉️ Email</button>';
       if(b.phone)html+='<button onclick="smsBooking(\''+b.id+'\')">💬 SMS</button>';
+      if(b.phone&&b.status!=="cancelled")html+='<button onclick="smsBookingReminder(\''+b.id+'\')" title="Emlékeztető SMS: várlak a fotózáson">⏰ Emlékeztető'+(b.reminderSentAt?' ✓':'')+'</button>';
       if(b.phone)html+='<button onclick="callBooking(\''+b.id+'\')">📞 Hívás</button>';
       html+='</div></div>';
       html+='<div class="booking-mini-actions">';
@@ -6888,6 +6889,7 @@ function renderAdminDayDetail(){
   }
   detail.innerHTML=html;
   if(_bkGalOpen===_selectedBookingDate)try{renderBookingGalleries()}catch(e){}
+  if(_bkRemOpen===_selectedBookingDate)try{renderBookingReminders()}catch(e){}
   // Select időtartam dropdown beállítása
   setTimeout(()=>{const sel=document.getElementById("bk-duration");if(sel){sel.value=String(dayConf.duration||30);sel.disabled=_dayTyped(dayConf)}},10);
   _bkSoloAnyLabels(!!dayConf.soloAnyone);
@@ -7343,6 +7345,53 @@ function smsBooking(id){
   showContactModal();
 }
 
+// === EMLÉKEZTETŐ SMS a fotózás napján / előtte („várlak titeket”) ===
+// Telefonon az SMS app nyílik meg kitöltve; a kiküldést a foglaláson jelöljük (reminderSentAt), így telefonon és gépen is látszik.
+let _bkRemOpen=null;
+function _bookingReminderText(b){
+  const brand=(window.MY_PROFILE&&window.MY_PROFILE.brandName)||"SpringMoonPhoto";
+  const today=dateToISO(new Date());const tm=new Date();tm.setDate(tm.getDate()+1);
+  const when=b.date===today?"Ma":(b.date===dateToISO(tm)?"Holnap":formatBookingDate(b.date));
+  const loc=_bookingLocation(b);
+  let t="Kedves "+(b.name||"")+"! "+when+" "+(b.time||"")+"-kor várlak titeket szeretettel a fotózáson"+(loc?", helyszín: "+loc:"")+".";
+  t+=" Érdemes 5 perccel korábban érkezni, hogy nyugodtan elkészülhessetek.";
+  t+=" Ha bármi közbejön, kérlek, jelezd ezen a számon. Üdv: Anita, "+brand;
+  return t;
+}
+function smsBookingReminder(id){
+  const b=bookings.find(x=>x.id===id);if(!b||!b.phone)return;
+  _activeContactData={type:"sms",to:b.phone,body:_bookingReminderText(b),name:(b.name||"")+" – emlékeztető",reminderFor:b.id};
+  showContactModal();
+}
+async function _markReminderSent(id){
+  const b=bookings.find(x=>x.id===id);if(!b)return;
+  const now=Date.now();b.reminderSentAt=now;
+  try{await db.collection("bookings").doc(id).update({reminderSentAt:now})}catch(e){}
+}
+function toggleBookingReminders(){
+  _bkRemOpen=_bkRemOpen===_selectedBookingDate?null:_selectedBookingDate;
+  const el=document.getElementById("bk-rem-panel");if(!el)return;
+  if(!_bkRemOpen){el.innerHTML="";return}
+  renderBookingReminders();setTimeout(()=>{try{el.scrollIntoView({behavior:"smooth",block:"start"})}catch(e){}},50);
+}
+function renderBookingReminders(){
+  const el=document.getElementById("bk-rem-panel");if(!el||!_selectedBookingDate)return;
+  const list=getBookingsForDate(_selectedBookingDate,false).filter(b=>b.status!=="cancelled"&&b.phone).sort((a,b)=>String(a.time).localeCompare(String(b.time)));
+  const done=list.filter(b=>b.reminderSentAt).length;
+  let h='<div class="bkg-panel"><div class="bkg-title">⏰ Emlékeztető SMS-ek ('+done+'/'+list.length+' elküldve)</div>';
+  h+='<div class="bkg-hint">Telefonon a <strong>📲 Küldés</strong> gomb megnyitja az SMS appot kitöltött üzenettel – ott csak a Küldésre kell nyomni, aztán gyere vissza a következőhöz. Az elküldötteket pipával jelöli (gépen és telefonon is látszik).</div>';
+  h+='<div class="bkg-list">';
+  list.forEach(b=>{
+    const url="sms:"+String(b.phone).replace(/\s/g,"")+"?body="+encodeURIComponent(_bookingReminderText(b));
+    h+='<div class="bkg-row'+(b.reminderSentAt?' done':'')+'"><div class="bkg-main"><span class="bkg-time">'+_pcEsc(b.time)+'</span> <strong>'+_pcEsc(b.name||"")+'</strong> <span style="font-size:.78rem;color:var(--muted)">'+_pcEsc(b.phone)+'</span>'+(b.reminderSentAt?' <span style="font-size:.76rem;color:#2e7d32">✓ elküldve</span>':'')+'</div><div class="bkg-acts"><a class="btn btn-sm" style="width:auto;text-decoration:none;display:inline-block" href="'+_pcEsc(url)+'" onclick="_reminderLinkClicked(\''+b.id+'\')">📲 '+(b.reminderSentAt?'Újra':'Küldés')+'</a><button class="btn btn-outline btn-sm" onclick="smsBookingReminder(\''+b.id+'\')">✏️ Szerkesztés</button></div></div>';
+  });
+  h+='</div></div>';
+  el.innerHTML=h;
+}
+function _reminderLinkClicked(id){
+  _markReminderSent(id).then(()=>{try{renderBookingReminders()}catch(e){}});
+}
+
 function callBooking(id){
   const b=bookings.find(x=>x.id===id);if(!b||!b.phone)return;
   window.location.href="tel:"+b.phone;
@@ -7415,6 +7464,7 @@ function openInSmsApp(){
   _syncContactModalEdits();
   const d=_activeContactData;if(!d||d.type!=="sms")return;
   const url="sms:"+d.to+"?body="+encodeURIComponent(d.body);
+  if(d.reminderFor){const rid=d.reminderFor;_markReminderSent(rid).then(()=>{try{if(_selectedBookingDate)renderCalendar(true)}catch(e){}})}
   const a=document.createElement("a");a.href=url;document.body.appendChild(a);a.click();document.body.removeChild(a);
   closeContactModal();
 }
