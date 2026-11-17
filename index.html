@@ -2069,6 +2069,13 @@ async function loadMyPrices(){
       PRICE_LISTS=Array.isArray(data.priceLists)?data.priceLists.filter(x=>x&&x.id):[];
       // Üzenetsablonok: csak a fotós felületén jelennek meg; ha még sosem mentett, pár kiinduló sablont kap
       MSG_TEMPLATES=Array.isArray(data.messageTemplates)?data.messageTemplates.filter(x=>x&&x.id&&typeof x.text==="string"):_defaultMsgTemplates();
+      // Új beépített sablon (Számlaszám) egyszer hozzáadva a már mentett sablonokhoz is; ha később törlöd, nem jön vissza
+      {const seeded=Array.isArray(data.msgTplSeeded)?data.msgTplSeeded:[];
+        if(!seeded.includes("t_szamla")){
+          if(Array.isArray(data.messageTemplates)&&!MSG_TEMPLATES.some(t=>t.id==="t_szamla"))MSG_TEMPLATES.push(_szamlaTemplate());
+          const up={msgTplSeeded:seeded.concat(["t_szamla"])};if(Array.isArray(data.messageTemplates))up.messageTemplates=MSG_TEMPLATES;
+          try{db.collection("photographers").doc(currentUser.uid).update(up).catch(()=>{})}catch(e){}
+        }}
       MY_DEFAULT_PRICES=_pricesSnapshot();_priceEditId=null;
       ENABLED_PRODUCTS=data.enabledProducts||{print:true,digital:true,gift:true};
       WATERMARK_CONFIG=data.watermarkConfig||{enabled:true,text:"SpringMoonPhoto\nMINTA"};
@@ -3699,8 +3706,13 @@ function _defaultMsgTemplates(){
   return [
     {id:"t_kesz",title:"Képek elkészültek",text:"Kedves Szülő!\n\n{gyerek} képei elkészültek, a galériában a Letöltések résznél érhetők el.\n\nKöszönöm a rendelést!\nSpringMoonPhoto – Bukta Anita"},
     {id:"t_fizetes",title:"Fizetési emlékeztető",text:"Kedves Szülő!\n\nSzeretném jelezni, hogy {gyerek} rendelésének összege még nem érkezett meg. A fizetési adatokat a galériában, a rendelésnél találja.\n\nKöszönöm!\nSpringMoonPhoto – Bukta Anita"},
-    {id:"t_atveheto",title:"Rendelés átvehető",text:"Kedves Szülő!\n\n{gyerek} megrendelt képei megérkeztek, átvehetők.\n\nSpringMoonPhoto – Bukta Anita"}
+    {id:"t_atveheto",title:"Rendelés átvehető",text:"Kedves Szülő!\n\n{gyerek} megrendelt képei megérkeztek, átvehetők.\n\nSpringMoonPhoto – Bukta Anita"},
+    _szamlaTemplate()
   ];
+}
+// Számlaszám sablon – a {fizetendo} sor csak akkor marad benne, ha a galériához van ki nem fizetett rendelés
+function _szamlaTemplate(){
+  return {id:"t_szamla",title:"Számlaszám",text:"Kedves Szülő!\n\nAz utaláshoz szükséges adatok:\n\n👤 Kedvezményezett: "+PAY_INFO.name+"\n🏦 Bank: "+PAY_INFO.bank+"\n💳 Számlaszám: "+PAY_INFO.account+"\n💰 Összeg: {fizetendo}\n📝 Közlemény: {gyerek}\n\nKöszönöm!\nSpringMoonPhoto – Bukta Anita"};
 }
 function _msgChildName(galleryId,override){
   if(typeof override==="string")return override;// körüzenetnél a címzett neve (csoportos galériánál üres)
@@ -3711,6 +3723,10 @@ function _fillMsgPlaceholders(text,galleryId,nameOverride){
   if(!text||text.indexOf("{")<0)return text;
   const name=_msgChildName(galleryId,nameOverride);
   // név nélkül (pl. csoportos galéria) a helykitöltőt kivesszük, hogy ne menjen ki "{gyerek}" a szülőnek
+  if(/\{fizetendo\}/i.test(text)){
+    let due=0;try{(orders||[]).forEach(o=>{if(o.galleryId===galleryId&&o.status!=="cancelled"&&!_orderFlags(o).paid)due+=(typeof o.total==="number"?o.total:0)})}catch(e){}
+    text=due>0?text.replace(/\{fizetendo\}/gi,fmt(due)):text.split("\n").filter(l=>!/\{fizetendo\}/i.test(l)).join("\n");
+  }
   return text.replace(/\{gyerek\}/gi,name||"a gyermek").replace(/[ \t]{2,}/g," ");
 }
 function _msgTplBar(inputId){
