@@ -381,6 +381,8 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .bk-paym{width:auto!important;padding:6px 8px!important;font-size:.8rem;border-radius:8px}
 .bkpay-meth{font-size:.74rem;padding:2px 8px;border-radius:10px;background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.45);white-space:nowrap}
 .bkpay-rest{font-size:.74rem;color:var(--muted)}
+.order-item-group{font-size:.8rem;font-weight:700;color:var(--gold);margin:10px 0 4px;padding-bottom:3px;border-bottom:1px solid rgba(201,168,76,.35)}
+.order-item-group span{font-weight:400;color:var(--muted)}
 .order-sizes{display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 4px}
 .order-size-chip{font-size:.78rem;padding:2px 8px;border-radius:12px;background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.45);color:var(--brown);white-space:nowrap}
 body.dark-mode .order-size-chip{color:#f5e1a0}
@@ -4979,15 +4981,22 @@ function _orderItemsDoneBadge(o){
   if(done===0&&_orderFlags(o).edited)return "";
   return '<div class="order-card-meta item-done-badge" style="font-weight:700;color:#d9822b">☐ Kipipált képek: '+done+'/'+n+' – még '+(n-done)+' hiányzik</div>';
 }
+function _sizeRank(x){const m=String(x||"").match(/(\d+)\s*[x×]\s*(\d+)/);return m?Number(m[1])*Number(m[2]):(/a4/i.test(x)?600:/a3/i.test(x)?1200:99999)}
 function _orderItemsHtml(o){
   const _imgList=encodeURIComponent(JSON.stringify((o.items||[]).map(i=>({url:i.photoUrl,name:i.photoName}))));
   // Ha képméretre szűrsz, csak az adott méretű tételek látszanak (a többi el van rejtve, a sorszámok/pipák nem változnak)
   const _sz=(typeof _orderFilter!=="undefined"&&_orderFilter.size)||null;
   let hidden=0;
-  const rows=(o.items||[]).map((i,idx)=>{
+  // Csoportosítás: előbb a papírképek méret szerint (kicsitől nagyig), aztán a digitális, végül az ajándéktárgyak; csoporton belül képnév szerint
+  const _grpOf=i=>i.type==="digital"?"z1|💾 Digitális":(i.type==="gift"?"z2|🎁 "+(i.giftLabel||"Ajándéktárgy"):"a"+String(_sizeRank(_itemSizeKey(i))).padStart(6,"0")+"|🖨️ Papírkép – "+(_itemSizeKey(i)||"egyéb"));
+  const _ord=(o.items||[]).map((i,idx)=>({i,idx,g:_grpOf(i)})).sort((a,b)=>a.g.localeCompare(b.g,"hu")||String(a.i.photoName||"").localeCompare(String(b.i.photoName||""),"hu",{numeric:true})||a.idx-b.idx);
+  const _grpCnt={};_ord.forEach(x=>{if(_sz&&_itemSizeKey(x.i)!==_sz)return;_grpCnt[x.g]=(_grpCnt[x.g]||0)+(Number(x.i.qty)||1)});
+  const _multi=Object.keys(_grpCnt).length>1;let _lastG=null;
+  const rows=_ord.map(({i,idx,g})=>{
     if(_sz&&_itemSizeKey(i)!==_sz){hidden++;return ""}
+    let head="";if(_multi&&g!==_lastG){_lastG=g;head='<div class="order-item-group">'+_pcEsc(g.split("|")[1])+' <span>('+_grpCnt[g]+' db)</span></div>'}
     const done=_itemDone(o,idx);
-    return '<div class="order-item-row'+(done?" item-done":"")+'"><label class="item-done-check" title="Kész – saját jelölés, a szülő nem látja" onclick="event.stopPropagation()"><input type="checkbox"'+(done?" checked":"")+' onchange="toggleItemDone(\''+o.id+'\','+idx+',this.checked)"></label><img src="'+lowQ(i.photoUrl)+'" alt="" loading="lazy" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+_itemTypeLabel(i)+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>';
+    return head+'<div class="order-item-row'+(done?" item-done":"")+'"><label class="item-done-check" title="Kész – saját jelölés, a szülő nem látja" onclick="event.stopPropagation()"><input type="checkbox"'+(done?" checked":"")+' onchange="toggleItemDone(\''+o.id+'\','+idx+',this.checked)"></label><img src="'+lowQ(i.photoUrl)+'" alt="" loading="lazy" onclick="openAdminImgOrder(\''+i.photoUrl+'\',\''+(i.photoName||"").replace(/'/g,"")+'\',\''+_imgList+'\')"><span>'+i.photoName+' – '+_itemTypeLabel(i)+' × '+i.qty+'</span><span class="item-price">'+_pcItemPrice(i)+'</span></div>';
   }).join("");
   return rows+(hidden?'<div class="order-items-hidden">+ '+hidden+' további tétel (más méret vagy termék) elrejtve – a „📐 '+_pcEsc(_sz)+'” szűrő miatt</div>':'');
 }
