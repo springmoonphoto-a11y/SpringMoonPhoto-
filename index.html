@@ -8149,7 +8149,7 @@ function setOrderClassFilter(i){const opt=_orderClassOpts[i];if(!opt)return;setO
 // "active" = a 🔄 Aktív gombbal kifejezetten csak az aktívak; "all" = a Mind gombbal mindig minden
 let _orderScopeMode="auto";
 function _orderScopeBoth(){if(_orderFilter.completed)return false;if(_orderScopeMode==="all")return true;if(_orderScopeMode==="active")return false;return _orderFilterActive()}
-function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.pending!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi||_orderFilter.cls!==null||_orderFilter.size!==null}
+function _orderFilterActive(){const t=_orderFilter.types;return _orderFilter.consent!=null||_orderFilter.paid!==null||_orderFilter.delivered!==null||_orderFilter.edited!==null||_orderFilter.pending!==null||_orderFilter.completed||t.print||t.digital||t.gift||_orderFilter.multi||_orderFilter.cls!==null||_orderFilter.size!==null}
 // Milyen terméktípusok vannak egy rendelésben (darabszámmal)
 function _orderTypeCounts(o){
   const c={print:0,digital:0,gift:0};
@@ -8215,6 +8215,7 @@ function _orderPassesFilter(o){
     if(_orderFilter.multi&&_orderTypeKinds(o)<2)return false;
   }
   if(_orderFilter.pending!==null&&(_orderPending(o).length>0)!==_orderFilter.pending)return false;
+  if(_orderFilter.consent!=null&&(o.socialConsent==="yes"?"yes":"no")!==_orderFilter.consent)return false;
   if(_orderFilter.delivered!==null){
     const ph=_orderPhysical(o);
     if(!ph.has)return false;// csak digitális rendelésnél nincs mit átadni
@@ -8252,6 +8253,8 @@ function renderOrderFilterBar(sActive,sCompleted){
   h+=chip("⏳ Van még hátra",cnt(o=>_orderPending(o).length>0),_orderFilter.pending===true,"setOrderFilter(\'pending\',true)");
   h+=chip("✅ Minden elintézve",cnt(o=>_orderPending(o).length===0),_orderFilter.pending===false,"setOrderFilter(\'pending\',false)");
   h+=chip("⭐ Teljesítve",sCompleted.length,_orderFilter.completed,"setOrderFilter(\'completed\')");
+  h+=chip("📷 Közzétételhez hozzájárult",cnt(o=>o.socialConsent==="yes"),_orderFilter.consent==="yes","setOrderFilter(\'consent\',\'yes\')");
+  h+=chip("🚫 Nem járult hozzá",cnt(o=>o.socialConsent!=="yes"),_orderFilter.consent==="no","setOrderFilter(\'consent\',\'no\')");
   h+='</div>';
   // Termék szerinti szűrők (több is bejelölhető, és a fenti szűrőkkel kombinálható)
   const ft=_orderFilter.types;
@@ -9225,6 +9228,7 @@ function _pdfOrderFilterDesc(){
   if(f.delivered===true)p.push("Megrendelve");if(f.delivered===false)p.push("Nincs megrendelve");
   if(f.pending===true)p.push("Van még hátra");if(f.pending===false)p.push("Minden elintézve");
   if(f.completed)p.push("Teljesítve");
+  if(f.consent==="yes")p.push("Közzétételhez hozzájárult");if(f.consent==="no")p.push("Nem járult hozzá a közzétételhez");
   if(f.types.print)p.push("Papírkép");if(f.types.digital)p.push("Digitális");if(f.types.gift)p.push("Ajándéktárgy");if(f.multi)p.push("Többféle");
   if(f.size)p.push("Méret: "+f.size);
   if(f.cls!==null){const o=_orderClassOpts.find(x=>x.key===f.cls);p.push("Osztály: "+_pdfStripEmoji(o?o.label:f.cls))}
