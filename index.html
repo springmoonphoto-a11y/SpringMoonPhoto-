@@ -383,6 +383,17 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .bkpay-rest{font-size:.74rem;color:var(--muted)}
 .order-item-group{font-size:.8rem;font-weight:700;color:var(--gold);margin:10px 0 4px;padding-bottom:3px;border-bottom:1px solid rgba(201,168,76,.35)}
 .order-item-group span{font-weight:400;color:var(--muted)}
+.guide-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;overflow-y:auto}
+.guide-modal.hidden{display:none}
+.guide-box{position:relative;background:var(--white);color:var(--dark);max-width:640px;width:100%;border-radius:16px;padding:22px 20px 20px;line-height:1.6;font-size:.92rem;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.guide-box h2{font-family:'Playfair Display',serif;font-size:1.35rem;margin:0 30px 6px 0}
+.guide-box h3{font-family:'Playfair Display',serif;font-size:1.02rem;margin:16px 0 4px;color:var(--brown)}
+.guide-box ol,.guide-box ul{margin:4px 0 4px 20px;padding:0}.guide-box li{margin:3px 0}
+.guide-box .g-lead{color:var(--muted)}
+.guide-box .g-pay{border-collapse:collapse;width:100%;margin-top:6px}.guide-box .g-pay td{border:1px solid var(--warm);padding:6px 8px;font-size:.88rem}
+.guide-close{position:absolute;top:10px;right:12px;background:none;border:none;font-size:1.6rem;line-height:1;cursor:pointer;color:var(--muted)}
+.guide-first-banner{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--white);border:1.5px solid var(--gold);border-radius:12px;padding:10px 14px;margin:0 0 14px;font-size:.88rem}
+.guide-login-link{text-align:center;margin:12px 0 4px}.guide-login-link button{background:none;border:none;color:var(--gold);text-decoration:underline;cursor:pointer;font:inherit;font-size:.9rem}
 .pkg-banner{background:linear-gradient(135deg,#eef8f0,#d9f2e1);border:2px solid #5fb67f;border-radius:12px;padding:12px 16px;margin:0 0 14px;color:#1f5a35;font-size:.88rem;line-height:1.55}
 .pkg-banner strong{display:block;margin-bottom:3px;font-family:'Playfair Display',serif;font-size:1rem}
 .order-sizes{display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 4px}
@@ -1189,6 +1200,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     </div>
     <button class="btn" onclick="handleLogin()">Belépés &rarr;</button>
     <div id="login-error" class="error-msg hidden"></div>
+    <div class="guide-login-link"><button type="button" onclick="openGuide()">📖 Először rendel? Itt a rendelési útmutató</button></div>
     <div class="admin-link">Ön fotós? <button onclick="showAdminLogin()">Admin belépés</button></div>
     <button class="booking-link-btn" onclick="openBookingPage()" style="margin-top:14px">📅 Időpontfoglalás</button>
     <button class="booking-link-btn" onclick="openInquiryPage()" style="margin-top:10px">💬 Ajánlatkérés</button>
@@ -1295,6 +1307,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
     <div class="header-right">
       <button class="logout-btn" onclick="toggleDarkMode()" title="Sötét mód" style="font-size:1.1rem">🌗</button>
       <button id="fav-toggle-btn" class="fav-toggle-btn" onclick="toggleFavView()">🤍 Kedvenceim (0)</button>
+      <button class="orders-btn" onclick="openGuide()" title="Hogyan rendeljek?">❓ Útmutató</button>
       <button class="orders-btn" onclick="showMyOrders()">&#128203; Rendeléseim</button>
       <button class="cart-btn" onclick="showCart()">&#128722; <span id="cart-badge" class="cart-badge hidden">0</span></button>
       <button class="logout-btn" onclick="logout()">Kilépés</button>
@@ -3987,7 +4000,7 @@ function renderGallery(){
     bioStrip.innerHTML='<div class="bio-avatar"><img src="'+avatarSrc+'" alt="fotós"></div><div class="bio-info"><div class="bio-name">'+(phName||"Fotós")+'</div><div class="bio-tagline">A galéria fotósa · Kérdezz bátran</div></div><div class="bio-contacts">'+contacts+'</div>';
     bioStrip.style.display="flex";
   }else if(bioStrip){bioStrip.style.display="none"}
-  setTimeout(()=>{_renderPkgBanner();_loadPkgUsed()},0);
+  setTimeout(()=>{_renderPkgBanner();_loadPkgUsed();_renderGuideBanner()},0);
   if(currentGallery.promoText){
     if(!promoBanner){promoBanner=document.createElement("div");promoBanner.id="promo-banner";promoBanner.style.cssText="background:linear-gradient(135deg,#fff8ee,#ffe4b5);border:2px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:18px;font-size:.92rem;color:var(--brown);line-height:1.5;white-space:pre-wrap";const wrap=document.querySelector("#page-gallery .wrap");wrap.insertBefore(promoBanner,document.getElementById("photo-grid"))}
     promoBanner.innerHTML='<strong style="display:block;margin-bottom:4px;font-family:Playfair Display,serif;font-size:1rem">🎁 Csomagajánlat</strong>'+currentGallery.promoText.replace(/</g,"&lt;");promoBanner.style.display="block";
@@ -6227,6 +6240,41 @@ function _publicDayAllowed(iso,dayConf){
   if(_publicOnlyDates)return _publicOnlyDates.has(iso);
   return !(dayConf&&dayConf.linkOnly);
 }
+// === RENDELÉSI ÚTMUTATÓ a szülőknek (galérián belül, belépés előtt is, és ?utmutato linkkel) ===
+function GUIDE_URL(){return "https://"+GALLERY_SITE+"/?utmutato"}
+function _guideHtml(){
+  const P=(typeof PAY_INFO!=="undefined")?PAY_INFO:{name:"",bank:"",account:""};
+  const pkg=(typeof _pkgIncluded==="function"&&currentGallery)?_pkgIncluded():0;
+  return '<h2>📖 Rendelési útmutató</h2><p class="g-lead">Az első rendelés kb. 5 perc: belépsz a kapott kóddal, kosárba teszed a kiválasztott képeket, leadod a rendelést, majd elutalod az összeget.</p>'
+  +'<h3>1. Belépés</h3><ol><li>Nyisd meg a <b>'+GALLERY_SITE+'</b> oldalt.</li><li><b>Belépési kód:</b> a fotóstól kapott kód (pl. KOVACS1234). Kis- és nagybetű, szóköz nem számít.</li><li><b>Megrendelő neve:</b> a belépőkártyán szereplő név (általában a gyermek neve). Az ékezetek nem számítanak.</li><li><b>Email cím:</b> nem kötelező; ha megadod, ide kapod az értesítéseket.</li><li><b>Belépés →</b></li></ol>'
+  +'<h3>2. A galéria</h3><ul><li>A „MINTA” felirat csak a galériában látszik, a megrendelt képeken nem lesz rajta.</li><li><b>Nagyítás:</b> koppints a képre, a nyilakkal lapozhatsz.</li><li><b>Kedvencek:</b> a kép sarkában lévő 🤍 szívvel jelölheted; fent a <b>❤️ Kedvenceim</b> gombbal csak ezeket látod.</li><li><b>Több kép egyszerre:</b> a kép sarkában lévő ✓ gombbal több képet kijelölhetsz, majd alul a „Kosárba” sávval egyszerre a kosárba teheted.</li>'+(pkg?'<li><b>Csomag:</b> a fotózás ára '+pkg+' digitális képet tartalmaz – ezeket ingyen választhatod, csak a többit kell fizetni. A zöld doboz mutatja, hány van még hátra.</li>':'<li><b>Csomag:</b> ha a fotózás ára digitális képeket is tartalmaz, a galéria tetején egy zöld doboz mutatja, hány képet választhatsz még ingyen.</li>')+'</ul>'
+  +'<h3>3. Kosárba tétel</h3><ol><li>Koppints a képre.</li><li>Válaszd ki: <b>💾 Digitális</b> (retusált, nagy felbontású JPG), <b>🖼️ Papírkép</b> (méret szerint) vagy <b>🎁 Ajándék</b> – ha a galériában elérhető.</li><li>Állítsd be a darabszámot (− / +).</li><li><b>Kosárba →</b></li></ol><p>Egy képből többféle terméket is rendelhetsz (pl. papírképet és digitálisat is): ilyenkor tedd kétszer a kosárba.</p>'
+  +'<h3>4. Rendelés leadása</h3><ol><li>Nyomd meg a <b>🛒 kosár</b> gombot.</li><li>Nézd át a tételeket; amit nem kérsz, a × gombbal törölheted.</li><li>Töltsd ki a kapcsolattartási adatokat (név, telefon, email).</li><li>Ha van <b>kedvezménykódod</b>, írd be → <b>Alkalmaz</b>.</li><li>Válaszolj a <b>közzétételi hozzájárulásra</b> (Igen / Nem – a „Nem” is teljesen rendben van).</li><li><b>Rendelés leadása →</b>, majd az összegzésben véglegesítsd.</li></ol>'
+  +'<h3>5. Fizetés</h3><p>A végösszeget a rendelés után <b>3 munkanapon belül</b> kérjük átutalni:</p><table class="g-pay"><tr><td>Kedvezményezett</td><td><b>'+_pcEsc(P.name)+'</b></td></tr><tr><td>Bank</td><td>'+_pcEsc(P.bank)+'</td></tr><tr><td>Számlaszám</td><td><b>'+_pcEsc(P.account)+'</b></td></tr><tr><td>Közlemény</td><td>a gyermek neve</td></tr></table>'
+  +'<h3>6. Mi történik utána?</h3><ul><li>Utalás visszaigazolása: 1–2 munkanap</li><li>Digitális képek: 3–5 munkanap · Papírképek: legalább 1 hét</li><li><b>Letöltés:</b> értesítést kapsz, majd a <b>📥 Letölthető</b> fülön töltheted le a képeket.</li><li><b>📋 Rendeléseim:</b> itt látod, hol tart a rendelésed.</li><li>Később is rendelhetsz további képeket ugyanígy.</li></ul>'
+  +'<h3>Kérdésed van?</h3><p>Bukta Anita – SpringMoonPhoto · springmoonphoto@gmail.com · 06 20 292 0749</p>';
+}
+function openGuide(){
+  let m=document.getElementById("guide-modal");
+  if(!m){m=document.createElement("div");m.id="guide-modal";m.className="guide-modal";m.onclick=e=>{if(e.target===m)closeGuide()};document.body.appendChild(m)}
+  m.innerHTML='<div class="guide-box"><button class="guide-close" onclick="closeGuide()" aria-label="Bezárás">×</button>'+_guideHtml()+'<button class="btn btn-gold" style="margin-top:16px" onclick="closeGuide()">Rendben, értem</button></div>';
+  m.classList.remove("hidden");document.body.style.overflow="hidden";
+  try{localStorage.setItem("smg_guide_seen","1")}catch(e){}
+  const b=document.getElementById("guide-first-banner");if(b)b.remove();
+}
+function closeGuide(){const m=document.getElementById("guide-modal");if(m)m.classList.add("hidden");document.body.style.overflow=""}
+// Első belépéskor: kis sáv a galéria tetején
+function _renderGuideBanner(){
+  let seen=false;try{seen=localStorage.getItem("smg_guide_seen")==="1"}catch(e){}
+  const old=document.getElementById("guide-first-banner");
+  if(seen){if(old)old.remove();return}
+  if(old)return;
+  const host=document.getElementById("gallery-view-tabs")||document.getElementById("photo-grid");if(!host||!host.parentNode)return;
+  const b=document.createElement("div");b.id="guide-first-banner";b.className="guide-first-banner";
+  b.innerHTML='<span>👋 Először rendelsz? Nézd meg a rövid útmutatót!</span><span style="display:flex;gap:6px"><button class="btn btn-gold btn-sm" style="width:auto" onclick="openGuide()">📖 Útmutató</button><button class="btn btn-outline btn-sm" style="width:auto" onclick="try{localStorage.setItem(\'smg_guide_seen\',\'1\')}catch(e){};this.closest(\'#guide-first-banner\').remove()">×</button></span>';
+  host.parentNode.insertBefore(b,host);
+}
+window.addEventListener("load",()=>{try{if(new URLSearchParams(location.search).has("utmutato"))setTimeout(openGuide,500)}catch(e){}});
 function bookingLinkFor(dateISO){return "https://"+GALLERY_SITE+"/?nap="+dateISO}
 async function copyBookingLink(){
   if(!_selectedBookingDate)return;
@@ -6458,7 +6506,7 @@ function sendBookingGalleryCode(bid){
   const b=bookings.find(x=>x.id===bid);const g=b&&_bkGalleryOf(b);if(!g)return;
   const site="https://"+GALLERY_SITE;
   const sms="Kedves "+(b.name||"")+"! Elkészültek a fotók. Megtekintés és rendelés: "+site+" · Kód: "+g.code+" · Név: "+(g.child||"")+" Üdv: Bukta Anita, SpringMoonPhoto";
-  const mail="Kedves "+(b.name||"")+"!\n\nElkészültek a fotók, a galériában meg tudod nézni és meg tudod rendelni őket.\n\n🌐 "+site+"\n🔑 Belépési kód: "+g.code+"\n👤 Név: "+(g.child||"")+"\n\nKöszönöm!\nBukta Anita\nSpringMoonPhoto";
+  const mail="Kedves "+(b.name||"")+"!\n\nElkészültek a fotók, a galériában meg tudod nézni és meg tudod rendelni őket.\n\n🌐 "+site+"\n🔑 Belépési kód: "+g.code+"\n👤 Név: "+(g.child||"")+"\n📖 Rendelési útmutató: "+GUIDE_URL()+"\n\nKöszönöm!\nBukta Anita\nSpringMoonPhoto";
   if(b.email)_activeContactData={type:"email",to:b.email,subject:"Elkészültek a fotók – belépési kód: "+g.code,body:mail,name:b.name||""};
   else _activeContactData={type:"sms",to:b.phone,body:sms,name:b.name||""};
   showContactModal();
@@ -9584,6 +9632,7 @@ function _galleryCardText(g){
   t+="🔑 Belépési kód: "+c.code+"\n";
   if(!c.isGroup)t+="👤 Név: "+c.name+"\n";
   if(c.email)t+="✉️ Email: "+c.email+"\n";
+  t+="📖 Rendelési útmutató: "+GUIDE_URL()+"\n";
   t+=c.hint;
   return t;
 }
