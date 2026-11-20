@@ -1573,6 +1573,7 @@ body.dark-mode .upload-area:hover{background:#1a1408}
         <div id="individual-gallery-fields">
           <label>Megrendelő teljes neve *</label><input id="new-child" type="text" placeholder="pl. Kiss Péter vagy Barber Shop" oninput="updateCode();checkNewGalleryDup()"><div id="new-child-dup"></div>
           <label>Szülő email címe <span style="color:var(--muted);font-weight:400">(nem kötelező)</span></label><input id="new-email" type="email" placeholder="szulo@email.com – üresen hagyható" oninput="checkNewGalleryDup()"><div style="font-size:.74rem;color:var(--muted);margin:-6px 0 12px">Ha üresen hagyod, a szülő csak a névvel és a kóddal lép be (pl. iskolai fotózásnál).</div>
+          <label>Csoport / osztály <span style="color:var(--muted);font-weight:400">(nem kötelező – válassz egy meglévőt, vagy írj újat)</span></label><input id="new-class" type="text" list="class-datalist" placeholder="pl. Karácsonyi fotózás – Villusion Stúdió" onchange="_plPickInherit('new-pl','new-class')">
         </div>
         <div id="group-gallery-fields" class="hidden">
           <label>Csoport neve *</label><input id="new-group-name" type="text" placeholder="pl. Napsugár csoport 2025" oninput="updateGroupCode()">
@@ -1673,6 +1674,9 @@ body.dark-mode .upload-area:hover{background:#1a1408}
           <input type="text" id="edit-code" style="margin-bottom:0;letter-spacing:.1em;font-weight:600;flex:1;text-transform:uppercase" placeholder="pl. KOVACS1234">
           <button class="btn btn-outline btn-sm" style="margin-top:0;white-space:nowrap" onclick="regenEditCode()">&#128260; Új generálása</button>
         </div>
+        <label>Csoport / osztály</label>
+        <p style="font-size:.74rem;color:var(--muted);margin-bottom:6px">Ebbe a csoportba kerül a galéria a Galériák fülön. Üresen = „Egyéb galériák”.</p>
+        <input type="text" id="edit-class" list="class-datalist" placeholder="pl. Karácsonyi fotózás – Villusion Stúdió">
         <label>🎁 Csomagban benne lévő digitális képek (db)</label>
         <p style="font-size:.74rem;color:var(--muted);margin-bottom:6px">Pl. fél órás fotózás: 10, egy órás: 25. Ennyi digitális képet ingyen választhat a szülő, csak az ezen felülieket kell fizetnie. Üresen / 0 = nincs csomag.</p>
         <input type="number" id="edit-included" min="0" step="1" placeholder="pl. 10" style="max-width:140px">
@@ -8586,7 +8590,7 @@ function toggleNewGalleryForm(){
     // Behúzzuk az űrlapot a slotba
     slot.appendChild(formBlock);
     formBlock.classList.remove("hidden");
-    _plPickRender("new-pl");_plPickRender("bulk-pl");
+    _plPickRender("new-pl");_plPickRender("bulk-pl");_fillClassDatalist();
     slot.classList.remove("hidden");
     btn.textContent="✖ Bezárás";
     // Inicializálás (mint a régi + Új fül megnyitásakor)
@@ -9532,6 +9536,7 @@ function toggleEditForm(){
     document.getElementById("edit-email").value=currentDetailGallery.parentEmail||"";
     _renderEditContactEmail();
     document.getElementById("edit-code").value=currentDetailGallery.code;
+    _fillClassDatalist();document.getElementById("edit-class").value=currentDetailGallery.bulkClass||"";
     document.getElementById("edit-included").value=Number(currentDetailGallery.includedDigital)>0?currentDetailGallery.includedDigital:"";
     document.getElementById("edit-msg").innerHTML="";
   }
@@ -9548,11 +9553,15 @@ async function saveEdit(){
   const collision=galleries.find(g=>g.id!==currentDetailGallery.id&&(g.code||"").toUpperCase()===code);
   if(collision){msg.innerHTML='<div class="error-msg">⚠️ Ezt a kódot már használja egy másik galéria ('+(collision.child||collision.name||"")+'). Válassz másikat!</div>';return}
   try{
-    const oldChild=currentDetailGallery.child||"";const oldName=currentDetailGallery.name||"";
-    const newName=oldName&&oldChild&&oldName.startsWith(oldChild)?child+oldName.slice(oldChild.length):(oldName||child);
-    await db.collection("galleries").doc(currentDetailGallery.id).update({child,parentEmail:email,code,name:newName,includedDigital:included});
-    currentDetailGallery.child=child;currentDetailGallery.parentEmail=email;currentDetailGallery.code=code;currentDetailGallery.name=newName;currentDetailGallery.includedDigital=included;
-    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g){g.child=child;g.parentEmail=email;g.code=code;g.name=newName;g.includedDigital=included}
+    const oldChild=currentDetailGallery.child||"";const oldName=currentDetailGallery.name||"";const oldCls=currentDetailGallery.bulkClass||"";
+    const cls=((document.getElementById("edit-class")||{}).value||"").replace(/\s+/g," ").trim();
+    let newName=oldName&&oldChild&&oldName.startsWith(oldChild)?child+oldName.slice(oldChild.length):(oldName||child);
+    if(cls!==oldCls){const yr=(newName.match(/ (\d{4})$/)||[])[1]||String(new Date().getFullYear());newName=child+(cls?" – "+cls:"")+" "+yr}
+    const up={child,parentEmail:email,code,name:newName,includedDigital:included,bulkClass:cls};
+    if(cls&&cls!==oldCls){const pj=_classProjectId(cls);if(pj)up.projectId=pj}
+    await db.collection("galleries").doc(currentDetailGallery.id).update(up);
+    Object.assign(currentDetailGallery,up);
+    const g=galleries.find(x=>x.id===currentDetailGallery.id);if(g)Object.assign(g,up);
     document.getElementById("detail-name").textContent=child+" galériája";document.getElementById("detail-meta").textContent=email;document.getElementById("detail-code").textContent=code+" 📋";
     msg.innerHTML='<div class="success-msg">✓ Mentve!</div>';setTimeout(()=>{document.getElementById("edit-form").classList.add("hidden");msg.innerHTML=""},1500);
   }catch(e){msg.innerHTML='<div class="error-msg">Hiba történt!</div>'}
@@ -9912,10 +9921,18 @@ function addGalleryToClass(key){
   const slot=document.getElementById("new-gallery-slot");
   if(slot&&slot.classList.contains("hidden"))toggleNewGalleryForm();
   const cn=document.getElementById("bulk-classname");if(cn)cn.value=key;
+  const sc=document.getElementById("new-class");if(sc)sc.value=key;_fillClassDatalist();
+  {const inh=_classProjectId(key);const mixed=!_classPriceListId(key)&&galleries.some(g=>g.bulkClass===key&&g.priceListId);_plPickRender("new-pl",mixed?undefined:(_classPriceListId(key)||""))}
   {const inh=_classPriceListId(key);const mixed=!inh&&galleries.some(g=>g.bulkClass===key&&g.priceListId);_plPickRender("bulk-pl",mixed?undefined:(inh||""))}
   const ta=document.getElementById("bulk-names");
   if(ta){ta.value="";try{checkBulkDup()}catch(e){}setTimeout(()=>{try{ta.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}ta.focus()},120)}
   if(typeof showToast==="function")try{showToast("Írd be a nevet (soronként egyet) → „Létrehozás”")}catch(e){}
+}
+function _fillClassDatalist(){
+  let dl=document.getElementById("class-datalist");
+  if(!dl){dl=document.createElement("datalist");dl.id="class-datalist";document.body.appendChild(dl)}
+  const cs=[...new Set((galleries||[]).map(g=>g.bulkClass).filter(c=>c&&c.trim()))].sort((a,b)=>a.localeCompare(b,"hu"));
+  dl.innerHTML=cs.map(c=>'<option value="'+_pcEsc(c)+'"></option>').join("");
 }
 function _classProjectId(className){
   if(!className)return null;const ps=new Set(galleries.filter(g=>g.bulkClass===className&&g.projectId).map(g=>g.projectId));
@@ -9964,13 +9981,14 @@ async function createGallery(){
     if(_plPickValue("new-pl")===null){errDiv.textContent="Válaszd ki az árlistát (milyen árakkal menjen ki a galéria).";show("new-form-error");return}
     const existing=email?galleries.find(g=>!g.isGroup&&g.parentEmail&&g.parentEmail.toLowerCase()===email):null;
     const finalCode=existing?existing.code:(generatedCode||generateCode(child));
-    galleryData={name:child+" – Iskolai fotók "+new Date().getFullYear(),code:finalCode,child,parentEmail:email,isGroup:false,projectId:_newGalleryProjectId(),createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim(),themeColor:getThemeColorFromPicker("new")||"#C9A84C"};
+    const _ncls=((document.getElementById("new-class")||{}).value||"").replace(/\s+/g," ").trim();
+    galleryData={name:child+(_ncls?" – "+_ncls:" – Iskolai fotók")+" "+new Date().getFullYear(),bulkClass:_ncls,code:finalCode,child,parentEmail:email,isGroup:false,projectId:_classProjectId(_ncls)||_newGalleryProjectId(),createdAt:Date.now(),photos:uploadedPhotosNew,photographerId:currentUser?currentUser.uid:null,photographerName:currentUser?currentUser.name:null,photographerAvatarUrl:window.MY_PROFILE?.avatarUrl||null,enabledProducts:getNewEnabledProducts(),watermarkConfig:getNewWatermarkConfig(),expiresAt:getNewExpiresAt(),discounts:readNewDiscounts(),promoText:document.getElementById("new-promo-text").value.trim(),galleryMessage:document.getElementById("new-gallery-message").value.trim(),themeColor:getThemeColorFromPicker("new")||"#C9A84C"};
   }
   {const pl=_plPickValue("new-pl");galleryData.priceListId=pl||null}
   const btn=document.getElementById("create-btn");btn.disabled=true;btn.textContent="Mentés...";
   try{
     await db.collection("galleries").add(galleryData);await loadPhotographerData();
-    document.getElementById("new-child").value="";document.getElementById("new-email").value="";{const d=document.getElementById("new-child-dup");if(d)d.innerHTML=""}document.getElementById("new-group-name").value="";
+    document.getElementById("new-child").value="";document.getElementById("new-email").value="";{const c=document.getElementById("new-class");if(c)c.value=""}{const d=document.getElementById("new-child-dup");if(d)d.innerHTML=""}document.getElementById("new-group-name").value="";
     document.getElementById("new-is-group").checked=false;document.getElementById("new-enable-print").checked=true;document.getElementById("new-enable-digital").checked=true;document.getElementById("new-enable-gift").checked=true;
     document.getElementById("new-watermark-enabled").checked=true;document.getElementById("new-watermark-text").value="SpringMoonPhoto\\nMINTA";
     document.getElementById("new-expires-at").value="";document.getElementById("new-promo-text").value="";document.getElementById("new-gallery-message").value="";
