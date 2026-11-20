@@ -8163,7 +8163,7 @@ function _pcRefundHtml(o){
 }
 function renderPriceCorrSummary(){
   const el=document.getElementById("price-corr-summary");if(!el)return;
-  const list=orders.filter(_pcHas);
+  const list=_projOrders().filter(_pcHas);// csak a kiválasztott év / fotózás rendelései
   if(!list.length){el.innerHTML="";return}
   const all=list.reduce((s,o)=>s+o.priceCorrection.amount,0);
   const due=list.filter(o=>o.priceCorrection.paidBefore&&!o.priceCorrection.refunded);
@@ -8480,6 +8480,7 @@ function renderAdminOrders(){
   const base=showCompleted?sCompleted:(bothScopes?sActive.concat(sCompleted):sActive);
   const totalBase=(showCompleted?allCompleted:(bothScopes?allActive.concat(allCompleted):allActive)).length;
   const filterOn=_orderFilterActive();
+  if(!_projOrders().length&&(_projActive()!=="all")){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📭</span><div class="empty-state-title">Ebben a fotózásban még nincs rendelés</div><div class="empty-state-text">A galériákat a <strong>Galériák</strong> fülön látod ('+_projGalleries().length+' galéria).</div><button class="btn btn-outline btn-sm" style="width:auto;margin-top:10px" onclick="setAdminTab(\'galleries\')">🖼️ Galériák megnyitása</button></div>';return}
   if(!childList&&allActive.length===0&&!filterOn&&!(bothScopes&&allCompleted.length)){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">📭</span><div class="empty-state-title">Nincs aktív rendelés</div><div class="empty-state-text">Az új rendelések itt fognak megjelenni, amint a szülők leadják.</div></div>';_syncOrderSelection();return}
   if(!childList&&q&&base.length===0){div.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs találat</div><div class="empty-state-text">Nincs a keresésnek megfelelő '+(showCompleted?"teljesített":"aktív")+' rendelés: „'+rawQ.replace(/</g,"&lt;")+'"</div></div>';_syncOrderSelection();return}
   const activeOrders=childList||_sortOrdersForList(base.filter(_orderPassesFilter));
