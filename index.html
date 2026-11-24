@@ -3307,6 +3307,7 @@ async function loadPhotographerData(){
   }catch(e){galleries=[];orders=[]}
   _watchOrders();_watchBookings();
   loadGalleryVisits();
+  _stampExtraClassTimes();
 }
 // Galériánként: mikor járt bent utoljára a szülő (belépés, kedvenc jelölés, rendelés alapján)
 let _galleryVisitMap={};
@@ -5455,12 +5456,21 @@ function _projGalleries(){const f=_projActive();return galleries.filter(g=>_year
 // Egy galéria több csoportban is szerepelhet: bulkClass = a saját csoportja, extraClasses = további csoportok (nem másolat, ugyanaz a galéria)
 function _galClasses(g){const a=[];if(g&&g.bulkClass&&g.bulkClass.trim())a.push(g.bulkClass);if(g&&Array.isArray(g.extraClasses))g.extraClasses.forEach(c=>{if(c&&!a.includes(c))a.push(c)});return a}
 function _inClass(g,c){return _galClasses(g).includes(c)}
+// Ha egy galériát utólag tettél egy csoportba, ott a belépés / rendelés / letöltés számláló a hozzáadás időpontjától indul
+function _classSince(g,key){if(!g||!key||g.bulkClass===key)return 0;const m=g.extraClassAddedAt||{};return Number(m[key])||0}
+function _orderCountSince(g,since){let n=0;(orders||[]).forEach(o=>{if(o&&o.galleryId===g.id&&(!since||(Number(o.createdAt)||0)>=since))n++});return n}
+// Régebben (időpont nélkül) más csoportba tett galériák: most kapnak időpontot, így onnantól számol
+async function _stampExtraClassTimes(){
+  if(!currentUser)return;const now=Date.now();const todo=[];
+  (galleries||[]).forEach(g=>{if(!Array.isArray(g.extraClasses)||!g.extraClasses.length)return;const m=Object.assign({},g.extraClassAddedAt||{});let ch=false;g.extraClasses.forEach(c=>{if(!m[c]){m[c]=now;ch=true}});if(ch)todo.push([g,m])});
+  for(const [g,m] of todo){try{await db.collection("galleries").doc(g.id).update({extraClassAddedAt:m});g.extraClassAddedAt=m}catch(e){}}
+}
 async function addGalleryToExtraClass(gid,cls,projId){
   const g=galleries.find(x=>x.id===gid);if(!g||!cls)return false;
   if(_inClass(g,cls))return true;
   if(!g.bulkClass){const up={bulkClass:cls};const pj=projId||_classProjectId(cls);if(pj&&!g.projectId)up.projectId=pj;await db.collection("galleries").doc(gid).update(up);Object.assign(g,up);return true}
   const ec=(Array.isArray(g.extraClasses)?g.extraClasses:[]).concat([cls]);
-  const up={extraClasses:ec};
+  const up={extraClasses:ec,extraClassAddedAt:Object.assign({},g.extraClassAddedAt||{},{[cls]:Date.now()})};
   const pj=projId||_classProjectId(cls);
   if(pj&&pj!==g.projectId){up.extraProjects=Array.from(new Set((g.extraProjects||[]).concat([pj])))}
   await db.collection("galleries").doc(gid).update(up);Object.assign(g,up);return true;
@@ -5468,10 +5478,10 @@ async function addGalleryToExtraClass(gid,cls,projId){
 async function removeGalleryFromExtraClass(gid,cls){
   const g=galleries.find(x=>x.id===gid);if(!g)return;
   if(!confirm((g.child||g.name||"")+" kivétele ebből a csoportból: "+cls+"?\n\nA galéria nem törlődik, a saját csoportjában ("+(g.bulkClass||"-")+") megmarad."))return;
-  const ec=(g.extraClasses||[]).filter(c=>c!==cls);
+  const ec=(g.extraClasses||[]).filter(c=>c!==cls);const at=Object.assign({},g.extraClassAddedAt||{});delete at[cls];
   const pj=_classProjectId(cls);let ep=g.extraProjects||[];
   if(pj&&!ec.some(c=>_classProjectId(c)===pj))ep=ep.filter(x=>x!==pj);
-  try{await db.collection("galleries").doc(gid).update({extraClasses:ec,extraProjects:ep});g.extraClasses=ec;g.extraProjects=ep;renderAdminGalleries()}catch(e){alert("Hiba: "+e.message)}
+  try{await db.collection("galleries").doc(gid).update({extraClasses:ec,extraProjects:ep,extraClassAddedAt:at});g.extraClasses=ec;g.extraProjects=ep;g.extraClassAddedAt=at;renderAdminGalleries()}catch(e){alert("Hiba: "+e.message)}
 }
 // Meglévő galéria hozzáadása egy csoporthoz (kód vagy név alapján)
 async function addExistingGalleryToClass(cls){
@@ -8662,10 +8672,11 @@ let _galleryDlFilter="all";
 // === Ki rendelt / ki nem rendelt még a galériák közül ===
 let _galleryOrderFilter="all";// "all" | "none" (még nem rendelt) | "ordered"
 function _galleryOrderCounts(){const m={};(orders||[]).forEach(o=>{if(o&&o.galleryId)m[o.galleryId]=(m[o.galleryId]||0)+1});return m}
-function _galleryOrderBadge(g,cnt){
+function _galleryOrderBadge(g,cnt,since){
   if(cnt>0)return '<div class="gallery-dl-badge has-dl gallery-order-badge">🛒 Rendelt'+(cnt>1?' ('+cnt+' rendelés)':'')+'</div>';
   if(g.isGroup)return '<div class="gallery-dl-badge gallery-order-badge" style="background:var(--cream);color:var(--muted)">🛒 Még nincs rendelés</div>';
-  const ls=_galleryLastSeen(g);const fc=_galleryFavCount(g);
+  let ls=_galleryLastSeen(g);let fc=_galleryFavCount(g);
+  if(since){if(ls<since)ls=0;const v=_galleryVisitMap[g.id];if(!v||!v.at||v.at<since)fc=0}
   const seen=ls?'megnézte: '+new Date(ls).toLocaleDateString("hu-HU")+(fc?' · ❤️ '+fc+' kedvenc':''):(fc?'❤️ '+fc+' kedvencet jelölt':'még be sem lépett');
   return '<div class="gallery-dl-badge no-dl gallery-order-badge">⏳ Még nem rendelt · '+seen+'</div>';
 }
@@ -8821,8 +8832,9 @@ function renderAdminGalleryList(){
     list.innerHTML='<div class="empty-state"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nincs találat</div><div class="empty-state-text">'+emptyTxt+'</div></div>';return;
   }
   const cardHtml=(g,_inKey)=>{
+    const _since=_classSince(g,_inKey);
     const thumbs=g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+lowQ(p.url)+'" alt="" loading="lazy">').join(""):'<div class="no-photo">&#128247;</div>';
-    const dl=_downloadsByGallery[g.id];
+    let dl=_downloadsByGallery[g.id];if(dl&&_since&&(Number(dl.lastAt)||0)<_since)dl=null;
     let dlBadge="";
     if(g.downloadEnabled===true){
       if(dl){
@@ -8832,7 +8844,7 @@ function renderAdminGalleryList(){
         dlBadge='<div class="gallery-dl-badge no-dl">📭 Még nem töltötték le</div>';
       }
     }
-    return '<div class="gallery-admin-card" onclick="_galleryReturn=null;openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div>'+(_inKey&&g.bulkClass&&_inKey!==g.bulkClass?'<div class="gal-extra-note">🔗 Saját csoportja: '+_pcEsc(g.bulkClass)+' · <a href="#" onclick="event.preventDefault();event.stopPropagation();removeGalleryFromExtraClass(\''+g.id+'\',\''+String(_inKey).replace(/\\/g,"\\\\").replace(/'/g,"\\'")+'\')">kivétel innen</a></div>':'')+'<div class="gallery-admin-email">&#128231; '+(g.parentEmail?_pcEsc(g.parentEmail):(function(){const k=g.isGroup?[]:_galleryKnownEmails(g);return k.length?'<span title="A szülő adta meg ('+k[0].src+') – a belépéshez nem kell">'+_pcEsc(k[0].email)+' <em style="opacity:.7">(szülő adta meg)</em></span>':"nincs email"})())+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><button class="gallery-card-link" onclick="event.stopPropagation();openGalleryCard(\''+g.id+'\')">📇 Belépőkártya</button><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div>'+_galleryOrderBadge(g,ordCnt[g.id]||0)+dlBadge+'</div></div></div>';
+    return '<div class="gallery-admin-card" onclick="_galleryReturn=null;openGalleryDetail(\''+g.id+'\')"><div class="gallery-admin-top"><div class="gallery-admin-thumb">'+thumbs+'</div><div class="gallery-admin-info"><div class="gallery-admin-name">'+g.child+'</div>'+(_inKey&&g.bulkClass&&_inKey!==g.bulkClass?'<div class="gal-extra-note">🔗 Saját csoportja: '+_pcEsc(g.bulkClass)+' · <a href="#" onclick="event.preventDefault();event.stopPropagation();removeGalleryFromExtraClass(\''+g.id+'\',\''+String(_inKey).replace(/\\/g,"\\\\").replace(/'/g,"\\'")+'\')">kivétel innen</a></div>':'')+'<div class="gallery-admin-email">&#128231; '+(g.parentEmail?_pcEsc(g.parentEmail):(function(){const k=g.isGroup?[]:_galleryKnownEmails(g);return k.length?'<span title="A szülő adta meg ('+k[0].src+') – a belépéshez nem kell">'+_pcEsc(k[0].email)+' <em style="opacity:.7">(szülő adta meg)</em></span>':"nincs email"})())+'</div><div class="gallery-code" onclick="event.stopPropagation();copyCode(\''+g.code+'\')">'+g.code+' &#128203;</div><button class="gallery-card-link" onclick="event.stopPropagation();openGalleryCard(\''+g.id+'\')">📇 Belépőkártya</button><div class="gallery-count">'+(g.photos||[]).length+' fotó – Kattints a részletekhez →</div>'+_galleryOrderBadge(g,_since?_orderCountSince(g,_since):(ordCnt[g.id]||0),_since)+dlBadge+'</div></div></div>';
   };
   // Osztályonkénti csoportosítás, hogy ne keveredjenek — csak keresés nélkül aktív
   if(!q){
@@ -8858,7 +8870,7 @@ function renderAdminGalleryList(){
       }else{
         const safeKey=key.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
         const open=_isClassOpen(key);
-        html+='<div class="gallery-group-heading ggh-toggle'+(open?"":" ggh-closed")+'" title="'+(open?"Kattints a becsukáshoz":"Kattints a kinyitáshoz")+'" onclick="toggleGalleryClass(\''+safeKey+'\')"><span><span class="ggh-arrow">'+(open?"▾":"▸")+'</span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+(function(){const all=_projGalleries().filter(x=>x.bulkClass===key&&!x.isGroup);const n=all.filter(x=>ordCnt[x.id]>0).length;return '<span class="ggh-count ggh-ordered" title="Ennyien rendeltek az osztályból">🛒 '+n+'/'+all.length+' rendelt</span>'})()+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn ggh-add-btn" title="Új galéria ebbe a csoportba" onclick="event.stopPropagation();addGalleryToClass(\''+safeKey+'\')">➕ Új galéria ide</button><button class="btn btn-outline btn-sm ggh-pdf-btn ggh-link-btn" title="Egy már meglévő galériát is ebbe a csoportba tesz (nem másolja)" onclick="event.stopPropagation();addExistingGalleryToClass(\''+safeKey+'\')">🔗 Meglévő galéria ide</button><button class="btn btn-outline btn-sm ggh-pdf-btn ggh-rename-btn" title="Csoport átnevezése" onclick="event.stopPropagation();renameGalleryClass(\''+safeKey+'\')">✏️ Átnevezés</button><button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
+        html+='<div class="gallery-group-heading ggh-toggle'+(open?"":" ggh-closed")+'" title="'+(open?"Kattints a becsukáshoz":"Kattints a kinyitáshoz")+'" onclick="toggleGalleryClass(\''+safeKey+'\')"><span><span class="ggh-arrow">'+(open?"▾":"▸")+'</span>🎓 '+key.replace(/</g,"&lt;")+'</span><span class="ggh-count">'+items.length+' fő</span>'+(function(){const all=_projGalleries().filter(x=>_inClass(x,key)&&!x.isGroup);const n=all.filter(x=>{const sc=_classSince(x,key);return sc?_orderCountSince(x,sc)>0:ordCnt[x.id]>0}).length;return '<span class="ggh-count ggh-ordered" title="Ennyien rendeltek az osztályból">🛒 '+n+'/'+all.length+' rendelt</span>'})()+_plGroupBadge(items)+'<button class="btn btn-outline btn-sm ggh-pdf-btn ggh-add-btn" title="Új galéria ebbe a csoportba" onclick="event.stopPropagation();addGalleryToClass(\''+safeKey+'\')">➕ Új galéria ide</button><button class="btn btn-outline btn-sm ggh-pdf-btn ggh-link-btn" title="Egy már meglévő galériát is ebbe a csoportba tesz (nem másolja)" onclick="event.stopPropagation();addExistingGalleryToClass(\''+safeKey+'\')">🔗 Meglévő galéria ide</button><button class="btn btn-outline btn-sm ggh-pdf-btn ggh-rename-btn" title="Csoport átnevezése" onclick="event.stopPropagation();renameGalleryClass(\''+safeKey+'\')">✏️ Átnevezés</button><button class="btn btn-outline btn-sm ggh-pdf-btn" onclick="event.stopPropagation();showClassCodes(\''+safeKey+'\')">📄 Belépési útmutató (PDF)</button></div>';
         if(open)html+=items.map(g=>cardHtml(g,key)).join("");
       }
     });
@@ -10098,7 +10110,7 @@ async function renameGalleryClass(safeKey){
   if(nv===old)return;
   if(keys.includes(nv)&&!confirm("Már van „"+nv+"” nevű csoport. Összevonjam vele?"))return;
   try{
-    const ups=list.map(g=>{if(g.bulkClass!==old){return [g,{extraClasses:(g.extraClasses||[]).map(c=>c===old?nv:c)}]}const u={bulkClass:nv};const tail=" – "+old;if(g.name&&g.name.includes(tail))u.name=g.name.replace(tail," – "+nv).replace(/ (\d{4}) \1$/," $1");return [g,u]});
+    const ups=list.map(g=>{if(g.bulkClass!==old){const at=Object.assign({},g.extraClassAddedAt||{});if(at[old]){at[nv]=at[old];delete at[old]}return [g,{extraClasses:(g.extraClasses||[]).map(c=>c===old?nv:c),extraClassAddedAt:at}]}const u={bulkClass:nv};const tail=" – "+old;if(g.name&&g.name.includes(tail))u.name=g.name.replace(tail," – "+nv).replace(/ (\d{4}) \1$/," $1");return [g,u]});
     for(let i=0;i<ups.length;i+=400){const batch=db.batch();ups.slice(i,i+400).forEach(([g,u])=>batch.update(db.collection("galleries").doc(g.id),u));await batch.commit()}
     ups.forEach(([g,u])=>Object.assign(g,u));
     try{const set=_loadOpenClasses();if(set.has(old)){set.delete(old);set.add(nv);_saveOpenClasses()}}catch(e){}
