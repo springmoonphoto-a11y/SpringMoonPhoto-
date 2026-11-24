@@ -2192,6 +2192,7 @@ function renderPricesEditor(){
   html+='<p style="font-size:.8rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Az <strong>Alap árlista</strong> érvényes minden galériára, amelyhez nem rendelsz mást. Ha egy iskolának, osztálynak vagy családnak más árat adnál, hozz létre külön árlistát, és lent rendeld hozzá a galériákhoz.</p>';
   html+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:.86rem;font-weight:600">Most ezt szerkeszted:</span><select id="price-list-select" class="pl-select" style="flex:1;min-width:170px" onchange="switchPriceList(this.value)">'+_plOptions(_priceEditId)+'</select></div>';
   html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-outline btn-sm" onclick="createPriceList()">+ Új árlista</button>';
+  Object.keys(PRICE_PRESETS).forEach(k=>{const pr=PRICE_PRESETS[k];if(!PRICE_LISTS.some(x=>(x.name||"").toLowerCase()===pr.name.toLowerCase()))html+='<button class="btn btn-outline btn-sm" onclick="createPriceListFromPreset(\''+k+'\')">'+pr.icon+' '+_pcEsc(pr.name)+' létrehozása</button>'});
   if(_priceEditId)html+='<button class="btn btn-outline btn-sm" onclick="renamePriceList()">✏️ Átnevezés</button><button class="btn btn-outline btn-sm" style="color:#c0392b;border-color:#c0392b" onclick="deletePriceList()">🗑️ Törlés</button>';
   html+='</div>';
   if(_priceEditId){const n=galleries.filter(g=>g.priceListId===_priceEditId).length;html+='<div style="font-size:.8rem;color:var(--muted);margin-top:10px">Ezt az árlistát jelenleg <strong id="price-list-usage">'+n+' galéria</strong> használja.</div>'}
@@ -2235,6 +2236,19 @@ function switchPriceList(id){
 }
 async function _savePriceListsDoc(){
   await db.collection("photographers").doc(currentUser.uid).update({priceLists:JSON.parse(JSON.stringify(PRICE_LISTS))});
+}
+// Kész árlista-minták (egy gombnyomással létrehozhatók, utána szabadon szerkeszthetők)
+const PRICE_PRESETS={
+  karacsony2026:{icon:"🎄",name:"Karácsony 2026",printSizes:[{id:"10x15",label:"10\u00d715 cm",price:1500},{id:"13x18",label:"13\u00d718 cm",price:1500}],digitalPrice:2000,comboDiscount:0,
+    giftItems:[{id:"magnet",label:"\ud83e\uddf2 H\u0171t\u0151m\u00e1gnes",price:2000},{id:"keychain",label:"\ud83d\udd11 Kulcstart\u00f3",price:1500},{id:"mug",label:"\u2615 B\u00f6gre (felirattal is)",price:5500}]}
+};
+async function createPriceListFromPreset(key){
+  const pr=PRICE_PRESETS[key];if(!pr)return;
+  if(PRICE_LISTS.some(x=>(x.name||"").toLowerCase()===pr.name.toLowerCase())){alert("Ilyen nevű árlista már van.");return}
+  const pl=Object.assign({id:"pl"+Date.now(),name:pr.name},_normPrices(JSON.parse(JSON.stringify({printSizes:pr.printSizes,digitalPrice:pr.digitalPrice,giftItems:pr.giftItems,comboDiscount:pr.comboDiscount}))));
+  PRICE_LISTS.push(pl);
+  try{await _savePriceListsDoc();_priceEditId=pl.id;renderPricesEditor();showToast("✓ Új árlista: "+pr.name)}
+  catch(e){PRICE_LISTS=PRICE_LISTS.filter(x=>x.id!==pl.id);alert("Nem sikerült létrehozni az árlistát. Próbáld újra.")}
 }
 async function createPriceList(){
   const raw=prompt("Az új árlista neve (pl. Szent István iskola – engedményes):");
