@@ -1967,7 +1967,6 @@ let ENABLED_PRODUCTS={print:true,digital:true,gift:true};
 let WATERMARK_CONFIG={enabled:true,text:"SpringMoonPhoto\nMINTA"};
 let selectedGift=null;
 let socialConsent=null;
-const ADMIN_PASSWORD="admin2025";
 const STATUS_LABELS={pending:"\u23f3 F\u00fcgg\u0151ben",digital:"&#128231; Digit\u00e1lis elk\u00fcldve",printing:"&#128424;&#65039; Nyomtat\u00e1s alatt",delivered:"&#9989; Pap\u00edrkép \u00e1tadva",paid:"&#128176; Fizetve",completed:"&#11088; Teljes\u00edtve"};
 const STATUS_CLASSES={pending:"status-pending",digital:"status-digital",printing:"status-printing",delivered:"status-delivered",paid:"status-paid",completed:"status-completed"};
 let galleries=[],orders=[],currentGallery=null,cart=[];
@@ -5016,7 +5015,8 @@ async function placeOrder(){
     if(!currentGallery.isGroup)cart.forEach(i=>{if(i.type==="digital")_photoKeys(i.photo).forEach(k=>_ownedDigital.add(k))});
     cb.innerHTML=buttons;cart=[];saveCart();updateCartUI();clearDiscount();
     hide("cart-items");hide("cart-total-box");hide("order-btn");hide("back-btn");hide("discount-box");show("cart-success");
-    const os=await db.collection("orders").orderBy("createdAt","desc").get();orders=os.docs.map(d=>({id:d.id,...d.data()}));
+    // Csak bejelentkezett fotósnál frissítjük a rendeléslistát, és csak a saját rendeléseivel (a szülő böngészője ne töltse le mások rendeléseit)
+    if(currentUser&&currentUser.uid){try{const os=await db.collection("orders").where("photographerId","==",currentUser.uid).get();orders=os.docs.map(d=>({id:d.id,...d.data()}))}catch(e){}}
   }catch(e){btn.textContent="Rendelés leadása →";btn.disabled=false;btn.classList.remove("btn-loading");throw e}
 }
 
