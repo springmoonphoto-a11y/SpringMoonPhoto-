@@ -396,6 +396,10 @@ body.dark-mode .reminder-card-title,body.dark-mode .reminder-card-text{color:#f5
 .guide-first-banner{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--white);border:1.5px solid var(--gold);border-radius:12px;padding:10px 14px;margin:0 0 14px;font-size:.88rem}
 .guide-login-link{text-align:center;margin:12px 0 4px}.guide-login-link button{background:none;border:none;color:var(--gold);text-decoration:underline;cursor:pointer;font:inherit;font-size:.9rem}
 .gal-extra-note{font-size:.74rem;color:var(--muted);margin:1px 0 3px}.gal-extra-note a{color:var(--gold)}
+.photo-session-head{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:'Playfair Display',serif;font-size:1.05rem;color:var(--brown);margin:14px 0 2px;padding-bottom:6px;border-bottom:1.5px solid var(--warm)}
+.photo-session-head:first-child{margin-top:0}
+.psh-n{font-family:inherit;font-size:.78rem;color:var(--muted)}
+.psh-new{font-family:'DM Sans',sans-serif;font-size:.68rem;font-weight:700;letter-spacing:.5px;background:#c62828;color:#fff;border-radius:10px;padding:2px 8px}
 .pkg-banner{background:linear-gradient(135deg,#eef8f0,#d9f2e1);border:2px solid #5fb67f;border-radius:12px;padding:12px 16px;margin:0 0 14px;color:#1f5a35;font-size:.88rem;line-height:1.55}
 .pkg-banner strong{display:block;margin-bottom:3px;font-family:'Playfair Display',serif;font-size:1rem}
 .order-sizes{display:flex;flex-wrap:wrap;gap:5px;margin:3px 0 4px}
@@ -4034,7 +4038,9 @@ function renderGallery(){
     if(daysLeft<=7&&daysLeft>0){expBanner.innerHTML="⏰ Figyelem! Ez a galéria <strong>"+daysLeft+" nap</strong> múlva lejár ("+new Date(currentGallery.expiresAt).toLocaleDateString("hu-HU")+"). Rendeljen még a határidőn belül!";expBanner.style.display="block"}else{expBanner.style.display="none"}
   }else if(expBanner){expBanner.style.display="none"}
   const grid=document.getElementById("photo-grid");grid.innerHTML="";
-  let allPhotos=currentGallery.photos||[];
+  let allPhotos=_orderedPhotos(currentGallery,currentGallery.photos||[]);
+  const _sessHead={};
+  if(_galleryView!=="download"){const ss=_photoSessions(currentGallery,currentGallery.photos||[]);if(ss.length>1)ss.forEach((x,k)=>{const f=x.items[0];if(f)_sessHead[f.p.id]={label:x.label,n:x.items.length,newest:k===0}})}
   // Chat panel inicializálása (szülő ↔ fotós)
   initParentChat();
   // "Letölthető" nézet: a fotós által feltöltött Letöltések mappa képei
@@ -4055,7 +4061,15 @@ function renderGallery(){
   }
   if(_galleryView==="download"&&photos.length===0){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:10px">📥</div><p>Még nincs letölthető kép.</p></div>';updateCartUI();return}
   if(showingFavoritesOnly&&photos.length===0){grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:2.5rem;margin-bottom:10px">🤍</div><p style="margin-bottom:18px">Még nincs kedvenc képed.<br>Koppints a szívre a képeken!</p><button class="btn btn-outline" style="width:auto;padding:10px 24px" onclick="toggleFavView()">← Vissza az összes képhez</button></div>';updateCartUI();return}
+  const _firstShownOfSession=new Set();
+  if(Object.keys(_sessHead).length){
+    // kedvencek szűrésnél is a fotózás első LÁTHATÓ képe elé kerül a fejléc
+    const ss=_photoSessions(currentGallery,currentGallery.photos||[]);const shownIds=new Set(photos.map(p=>p.id));
+    ss.forEach(x=>{const f=x.items.find(y=>shownIds.has(y.p.id));if(f)_firstShownOfSession.add(f.p.id+"|"+x.label+"|"+x.items.length+"|"+(ss.indexOf(x)===0?1:0))});
+  }
+  const _headFor={};_firstShownOfSession.forEach(k=>{const [id,label,n,nw]=k.split("|");_headFor[id]={label,n,newest:nw==="1"}});
   photos.forEach((photo)=>{
+    if(_headFor[photo.id]){const h=_headFor[photo.id];const hd=document.createElement("div");hd.className="photo-session-head";hd.innerHTML=(h.newest?'<span class="psh-new">ÚJ</span> ':'')+'📸 '+_pcEsc(h.label)+' <span class="psh-n">'+h.n+' kép</span>';grid.appendChild(hd)}
     const realIdx=allPhotos.indexOf(photo);const div=document.createElement("div");
     const isSelected=multiSelectedIds.has(photo.id);
     div.className="photo-card"+(isSelected?" photo-selected":"");
@@ -4082,10 +4096,29 @@ function renderGallery(){
   updateMultiSelectBar();
 }
 
+// === FOTÓZÁSOK SZÉTVÁLASZTÁSA egy galérián belül: a képek feltöltési ideje szerint csoportosítva, a legújabb elöl ===
+function _photoTs(p){if(!p)return 0;if(Number(p.addedAt))return Number(p.addedAt);const m=String(p.id||"").match(/^p(\d{13})/);return m?Number(m[1]):0}
+function _photoSessions(g,photos){
+  const GAP=8*3600*1000;
+  const items=(photos||[]).map((p,i)=>({p,i,t:_photoTs(p)}));
+  const sorted=items.slice().sort((a,b)=>a.t-b.t||a.i-b.i);
+  const sess=[];let cur=null;
+  sorted.forEach(x=>{if(!cur||(x.t-cur.last)>GAP&&!(x.t===0&&cur.last===0)){cur={start:x.t,last:x.t,items:[]};sess.push(cur)}cur.items.push(x);cur.last=x.t});
+  // a fotózás neve: az a csoport, amelyikbe a galéria a feltöltés idején került
+  const marks=[{c:g&&g.bulkClass||"",t:0}];const at=(g&&g.extraClassAddedAt)||{};Object.keys(at).forEach(c=>marks.push({c,t:Number(at[c])||0}));marks.sort((a,b)=>a.t-b.t);
+  sess.forEach((s2,k)=>{
+    let cls="";marks.forEach(m=>{if(m.t<=s2.start+24*3600*1000)cls=m.c});
+    const d=s2.start?new Date(s2.start).toLocaleDateString("hu-HU",{year:"numeric",month:"long",day:"numeric"}):"";
+    s2.label=(cls?cls:(k===0?"Korábbi képek":"Fotózás"))+(d?" · "+d:"");
+    s2.items.sort((a,b)=>a.i-b.i);
+  });
+  return sess.reverse();// legújabb elöl
+}
+function _orderedPhotos(g,photos){const ss=_photoSessions(g,photos);return ss.length>1?[].concat(...ss.map(x=>x.items.map(y=>y.p))):(photos||[])}
 function _lightboxPhotos(){
   // Letölthető nézetben a letöltési képek, egyébként a normál képek
   if(_galleryView==="download"&&(currentGallery.downloadPhotos||[]).length>0)return currentGallery.downloadPhotos||[];
-  return currentGallery.photos||[];
+  return _orderedPhotos(currentGallery,currentGallery.photos||[]);
 }
 function openLightbox(idx){
   const photos=_lightboxPhotos();lightboxIndex=(typeof idx==="number")?idx:photos.findIndex(p=>p.id===idx.id);if(lightboxIndex<0)lightboxIndex=0;renderLightbox();show("lightbox");
@@ -9153,7 +9186,17 @@ function renderDetailPhotos(){
     grid.innerHTML=filterBar+bulkBar+'<div class="empty-state" style="grid-column:1/-1"><span class="empty-state-icon">🔍</span><div class="empty-state-text">Nincs ilyen kép.</div></div>';
     return;
   }
-  grid.innerHTML=filterBar+bulkBar+shown.map(({p,i},shownIdx)=>{
+  // Fotózásonként (feltöltési idő szerint) csoportosítva, a legújabb elöl
+  const _hd={};
+  if(!isDownloadTab){
+    const ss=_photoSessions(currentDetailGallery,photos);
+    if(ss.length>1){
+      const rank={};ss.forEach((x,k)=>x.items.forEach(y=>{rank[y.i]=k}));
+      shown.sort((a,b)=>(rank[a.i]-rank[b.i])||(a.i-b.i));
+      const seen=new Set();shown.forEach(x=>{const k=rank[x.i];if(!seen.has(k)){seen.add(k);_hd[x.i]=(k===0?'<span class="psh-new">ÚJ</span> ':'')+'📸 '+_pcEsc(ss[k].label)+' <span class="psh-n">'+ss[k].items.length+' kép</span>'}});
+    }
+  }
+  grid.innerHTML=filterBar+bulkBar+shown.map(({p,i},shownIdx)=>(_hd[i]!=null?'<div class="photo-session-head">'+_hd[i]+'</div>':'')+(()=>{
     const ord=orderedMap[p.name];
     const isSel=_selectedPhotos.has(p.name);
     let badge="";
@@ -9176,7 +9219,7 @@ function renderDetailPhotos(){
         +'</select>';
     }
     return '<div class="admin-photo-card'+(ord?" ordered":"")+(isSel?" selected":"")+'" data-name="'+safeName+'"><img src="'+lowQ(p.url)+'" alt="'+p.name+'" loading="lazy" style="cursor:zoom-in" onclick="openAdminImgFromGrid('+shownIdx+')">'+badge+favMark+'<input type="checkbox" class="photo-select" '+(isSel?"checked":"")+' onchange="event.stopPropagation();togglePhotoSelect(\''+jsName+'\',this.checked)" title="Kijelölés"><button class="replace-photo-btn" onclick="event.stopPropagation();document.getElementById(\'replace-file-'+i+'\').click()" title="Kép cseréje (a név marad)">🔄</button><input type="file" id="replace-file-'+i+'" accept="image/*" style="display:none" onchange="replacePhoto('+i+',this.files[0])"><button class="delete-photo-btn" onclick="event.stopPropagation();deletePhoto('+i+')">&#128465;&#65039;</button><div class="photo-label">'+p.name+'</div>'+restrictHtml+'</div>';
-  }).join("");
+  })()).join("");
   // A jelenleg szűrve látszó képek listája a nagyító lapozásához
   _detailShownPhotos=shown.map(({p})=>({id:p.id,url:p.url,name:p.name}));
   updateBulkBar();
