@@ -8866,7 +8866,10 @@ function renderAdminGalleryList(){
   }
   const cardHtml=(g,_inKey)=>{
     const _since=_classSince(g,_inKey);
-    const thumbs=g.photos&&g.photos.length>0?g.photos.slice(0,2).map(p=>'<img src="'+lowQ(p.url)+'" alt="" loading="lazy">').join(""):'<div class="no-photo">&#128247;</div>';
+    const _thPh=(()=>{const ph=g.photos||[];if(ph.length<2)return ph;const ss=_photoSessions(g,ph);if(ss.length<2)return ph;
+      // a csoportnak megfelelő fotózás képei; ha nincs ilyen, a legutóbb feltöltöttek
+      const m=_inKey?ss.find(x=>x.label===_inKey||x.label.startsWith(_inKey+" · ")):null;return (m||ss[0]).items.map(y=>y.p)})();
+    const thumbs=_thPh.length>0?_thPh.slice(0,2).map(p=>'<img src="'+lowQ(p.url)+'" alt="" loading="lazy">').join(""):'<div class="no-photo">&#128247;</div>';
     let dl=_downloadsByGallery[g.id];if(dl&&_since&&(Number(dl.lastAt)||0)<_since)dl=null;
     let dlBadge="";
     if(g.downloadEnabled===true){
